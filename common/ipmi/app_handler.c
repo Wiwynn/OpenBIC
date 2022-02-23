@@ -160,7 +160,7 @@ __weak void APP_MASTER_WRITE_READ(ipmi_msg *msg)
 
 	// should ignore bit0, all bus public
 	bus_7bit = msg->data[0] >> 1;
-	if (bus_7bit >= I2C_BUS_NUM) {
+	if (bus_7bit >= I2C_BUS_MAX_NUM) {
 		printf("Accessing invalid bus with IPMI master write read\n");
 		msg->completion_code = CC_PARAM_OUT_OF_RANGE;
 		return;

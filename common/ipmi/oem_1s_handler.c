@@ -38,8 +38,8 @@ __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 	target_IF = msg->data[0];
 
 	// Bridge to invalid or disabled interface
-	if ((IPMB_config_table[IPMB_inf_index_map[target_IF]].Inf == Reserve_IFs) ||
-	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].EnStatus == Disable)) {
+	if ((IPMB_config_table[IPMB_inf_index_map[target_IF]].interface == RESERVED_IF) ||
+	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].enable_status == DISABLE)) {
 		printf("OEM_MSG_OUT: Invalid bridge interface: %x\n", target_IF);
 		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
 	}
@@ -71,7 +71,7 @@ __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 
 			status = ipmb_send_request(bridge_msg, IPMB_inf_index_map[target_IF]);
 
-			if (status != ipmb_error_success) {
+			if (status != IPMB_ERROR_SUCCESS) {
 				printf("OEM_MSG_OUT send IPMB req fail status: %x", status);
 				msg->completion_code = CC_BRIDGE_MSG_ERR;
 			}
@@ -83,7 +83,7 @@ __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 	if (msg->completion_code != CC_SUCCESS) {
 		msg->data_len = 0;
 		status = ipmb_send_response(msg, IPMB_inf_index_map[msg->InF_source]);
-		if (status != ipmb_error_success) {
+		if (status != IPMB_ERROR_SUCCESS) {
 			printf("OEM_MSG_OUT send IPMB resp fail status: %x", status);
 		}
 	}
@@ -263,13 +263,13 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		}
 		bridge_msg->data_len = 0;
 		bridge_msg->seq_source = 0xff;
-		bridge_msg->InF_source = Self_IFs;
-		bridge_msg->InF_target = ME_IPMB_IFs;
+		bridge_msg->InF_source = SELF;
+		bridge_msg->InF_target = ME_IPMB;
 		bridge_msg->netfn = NETFN_APP_REQ;
 		bridge_msg->cmd = CMD_APP_GET_DEVICE_ID;
 
 		status = ipmb_read(bridge_msg, IPMB_inf_index_map[bridge_msg->InF_target]);
-		if (status != ipmb_error_success) {
+		if (status != IPMB_ERROR_SUCCESS) {
 			printf("ipmb read fail status: %x", status);
 			free(bridge_msg);
 			msg->completion_code = CC_BRIDGE_MSG_ERR;
@@ -769,8 +769,8 @@ void send_gpio_interrupt(uint8_t gpio_num)
 	gpio_val = gpio_get(gpio_num);
 
 	msg.data_len = 5;
-	msg.InF_source = Self_IFs;
-	msg.InF_target = BMC_IPMB_IFs;
+	msg.InF_source = SELF;
+	msg.InF_target = BMC_IPMB;
 	msg.netfn = NETFN_OEM_1S_REQ;
 	msg.cmd = CMD_OEM_1S_SEND_INTERRUPT_TO_BMC;
 
@@ -781,9 +781,9 @@ void send_gpio_interrupt(uint8_t gpio_num)
 	msg.data[4] = gpio_val;
 
 	status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
-	if (status == ipmb_error_failure) {
+	if (status == IPMB_ERROR_FAILURE) {
 		printf("Fail to post msg to txqueue for gpio %d interrupt\n", gpio_num);
-	} else if (status == ipmb_error_get_messageQueue) {
+	} else if (status == IPMB_ERROR_GET_MESSAGE_QUEUE) {
 		printf("No response from bmc for gpio %d interrupt\n", gpio_num);
 	}
 }
