@@ -66,7 +66,7 @@ void init_platform_config()
 			printf("Read expansion present from CPLD error\n");
 		}
 	}
-	printk("bic class type : %d  1ou present status : %d  2ou present status : %d\n",
+	printf("bic class type : %d  1ou present status : %d  2ou present status : %d\n",
 	       bic_class + 1, is_1ou_present, is_2ou_present);
 
 	if (is_2ou_present) {

@@ -11,10 +11,10 @@ RING_BUF_DECLARE(ringbuf, RING_BUF_SIZE);
 static struct k_sem usbhandle_sem;
 static const struct device *dev;
 
-struct k_thread USB_handler;
-K_KERNEL_STACK_MEMBER(USB_handler_stack, USB_HANDLER_STACK_SIZE);
+struct k_thread usb_thread;
+K_KERNEL_STACK_MEMBER(usb_handler_stack, USB_HANDLER_STACK_SIZE);
 
-void usb_handler(uint8_t *rx_buff, int rx_len)
+void handle_usb_data(uint8_t *rx_buff, int rx_len)
 {
 	uint16_t record_offset;
 	static ipmi_msg_cfg current_msg;
@@ -23,7 +23,7 @@ void usb_handler(uint8_t *rx_buff, int rx_len)
 	static uint16_t fwupdate_data_len = 0;
 
 	if (DEBUG_USB) {
-		printk("USB: len %d, req: %x %x ID: %x %x %x target: %x offset: %x %x %x %x len: %x %x\n",
+		printf("USB: len %d, req: %x %x ID: %x %x %x target: %x offset: %x %x %x %x len: %x %x\n",
 		       rx_len, rx_buff[0], rx_buff[1], rx_buff[2], rx_buff[3], rx_buff[4],
 		       rx_buff[5], rx_buff[6], rx_buff[7], rx_buff[8], rx_buff[9], rx_buff[10],
 		       rx_buff[11]);
@@ -38,7 +38,7 @@ void usb_handler(uint8_t *rx_buff, int rx_len)
 
 	if (fwupdate_keep_data) {
 		if ((keep_data_len + rx_len) > IPMI_DATA_MAX_LENGTH) {
-			printk("usb fw update recv data over ipmi buff size %d, keep %d, recv %d\n",
+			printf("usb fw update recv data over ipmi buff size %d, keep %d, recv %d\n",
 			       IPMI_DATA_MAX_LENGTH, keep_data_len, rx_len);
 			keep_data_len = 0;
 			fwupdate_keep_data = false;
@@ -82,7 +82,7 @@ void usb_handler(uint8_t *rx_buff, int rx_len)
 	return;
 }
 
-void USB_write(ipmi_msg *ipmi_resp)
+void usb_write_by_ipmi(ipmi_msg *ipmi_resp)
 {
 	uint8_t tx_buf[RX_BUFF_SIZE];
 	struct ipmi_response *resp = (struct ipmi_response *)tx_buf;
@@ -91,16 +91,16 @@ void USB_write(ipmi_msg *ipmi_resp)
 
 	if (DEBUG_USB) {
 		int i;
-		printk("usb resp: %x %x %x, ", resp->netfn, resp->cmd, resp->cmplt_code);
+		printf("usb resp: %x %x %x, ", resp->netfn, resp->cmd, resp->cmplt_code);
 		for (i = 0; i < ipmi_resp->data_len; i++)
-			printk("0x%x ", resp->data[i]);
-		printk("\n");
+			printf("0x%x ", resp->data[i]);
+		printf("\n");
 	}
 	uart_fifo_fill(dev, tx_buf,
 		       ipmi_resp->data_len + 3); // return netfn + cmd + comltcode + data
 }
 
-static void USB_handle(void *arug0, void *arug1, void *arug2)
+static void usb_handler(void *arug0, void *arug1, void *arug2)
 {
 	uint8_t rx_buff[RX_BUFF_SIZE];
 	int rx_len;
@@ -115,12 +115,12 @@ static void USB_handle(void *arug0, void *arug1, void *arug2)
 		}
 
 		if (DEBUG_USB) {
-			printk("Print Data: ");
+			printf("Print Data: ");
 			for (i = 0; i < rx_len; i++)
-				printk("0x%x ", rx_buff[i]);
-			printk("\n");
+				printf("0x%x ", rx_buff[i]);
+			printf("\n");
 		}
-		usb_handler(rx_buff, rx_len);
+		handle_usb_data(rx_buff, rx_len);
 	}
 }
 
@@ -137,7 +137,7 @@ static void interrupt_handler(const struct device *dev, void *user_data)
 		if (recv_len) {
 			rx_len = ring_buf_put(&ringbuf, rx_buff, recv_len);
 			if (rx_len < recv_len) {
-				printk("Drop %u bytes\n", recv_len - rx_len);
+				printf("Drop %u bytes\n", recv_len - rx_len);
 			} else {
 				k_sem_give(&usbhandle_sem);
 			}
@@ -151,13 +151,13 @@ void usb_dev_init(void)
 
 	ret = usb_enable(NULL);
 	if (ret) {
-		printk("Failed to enable USB");
+		printf("Failed to enable USB");
 		return;
 	}
 
 	dev = device_get_binding("CDC_ACM_0");
 	if (!dev) {
-		printk("CDC ACM device not found");
+		printf("CDC ACM device not found");
 		return;
 	}
 
@@ -166,9 +166,9 @@ void usb_dev_init(void)
 	/* Enable rx interrupts */
 	uart_irq_rx_enable(dev);
 
-	k_thread_create(&USB_handler, USB_handler_stack, K_THREAD_STACK_SIZEOF(USB_handler_stack),
-			USB_handle, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
-	k_thread_name_set(&USB_handler, "USB_handler");
+	k_thread_create(&usb_thread, usb_handler_stack, K_THREAD_STACK_SIZEOF(usb_handler_stack),
+			usb_handler, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+	k_thread_name_set(&usb_thread, "USB_handler");
 
 	uint8_t init_sem_count = RING_BUF_SIZE / RX_BUFF_SIZE;
 	k_sem_init(&usbhandle_sem, 0, init_sem_count);

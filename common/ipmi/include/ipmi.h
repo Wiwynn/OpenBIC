@@ -50,7 +50,7 @@ bool pal_request_msg_to_BIC_from_ME(uint8_t netfn, uint8_t cmd);
 bool pal_is_not_return_cmd(uint8_t netfn, uint8_t cmd);
 
 void ipmi_init(void);
-ipmi_error IPMI_handler(void *arug0, void *arug1, void *arug2);
+void IPMI_handler(void *arug0, void *arug1, void *arug2);
 
 enum {
 	/* generic completion codes 00h, C0h-FFh */
@@ -146,6 +146,11 @@ enum {
 	CMD_STORAGE_RSV_SEL = 0x42,
 	CMD_STORAGE_GET_SEL = 0x43,
 	CMD_STORAGE_ADD_SEL = 0x44,
+};
+
+// OEM NM Command Codes (0x2E)
+enum {
+	CMD_OEM_NM_FORCE_ME_RECOVERY = 0xDF,
 };
 
 // OEM Command Codes (0x30)
