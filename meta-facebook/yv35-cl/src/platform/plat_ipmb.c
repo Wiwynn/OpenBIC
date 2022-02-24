@@ -55,5 +55,5 @@ bool pal_load_ipmb_config(void)
 	}
 
 	memcpy(&IPMB_config_table[0], &pal_IPMB_config_table[0], sizeof(pal_IPMB_config_table));
-	return 1;
+	return true;
 };
