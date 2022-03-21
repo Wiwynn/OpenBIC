@@ -178,3 +178,12 @@ bool VR_access(uint8_t sensor_num)
 		return false;
 	}
 }
+
+bool ME_access(uint8_t sensor_num)
+{
+	if (get_ME_status() == ME_NORMAL_STATUS) {
+		return post_access(sensor_num);
+	} else {
+		return false;
+	}
+}

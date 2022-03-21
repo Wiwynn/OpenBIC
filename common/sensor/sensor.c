@@ -15,6 +15,11 @@
 
 #define SENSOR_READ_RETRY_MAX 3
 
+enum {
+	ACCESS_CHECK_PASS = true,
+	ACCESS_CHECK_FAIL = false,
+};
+
 struct k_thread sensor_poll;
 K_KERNEL_STACK_MEMBER(sensor_poll_stack, sensor_poll_stack_size);
 
@@ -98,20 +103,12 @@ bool access_check(uint8_t sensor_num)
 	return (access_checker)(sensor_config[SensorNum_SensorCfg_map[sensor_num]].num);
 }
 
-void clear_unaccessible_sensor_cache()
+void clear_unaccessible_sensor_cache(uint8_t sensor_num)
 {
-	uint8_t poll_num;
-
-	for (poll_num = 0; poll_num < SENSOR_NUM_MAX; poll_num++) {
-		if (SensorNum_SensorCfg_map[poll_num] == sensor_null) { // sensor not exist
-			continue;
-		}
-
-		if (!access_check(poll_num)) {
-			sensor_config[SensorNum_SensorCfg_map[poll_num]].cache = sensor_fail;
-			sensor_config[SensorNum_SensorCfg_map[poll_num]].cache_status =
-				SENSOR_INIT_STATUS;
-		}
+	if (sensor_config[SensorNum_SensorCfg_map[sensor_num]].cache_status != SENSOR_INIT_STATUS) {
+		sensor_config[SensorNum_SensorCfg_map[sensor_num]].cache = sensor_fail;
+		sensor_config[SensorNum_SensorCfg_map[sensor_num]].cache_status =
+			SENSOR_INIT_STATUS;
 	}
 }
 
@@ -121,7 +118,8 @@ uint8_t get_sensor_reading(uint8_t sensor_num, int *reading, uint8_t read_mode)
 		return SENSOR_NOT_FOUND;
 	}
 
-	if (!access_check(sensor_num)) { // sensor not accessable
+	if (access_check(sensor_num) == ACCESS_CHECK_FAIL) { // sensor not accessable
+		clear_unaccessible_sensor_cache(sensor_num);
 		return SENSOR_NOT_ACCESSIBLE;
 	}
 
@@ -141,8 +139,9 @@ uint8_t get_sensor_reading(uint8_t sensor_num, int *reading, uint8_t read_mode)
 
 		if (status == SENSOR_READ_SUCCESS || status == SENSOR_READ_ACUR_SUCCESS) {
 			cfg->retry = 0;
-			if (!access_check(
-				    sensor_num)) { // double check access to avoid not accessible read at same moment status change
+			if (access_check(sensor_num) ==
+			    ACCESS_CHECK_FAIL) { // double check access to avoid not accessible read at same moment status change
+				clear_unaccessible_sensor_cache(sensor_num);
 				return SENSOR_NOT_ACCESSIBLE;
 			}
 
@@ -177,8 +176,8 @@ uint8_t get_sensor_reading(uint8_t sensor_num, int *reading, uint8_t read_mode)
 			else
 				*reading = cfg->cache;
 
-			if (!access_check(
-				    sensor_num)) { // double check access to avoid not accessible read at same moment status change
+			if (access_check(sensor_num) ==
+			    ACCESS_CHECK_FAIL) { // double check access to avoid not accessible read at same moment status change
 				return SENSOR_NOT_ACCESSIBLE;
 			}
 			return cfg->cache_status;

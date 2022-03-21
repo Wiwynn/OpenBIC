@@ -151,7 +151,7 @@ sensor_cfg plat_sensor_config[] = {
 	  &isl69259_pre_read_args[1], NULL, NULL, NULL },
 
 	// ME
-	{ SENSOR_NUM_TEMP_PCH, sensor_dev_pch, i2c_bus3, PCH_addr, PCH_TEMP_SENSOR_NUM, post_access,
+	{ SENSOR_NUM_TEMP_PCH, sensor_dev_pch, i2c_bus3, PCH_addr, PCH_TEMP_SENSOR_NUM, ME_access,
 	  0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
 
 	// HSC

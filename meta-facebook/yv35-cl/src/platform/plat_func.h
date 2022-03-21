@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define ME_RECOVERY_STATUS 0x00
+#define ME_NORMAL_STATUS 0x01
+#define ME_INIT_STATUS 0xFF
+
 void ISR_usbhub();
 void ISR_pltrst();
 void ISR_slp3();
@@ -49,4 +53,5 @@ void disable_PRDY_interrupt();
 void set_ME_restore();
 void pal_warm_reset_prepare();
 void submit_bmc_warm_reset();
+uint8_t get_ME_status();
 #endif
