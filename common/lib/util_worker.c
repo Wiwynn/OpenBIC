@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "util_worker.h"
 #include "cmsis_os2.h"
+#include "libutil.h"
 
 #define WORKER_STACK_SIZE 10000
 #define WORKER_PRIORITY osPriorityBelowNormal
@@ -47,13 +48,13 @@ static void work_handler(struct k_work *item)
 	}
 	if (k_mutex_lock(&mutex_use_count, K_MSEC(1000))) {
 		printf("work_handler mutex lock fail\n");
-		free(work_job);
+		SAFE_FREE(work_job);
 		return;
 	}
 	work_count--;
 	k_mutex_unlock(&mutex_use_count);
 
-	free(work_job);
+	SAFE_FREE(work_job);
 }
 
 /* Get number of works in worker now.
@@ -99,7 +100,7 @@ int add_work(worker_job *job)
 
 	if (k_mutex_lock(&mutex_use_count, K_MSEC(1000))) {
 		printf("add_work mutex lock fail\n");
-		free(new_job);
+		SAFE_FREE(new_job);
 		return -3;
 	}
 
@@ -124,7 +125,7 @@ int add_work(worker_job *job)
 	return ret;
 
 error:
-	free(new_job);
+	SAFE_FREE(new_job);
 	k_mutex_unlock(&mutex_use_count);
 	return ret;
 }
