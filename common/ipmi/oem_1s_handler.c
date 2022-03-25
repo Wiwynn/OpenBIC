@@ -569,7 +569,7 @@ __weak void OEM_1S_ACCURACY_SENSOR_READING(ipmi_msg *msg)
 	ACCURACY_SENSOR_READING_REQ *req = (ACCURACY_SENSOR_READING_REQ *)msg->data;
 	ACCURACY_SENSOR_READING_RES *res = (ACCURACY_SENSOR_READING_RES *)msg->data;
 	uint8_t status = -1, sensor_report_status;
-	float reading;
+	int reading;
 	if (msg->data_len != 2) {
 		msg->completion_code = CC_INVALID_LENGTH;
 		return;
@@ -591,15 +591,27 @@ __weak void OEM_1S_ACCURACY_SENSOR_READING(ipmi_msg *msg)
 	} else if (req->read_option == GET_FROM_SENSOR) {
 		status = get_sensor_reading(req->sensor_num, &reading, GET_FROM_SENSOR);
 	}
-
 	switch (status) {
 	case SENSOR_READ_SUCCESS:
+	case SENSOR_READ_ACUR_SUCCESS:
 		res->decimal = (int16_t)reading;
 		if (reading < 0) {
 			res->fraction = (uint16_t)((res->decimal - reading + 0.0005) * 1000);
 		} else {
 			res->fraction = (uint16_t)((reading - res->decimal + 0.0005) * 1000);
 		}
+		msg->data[3] = sensor_report_status;
+		msg->data_len = 4;
+		msg->completion_code = CC_SUCCESS;
+		break;
+	case SENSOR_READ_4BYTE_ACUR_SUCCESS:
+		res->decimal = (int32_t)reading;
+		if (reading < 0) {
+			res->fraction = (int32_t)((res->decimal - reading + 0.0005) * 1000);
+		} else {
+			res->fraction = (int32_t)((reading - res->decimal + 0.0005) * 1000);
+		}
+		memcpy(msg->data, &reading, sizeof(reading));
 		msg->data[4] = sensor_report_status;
 		msg->data_len = 5;
 		msg->completion_code = CC_SUCCESS;

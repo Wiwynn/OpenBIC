@@ -1,78 +1,49 @@
-#include "nvme.h"
-
 #include <stdio.h>
-
 #include "sensor.h"
 #include "hal_i2c.h"
 
-#define RETRY 5
+#define NVMe_NOT_AVAILABLE 0x80
+#define NVMe_TMP_SENSOR_FAILURE 0x81
 
-#define NVME_NOT_AVAILABLE 0x80
-#define NVME_TEMP_SENSOR_FAILURE 0x81
-
-bool nvme_read(uint8_t sensor_num, float *reading)
+uint8_t nvme_read(uint8_t sensor_num, int *reading)
 {
-	snr_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
-	static uint8_t not_available_retry_num = 0, drive_notready_retry = 0;
+	if (!reading)
+		return SENSOR_UNSPECIFIED_ERROR;
+
+	uint8_t retry = 5;
 	int val;
 	bool is_drive_ready;
-
 	I2C_MSG msg;
-	msg.bus = cfg->port;
-	msg.slave_addr = cfg->slave_addr;
-	msg.data[0] = cfg->offset;
+
+	msg.bus = sensor_config[sensor_config_index_map[sensor_num]].port;
+	msg.slave_addr = sensor_config[sensor_config_index_map[sensor_num]].slave_addr;
+	msg.data[0] = sensor_config[sensor_config_index_map[sensor_num]].offset;
 	msg.tx_len = 1;
 	msg.rx_len = 4;
-	if (!i2c_master_read(&msg, RETRY)) {
-		// Check SSD drive ready
+
+	if (!i2c_master_read(&msg, retry)) {
+		/* Check SSD drive ready */
 		is_drive_ready = ((msg.data[1] & 0x40) == 0 ? true : false);
-		if (!is_drive_ready) {
-			if (drive_notready_retry >= 3) {
-				cfg->cache_status = SENSOR_NOT_ACCESSIBLE;
-				return false;
-			} else {
-				if (cfg->cache_status == SENSOR_READ_SUCCESS) {
-					drive_notready_retry += 1;
-					return true;
-				} else {
-					cfg->cache_status = SENSOR_FAIL_TO_ACCESS;
-					return false;
-				}
-			}
-		} else {
-			if (drive_notready_retry != 0) {
-				drive_notready_retry = 0;
-			}
-		}
+		if (!is_drive_ready)
+			return SENSOR_NOT_ACCESSIBLE;
 
-		// Check reading value
+		/* Check reading value */
 		val = msg.data[3];
-		if (val == NVME_NOT_AVAILABLE) {
-			if (not_available_retry_num >= 3) {
-				cfg->cache_status = SENSOR_NOT_ACCESSIBLE;
-				return false;
-			} else {
-				not_available_retry_num += 1;
-				if (cfg->cache != 0xFF) {
-					cfg->cache_status = SENSOR_READ_SUCCESS;
-					return true;
-				} else {
-					cfg->cache_status = SENSOR_FAIL_TO_ACCESS;
-					return false;
-				}
-			}
-		} else if (val == NVME_TEMP_SENSOR_FAILURE) {
-			cfg->cache_status = SENSOR_UNSPECIFIED_ERROR;
-			return false;
-		}
-		not_available_retry_num = 0;
-	} else {
-		cfg->cache_status = SENSOR_FAIL_TO_ACCESS;
-		return false;
-	}
+		if (val == NVMe_NOT_AVAILABLE)
+			return SENSOR_FAIL_TO_ACCESS;
+		else if (val == NVMe_TMP_SENSOR_FAILURE)
+			return SENSOR_UNSPECIFIED_ERROR;
+	} else
+		return SENSOR_FAIL_TO_ACCESS;
 
-	*reading = (float)val;
-	cfg->cache = *reading;
-	cfg->cache_status = SENSOR_READ_SUCCESS;
-	return true;
+	sensor_val *sval = (sensor_val *)reading;
+	sval->integer = val & 0xFF;
+
+	return SENSOR_READ_SUCCESS;
+}
+
+uint8_t nvme_init(uint8_t sensor_num)
+{
+	sensor_config[sensor_config_index_map[sensor_num]].read = nvme_read;
+	return SENSOR_INIT_SUCCESS;
 }
