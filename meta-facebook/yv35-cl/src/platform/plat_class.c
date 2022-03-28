@@ -46,6 +46,31 @@ uint8_t get_2ou_cardtype()
 	return card_type_2ou;
 }
 
+float get_hsc_type_adc_voltage()
+{
+	uint32_t adc_base_address = 0x7e6e9000, adc7_raw, reg_val;
+	long unsigned int engine_control = 0x0, adc_data_of_ch7_and_6 = 0x1C;
+	float reference_voltage = 0.0f;
+	uint8_t reference_voltage_selection;
+
+	// Get ADC reference voltage from Aspeed chip
+	reg_val = sys_read32(adc_base_address + engine_control);
+	reference_voltage_selection = (reg_val >> 6) & 0x3;
+	if (reference_voltage_selection == 0b00) {
+		reference_voltage = 2.5;
+	} else if (reference_voltage_selection == 0b01) {
+		reference_voltage = 1.2;
+	} else {
+		printf("Not supported the externel external reference voltage\n");
+	}
+
+	// Read ADC channel-7 raw value
+	reg_val = sys_read32(adc_base_address + adc_data_of_ch7_and_6);
+	adc7_raw = (reg_val & 0x3FF0000) >> 16;
+
+	return ((adc7_raw * reference_voltage) / (2 ^ 10));
+}
+
 void init_platform_config()
 {
 	I2C_MSG i2c_msg;

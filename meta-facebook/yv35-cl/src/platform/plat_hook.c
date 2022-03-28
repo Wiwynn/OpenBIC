@@ -20,6 +20,7 @@ mp5990_init_arg mp5990_init_args[] = {
 	[0] = { .is_init = false, .iout_cal_gain = 0x0104, .iout_oc_fault_limit = 0x0028 },
 	[1] = { .is_init = false, .iout_cal_gain = 0x01BF, .iout_oc_fault_limit = 0x0046 }
 };
+ltc4286_init_arg ltc4286_init_args[] = { [0] = { .is_init = false, .r_sense = 0.25 } };
 
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
