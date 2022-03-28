@@ -25,6 +25,10 @@ mp5990_init_arg mp5990_init_args[] = {
 	[0] = { .is_init = false, .iout_cal_gain = 0x0104, .iout_oc_fault_limit = 0x0028 },
 	[1] = { .is_init = false, .iout_cal_gain = 0x01BF, .iout_oc_fault_limit = 0x0046 }
 };
+ltc4286_init_arg ltc4286_init_args[] = {
+	[0] = { .is_init = false, .r_sense = 0.25, .mfr_config_1 = 0x1570},
+	[1] = { .is_init = false, .r_sense = 0.25, .mfr_config_1 = 0x3570}
+};
 
 pmic_init_arg pmic_init_args[] = {
 	[0] = { .is_init = false, .smbus_bus_identifier = 0x00, .smbus_addr = 0x90 },
