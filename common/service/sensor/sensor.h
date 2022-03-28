@@ -54,6 +54,7 @@ enum SENSOR_DEV {
 	sensor_dev_ast_fan = 0x16,
 	sensor_dev_tmp431 = 0x18,
 	sensor_dev_pmic = 0x19,
+	sensor_dev_ltc4286 = 0x17,
 	sensor_dev_max
 };
 
@@ -198,6 +199,15 @@ typedef struct _ltc4282_init_arg {
 	float r_sense;
 
 } ltc4282_init_arg;
+
+typedef struct _ltc4286_init_arg {
+	/* Rsense valus, unit: milliohm */
+	float r_sense;
+	uint16_t mfr_config_1;
+	/* Initailize function will set following arguments, no need to give value */
+	bool is_init;
+
+} ltc4286_init_arg;
 
 typedef struct _mp5990_init_arg {
 	/* value to sets the gain for output current reporting */

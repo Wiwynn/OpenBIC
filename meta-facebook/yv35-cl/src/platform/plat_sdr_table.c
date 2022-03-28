@@ -3351,8 +3351,10 @@ void pal_fix_full_sdr_table()
 			 * If the voltage of ADC-7 is 1.5V(+/- 15%), the hotswap model is LTC4286.
 			 */
 			voltage_hsc_type_adc = get_hsc_type_adc_voltage();
-			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
-			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
+			if (((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
+			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) ||
+			    ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
+			    (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15)))) {
 				fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
 				for (int index = 0; index < fix_array_num; index++) {
 					add_full_sdr_table(hotswap_sdr_table[index]);
@@ -3360,9 +3362,6 @@ void pal_fix_full_sdr_table()
 			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
 				printf("TODO: Support LTC4282 sensor config\n");
-			} else if ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
-				   (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15))) {
-				printf("TODO: Support LTC4286 sensor config\n");
 			} else {
 				printf("Unknown hotswap model type, HSC_TYPE_ADC voltage: %fV\n",
 				       voltage_hsc_type_adc);
