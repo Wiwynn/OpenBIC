@@ -848,37 +848,65 @@ void pal_OEM_1S_GET_SET_GPIO(ipmi_msg *msg)
 	return;
 }
 
+#define printff(a, ...) printf("%s  %d(): " a, __func__, __LINE__, ##__VA_ARGS__)
+
 void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 {
+	printk("\n===== Enter PECI access function =====\n");
+	printk("=== BMC input data ===\n");
+	printk("cmd %x  cc %x  data_len %x  data ", msg->cmd, msg->completion_code, msg->data_len);
+	for (int a = 0; a < msg->data_len; ++a) {
+		printk("  %x", msg->data[a]);
+	}
+	printk("\n=== BMC input data end ===\n");
+	if (msg->data_len == 3) {
+		msg->completion_code = CC_SUCCESS;
+		printff("==== ping return ====\n");
+		return;
+	}
+
 	uint8_t addr, cmd, *writeBuf, *readBuf;
 	uint8_t u8WriteLen, u8ReadLen;
 	int ret;
 
 	if (msg->data_len < 3) {
 		msg->completion_code = CC_INVALID_LENGTH;
+		printk("BIC return BMC CC %x\n", msg->completion_code);
+		printk("==== BIC data len < 3 end ====\n");
 		return;
 	}
-
 	addr = msg->data[0];
 	u8WriteLen = msg->data[1];
 	u8ReadLen = msg->data[2];
 	cmd = msg->data[3];
 
+	printk("PECI access function addr  %x  cmd  %x  writelen  %x  readlen  %x\n ", addr, cmd,
+	       u8WriteLen, u8ReadLen);
+
 	// PECI driver would add 1 byte to check that data writing to host is correct, so input data len would one less then input writelen in write command.
-	if ((msg->data_len - 3 != u8WriteLen) && (msg->data_len - 3 != u8WriteLen - 1)) {
+	/*
+	if (((msg->data_len - 3) != u8WriteLen) && ((msg->data_len - 3) != (u8WriteLen - 1))) {
+    printk("msg_data_len7 %d\n" , msg->data_len);
 		msg->completion_code = CC_INVALID_LENGTH;
+    printk("msg_data_len8 %d\n" , msg->data_len);
+    printk("BIC return BMC CC 0x%x  ,data_len  %d , weitelen  %d\n" , msg->completion_code , msg->data_len , u8WriteLen );
+    printk("==== BIC data len != WriteLen end ====\n");
 		return;
 	}
-
+*/
 	if (msg->data_len == 3) {
 		if ((u8WriteLen == 0) && (u8ReadLen == 0)) {
 			ret = peci_ping(addr);
-			msg->data[0] = ret;
+			msg->data[0] = (uint8_t)ret;
 			msg->data_len = 1;
-			msg->completion_code = CC_SUCCESS;
+			msg->completion_code = (uint8_t)CC_SUCCESS;
+			printk("BIC return BMC CC %x\n", msg->completion_code);
+			printk("==== BIC ping success end ====\n");
 			return;
 		} else {
 			msg->completion_code = CC_INVALID_LENGTH;
+			printk("BIC return BMC CC %x\n", msg->completion_code);
+			printk("==== BIC ping data len error end ====\n");
 			return;
 		}
 	} else {
@@ -889,7 +917,7 @@ void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 		}
 		writeBuf = (uint8_t *)malloc(sizeof(uint8_t) * u8WriteLen);
 		if (readBuf == NULL || writeBuf == NULL) {
-			printk("PECI access util buffer alloc fail\n");
+			printff("PECI access util buffer alloc fail\n");
 			if (writeBuf != NULL) {
 				free(writeBuf);
 			}
@@ -897,11 +925,18 @@ void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 				free(readBuf);
 			}
 			msg->completion_code = CC_OUT_OF_SPACE;
+			printff("BIC return BMC CC %x\n", msg->completion_code);
+			printff("==== BIC dib/temp alloc error end ====\n");
 			return;
 		}
 		memcpy(&writeBuf[0], &msg->data[4], u8WriteLen);
+		for (int i = 0; i < u8WriteLen; ++i) {
+			printk(" %x ", writeBuf[i]);
+		}
+		printk("\n\n");
 
 		ret = peci_write(cmd, addr, u8ReadLen, readBuf, u8WriteLen, writeBuf);
+		printff("PECI access function response ret  %x  data", ret);
 		if (ret) {
 			if (writeBuf != NULL) {
 				free(writeBuf);
@@ -910,9 +945,16 @@ void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 				free(readBuf);
 			}
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			printff("BIC return BMC CC %x\n", msg->completion_code);
+			printff("==== BIC write fail end ====\n");
 			return;
 		}
 		memcpy(&msg->data[0], &readBuf[0], u8ReadLen);
+		for (int j = 0; j < u8ReadLen; ++j) {
+			printk("  %x", readBuf[j]);
+		}
+		printk("\n\n");
+		/*
 		if (cmd != PECI_GET_DIB_CMD && cmd != PECI_GET_TEMP0_CMD) {
 			if (msg->data[0] != PECI_CC_RSP_SUCCESS) {
 				msg->data[0] = (msg->data[0] == 0xf9) ? PECI_CC_ILLEGAL_REQUEST :
@@ -920,6 +962,7 @@ void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 				memset(&msg->data[1], 0xff, u8ReadLen - 1);
 			}
 		}
+*/
 		if (writeBuf != NULL) {
 			free(writeBuf);
 		}
@@ -928,6 +971,8 @@ void pal_OEM_1S_PECIaccess(ipmi_msg *msg)
 		}
 		msg->data_len = u8ReadLen;
 		msg->completion_code = CC_SUCCESS;
+		printff("BIC return BMC CC %x\n", msg->completion_code);
+		printff("===== PECI access function end =====\n");
 		return;
 	}
 }
