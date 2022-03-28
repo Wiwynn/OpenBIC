@@ -187,6 +187,24 @@ sensor_cfg adm1278_sensor_config_table[] = {
 	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adm1278_init_args[0] },
 };
 
+sensor_cfg ltc4286_sensor_config_table[] = {
+	/* number,                  type,       port,      address,      offset,
+	   access check arg0, arg1, cache, cache_status, mux_address, mux_offset,
+	   pre_sensor_read_fn, pre_sensor_read_args, post_sensor_read_fn, post_sensor_read_fn  */
+	{ SENSOR_NUM_TEMP_HSC, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR,
+	  PMBUS_READ_TEMPERATURE_1, stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL,
+	  NULL, &isl69259_pre_read_args[0] },
+	{ SENSOR_NUM_VOL_HSCIN, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_VIN,
+	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &isl69259_pre_read_args[0] },
+	{ SENSOR_NUM_CUR_HSCOUT, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_IOUT,
+	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &isl69259_pre_read_args[0] },
+	{ SENSOR_NUM_PWR_HSCIN, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_PIN,
+	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &isl69259_pre_read_args[0] },
+};
+
 uint8_t load_sensor_config(void)
 {
 	memcpy(sensor_config, plat_sensor_config, sizeof(plat_sensor_config));
@@ -198,6 +216,8 @@ void pal_fix_sensor_config()
 	uint8_t sensor_count = ARRAY_SIZE(plat_sensor_config);
 
 	/* Fix sensor table according to the different class types and board revisions */
+	float voltage_hsc_type_adc;
+	voltage_hsc_type_adc = get_hsc_type_adc_voltage();
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
 		switch (board_revision) {
@@ -242,6 +262,41 @@ void pal_fix_sensor_config()
 			}
 			break;
 		case SYS_BOARD_EVT3_HOTSWAP:
+			/* Follow the GPIO table, the HSC device type can be by ADC7(net name: HSC_TYPE_ADC)
+			 * If the voltage of ADC-7 is 0.5V(+/- 15%), the hotswap model is ADM1278.
+			 * If the voltage of ADC-7 is 1.0V(+/- 15%), the hotswap model is LTC4282.
+			 * If the voltage of ADC-7 is 1.5V(+/- 15%), the hotswap model is LTC4286.
+			 */
+			voltage_hsc_type_adc = get_hsc_type_adc_voltage();
+			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
+			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
+				printf("Added ADM1278 sensor configuration\n");
+				sensor_count = ARRAY_SIZE(adm1278_sensor_config_table);
+				while (sensor_count > 0) {
+					add_sensor_config(
+						adm1278_sensor_config_table[--sensor_count]);
+					if (sensor_count < 0) {
+						break;
+					}
+				}
+			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
+				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
+				printf("TODO: Support LTC4282 sensor config\n");
+			} else if ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
+				   (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15))) {
+				printf("Added LTC4286 sensor configuration\n");
+				sensor_count = ARRAY_SIZE(ltc4286_sensor_config_table);
+				while (sensor_count > 0) {
+					add_sensor_config(
+						ltc4286_sensor_config_table[--sensor_count]);
+					if (sensor_count < 0) {
+						break;
+					}
+				}
+			} else {
+				printf("Unknown hotswap model type, HSC_TYPE_ADC voltage: %fV\n",
+				       voltage_hsc_type_adc);
+			}
 			break;
 		default:
 			break;
