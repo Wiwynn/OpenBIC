@@ -229,6 +229,24 @@ sensor_cfg adm1278_sensor_config_table[] = {
 	  post_adm1278_power_read, NULL, &adm1278_init_args[0] },
 };
 
+sensor_cfg ltc4286_sensor_config_table[] = {
+	/* number,                  type,       port,      address,      offset,
+	   access check arg0, arg1, sample_count, cache, cache_status, mux_address, mux_offset,
+	   pre_sensor_read_fn, pre_sensor_read_args, post_sensor_read_fn, post_sensor_read_fn  */
+	{ SENSOR_NUM_TEMP_HSC, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR,
+	  PMBUS_READ_TEMPERATURE_1, stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS,
+	  NULL, NULL, NULL, NULL, &ltc4286_init_args[0] },
+	{ SENSOR_NUM_VOL_HSCIN, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_VIN,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &ltc4286_init_args[0] },
+	{ SENSOR_NUM_CUR_HSCOUT, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_IOUT,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL,
+	  post_ltc4286_read, NULL, &ltc4286_init_args[0] },
+	{ SENSOR_NUM_PWR_HSCIN, sensor_dev_ltc4286, I2C_BUS2, ADI_LTC4286_ADDR, PMBUS_READ_PIN,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL,
+	  post_ltc4286_read, NULL, &ltc4286_init_args[0] },
+};
+
 sensor_cfg evt3_class1_adi_temperature_sensor_table[] = {
 	{ SENSOR_NUM_TEMP_TMP75_OUT, sensor_dev_tmp431, I2C_BUS2, TMP431_ADDR,
 	  TMP431_LOCAL_TEMPERATRUE, stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS,
@@ -326,6 +344,33 @@ void pal_fix_sensor_config()
 
 	bool ret = false;
 	CARD_STATUS _2ou_status = get_2ou_status();
+
+	/* Follow the hardware design,
+	 * the GPIOA7(HSC_SET_EN_R) should be set to "H"
+	 * and the 2OU configuration is set if the 2OU is present.
+	 */
+	if (_2ou_status.present) {
+		sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			mp5990_sensor_config_table[index].init_args = &mp5990_init_args[1];
+		}
+		sensor_count = ARRAY_SIZE(ltc4286_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			ltc4286_sensor_config_table[index].init_args = &ltc4286_init_args[1];
+		}
+		gpio_set(HSC_SET_EN_R, GPIO_HIGH);
+	} else {
+		sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			mp5990_sensor_config_table[index].init_args = &mp5990_init_args[0];
+		}
+		sensor_count = ARRAY_SIZE(ltc4286_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			ltc4286_sensor_config_table[index].init_args = &ltc4286_init_args[0];
+		}
+		gpio_set(HSC_SET_EN_R, GPIO_LOW);
+	}
+
 	/* Fix sensor table according to the different class types and board revisions */
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
@@ -341,25 +386,6 @@ void pal_fix_sensor_config()
 		case SYS_BOARD_EVT3_EFUSE:
 			sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
 			for (int index = 0; index < sensor_count; index++) {
-				if (_2ou_status.present) {
-					/* For the class type 1 and 2OU system,
-					 * set the IMON based total over current fault limit to 70A(0x0046),
-					 * set the gain for output current reporting to 0x01BF following the power team's experiment
-					 * and set GPIOA7(HSC_SET_EN_R) to high.
-					 */
-					mp5990_sensor_config_table[index].init_args =
-						&mp5990_init_args[1];
-					gpio_set(HSC_SET_EN_R, GPIO_HIGH);
-				} else {
-					/* For the class type 1 and 2OU system,
-					 * set the IMON based total over current fault limit to 40A(0x0028),
-					 * set the gain for output current reporting to 0x0104 following the power team's experiment
-					 * and set GPIOA7(HSC_SET_EN_R) to low.
-					 */
-					mp5990_sensor_config_table[index].init_args =
-						&mp5990_init_args[0];
-					gpio_set(HSC_SET_EN_R, GPIO_LOW);
-				}
 				add_sensor_config(mp5990_sensor_config_table[index]);
 			}
 			break;
@@ -386,7 +412,11 @@ void pal_fix_sensor_config()
 				printf("TODO: Support LTC4282 sensor config\n");
 			} else if ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15))) {
-				printf("TODO: Support LTC4286 sensor config\n");
+				printf("Added LTC4286 sensor configuration\n");
+				sensor_count = ARRAY_SIZE(ltc4286_sensor_config_table);
+				for (int index = 0; index < sensor_count; index++) {
+					add_sensor_config(ltc4286_sensor_config_table[index]);
+				}
 			} else {
 				printf("Unknown hotswap model type, HSC_TYPE_ADC voltage: %fV\n",
 				       voltage_hsc_type_adc);
