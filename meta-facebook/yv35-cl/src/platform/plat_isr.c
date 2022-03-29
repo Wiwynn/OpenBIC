@@ -86,7 +86,7 @@ void ISR_BMC_PRDY()
 	send_gpio_interrupt(H_BMC_PRDY_BUF_N);
 }
 
-static void PROC_FAIL_handler()
+static void PROC_FAIL_handler(struct k_work *work)
 {
 	/* if have not received kcs and post code, add FRB3 event log. */
 	if ((get_kcs_ok() == false) && (get_postcode_ok() == false)) {
@@ -125,7 +125,7 @@ void ISR_PWRGD_CPU()
 	send_gpio_interrupt(PWRGD_CPU_LVC3);
 }
 
-static void CAT_ERR_handler()
+static void CAT_ERR_handler(struct k_work *work)
 {
 	if ((gpio_get(RST_PLTRST_BUF_N) == 1) || (gpio_get(PWRGD_SYS_PWROK) == 1)) {
 		addsel_msg_t sel_msg;

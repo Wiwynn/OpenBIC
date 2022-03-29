@@ -590,7 +590,10 @@ __weak void OEM_1S_ACCURACY_SENSOR_READING(ipmi_msg *msg)
 		}
 	} else if (req->read_option == GET_FROM_SENSOR) {
 		status = get_sensor_reading(req->sensor_num, &reading, GET_FROM_SENSOR);
+	} else {
+		status = SENSOR_UNSPECIFIED_ERROR;
 	}
+
 	switch (status) {
 	case SENSOR_READ_SUCCESS:
 	case SENSOR_READ_ACUR_SUCCESS:
