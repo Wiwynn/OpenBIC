@@ -51,6 +51,7 @@ SENSOR_DRIVE_INIT_DECLARE(tps53689);
 SENSOR_DRIVE_INIT_DECLARE(xdpe15284);
 SENSOR_DRIVE_INIT_DECLARE(ltc4282);
 SENSOR_DRIVE_INIT_DECLARE(ltc4286);
+SENSOR_DRIVE_INIT_DECLARE(tmp431);
 
 struct sensor_drive_api {
 	enum SENSOR_DEV dev;
@@ -63,6 +64,7 @@ struct sensor_drive_api {
 	SENSOR_DRIVE_TYPE_INIT_MAP(pch),      SENSOR_DRIVE_TYPE_INIT_MAP(adm1278),
 	SENSOR_DRIVE_TYPE_INIT_MAP(tps53689), SENSOR_DRIVE_TYPE_INIT_MAP(xdpe15284),
 	SENSOR_DRIVE_TYPE_INIT_MAP(ltc4282),  SENSOR_DRIVE_TYPE_INIT_MAP(ltc4286),
+	SENSOR_DRIVE_TYPE_INIT_MAP(tmp431),
 };
 
 static void init_sensor_num(void)
@@ -292,9 +294,10 @@ uint8_t get_sensor_config_index(uint8_t sensor_num)
 
 void add_sensor_config(sensor_cfg config)
 {
-	if (get_sensor_config_index(config.num) != SENSOR_NUM_MAX) {
-		printf("Failed to add sensor because the sensor number(0x%x) is already exists\n",
-		       config.num);
+	uint8_t index = get_sensor_config_index(config.num);
+	if (index != SENSOR_NUM_MAX) {
+		memcpy(&sensor_config[index], &config, sizeof(config));
+		printf("Replace the sensor[0x%02x] configuration\n", config.num);
 	} else {
 		sensor_config[sensor_config_num++] = config;
 	}
