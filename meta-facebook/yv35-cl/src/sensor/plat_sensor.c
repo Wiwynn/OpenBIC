@@ -11,6 +11,7 @@
 #include "plat_gpio.h"
 #include "plat_hook.h"
 #include "intel_peci.h"
+#include "tmp431.h"
 
 static uint8_t sensor_config_num;
 
@@ -184,6 +185,14 @@ sensor_cfg class1_adm1278_sensor_config_table[] = {
 	  0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adm1278_init_args[0] },
 };
 
+sensor_cfg evt3_class1_adi_temperature_sensor_table[] = {
+	{ SENSOR_NUM_TEMP_TMP75_OUT, sensor_dev_tmp431, i2c_bus2, tmp431_addr,
+	  TMP431_LOCAL_TEMPERATRUE, stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL,
+	  NULL, NULL },
+	{ SENSOR_NUM_TEMP_HSC, sensor_dev_tmp431, i2c_bus2, tmp431_addr, TMP431_REMOTE_TEMPERATRUE,
+	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
+};
+
 sensor_cfg fix_C2Sensorconfig_table[] = {
 	// number , type , port , address , offset , access check , arg0 , arg1 , cache , cache_status
 };
@@ -218,8 +227,10 @@ uint8_t map_SensorNum_Sensorconfig(uint8_t sensor_num)
 
 void add_Sensorconfig(sensor_cfg add_Sensorconfig)
 {
-	if (map_SensorNum_Sensorconfig(add_Sensorconfig.num) != 0xFF) {
-		printk("add sensor num is already exists\n");
+	uint8_t index = map_SensorNum_Sensorconfig(add_Sensorconfig.num);
+	if (index != 0xFF) {
+		memcpy(&sensor_config[index], &add_Sensorconfig, sizeof(add_Sensorconfig));
+		printf("Replace the sensor[0x%02x] configuration\n", add_Sensorconfig.num);
 		return;
 	}
 	sensor_config[sensor_config_num++] = add_Sensorconfig;
@@ -303,6 +314,21 @@ void pal_fix_Sensorconfig()
 		case SYS_BOARD_EVT3_HOTSWAP:
 		case SYS_BOARD_DVT_HOTSWAP:
 		case SYS_BOARD_MP_HOTSWAP:
+			sensor_num = ARRAY_SIZE(class1_adm1278_sensor_config_table);
+			while (sensor_num) {
+				add_Sensorconfig(
+					class1_adm1278_sensor_config_table[sensor_num - 1]);
+				sensor_num--;
+			}
+			/* Replace the temperature sensors configuration including "HSC Temp" and "MB Outlet Temp."
+			 * For these two sensors, the reading values are read from TMP431 chip.data.num
+			 */
+			sensor_num = ARRAY_SIZE(evt3_class1_adi_temperature_sensor_table);
+			while (sensor_num) {
+				add_Sensorconfig(
+					evt3_class1_adi_temperature_sensor_table[sensor_num - 1]);
+				sensor_num--;
+			}
 			break;
 		default:
 			break;
