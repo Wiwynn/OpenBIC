@@ -55,6 +55,7 @@ enum SENSOR_DEV {
 	sensor_dev_ltc4282 = 0x15,
 	sensor_dev_ast_fan = 0x16,
 	sensor_dev_ltc4286 = 0x17,
+	sensor_dev_tmp431 = 0x18,
 	sensor_dev_max
 };
 

@@ -12,6 +12,7 @@
 #include "plat_hook.h"
 #include "plat_i2c.h"
 #include "pmbus.h"
+#include "tmp431.h"
 
 SET_GPIO_VALUE_CFG pre_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_HIGH };
 SET_GPIO_VALUE_CFG post_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_LOW };
@@ -205,6 +206,13 @@ sensor_cfg ltc4286_sensor_config_table[] = {
 	  &isl69259_pre_read_args[0] },
 };
 
+sensor_cfg evt3_class1_adi_temperature_sensor_table[] = {
+	{ SENSOR_NUM_TEMP_TMP75_OUT, sensor_dev_tmp431, I2C_BUS2, TMP431_ADDR, TMP431_LOCAL_TEMPERATRUE,
+	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
+	{ SENSOR_NUM_TEMP_HSC, sensor_dev_tmp431, I2C_BUS2, TMP431_ADDR, TMP431_REMOTE_TEMPERATRUE, stby_access, 0,
+	  0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
+};
+
 uint8_t load_sensor_config(void)
 {
 	memcpy(sensor_config, plat_sensor_config, sizeof(plat_sensor_config));
@@ -285,6 +293,16 @@ void pal_fix_sensor_config()
 			} else {
 				printf("Unknown hotswap model type, HSC_TYPE_ADC voltage: %fV\n",
 				       voltage_hsc_type_adc);
+			}
+			/* Replace the temperature sensors configuration including "HSC Temp" and "MB Outlet Temp."
+			 * For these two sensors, the reading values are read from TMP431 chip.data.num
+			 */
+			sensor_num = ARRAY_SIZE(evt3_class1_adi_temperature_sensor_table);
+			while (sensor_num > 0) {
+				add_sensor_config(evt3_class1_adi_temperature_sensor_table[--sensor_num]);
+				if (sensor_num < 0) {
+					break;
+				}
 			}
 			break;
 		default:
