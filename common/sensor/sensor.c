@@ -254,7 +254,7 @@ __weak void pal_fix_sensor_config(void)
 
 bool stby_access(uint8_t sensor_number)
 {
-	return 1;
+	return true;
 }
 
 bool dc_access(uint8_t sensor_number)
@@ -265,6 +265,14 @@ bool dc_access(uint8_t sensor_number)
 bool post_access(uint8_t sensor_number)
 {
 	return get_post_status();
+}
+
+bool vr_access(uint8_t sensor_num)
+{
+	if (get_DC_on_delayed_status() == false) {
+		return false;
+	}
+	return get_vr_monitor_status();
 }
 
 void sensor_poll_init()
