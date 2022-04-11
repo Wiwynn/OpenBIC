@@ -68,6 +68,12 @@ void OEM_1S_ASD_INIT(ipmi_msg *msg);
 #endif
 #endif
 
+#ifdef ENABLE_FAN
+void OEM_1S_SET_FAN_DUTY_AUTO(ipmi_msg *msg);
+void OEM_1S_GET_FAN_DUTY(ipmi_msg *msg);
+void OEM_1S_GET_FAN_RPM(ipmi_msg *msg);
+#endif
+
 void send_gpio_interrupt(uint8_t gpio_num);
 
 void IPMI_OEM_1S_handler(ipmi_msg *msg);
