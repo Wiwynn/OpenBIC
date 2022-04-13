@@ -265,11 +265,15 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 				msg_cfg.buffer.data[2] = (IANA_ID >> 16) & 0xFF;
 			}
 
-			if (msg_cfg.buffer.InF_source == BMC_USB) {
+			switch (msg_cfg.buffer.InF_source) {
+#ifdef CONFIG_USB
+			case BMC_USB:
 				usb_write_by_ipmi(&msg_cfg.buffer);
-			} else if (msg_cfg.buffer.InF_source == HOST_KCS) {
+				break;
+#endif
 #ifdef CONFIG_IPMI_KCS_ASPEED
-				uint8_t *kcs_buff;
+			case HOST_KCS: {
+				uint8_t *kcs_buff = NULL;
 				kcs_buff = malloc(KCS_BUFF_SIZE * sizeof(uint8_t));
 				if (kcs_buff == NULL) { // allocate fail, retry allocate
 					k_msleep(10);
@@ -300,11 +304,14 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 
 				kcs_write(kcs_buff, msg_cfg.buffer.data_len + 3);
 				SAFE_FREE(kcs_buff);
+				break;
+			}
 #endif
-			} else if (msg_cfg.buffer.InF_source == PLDM) {
+			case PLDM:
 				/* the message should be passed to source by pldm format */
 				send_msg_by_pldm(&msg_cfg);
-			} else {
+				break;
+			default:
 				status = ipmb_send_response(
 					&msg_cfg.buffer,
 					IPMB_inf_index_map[msg_cfg.buffer.InF_source]);
@@ -312,6 +319,7 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 					printf("IPMI_handler send IPMB resp fail status: %x",
 					       status);
 				}
+				break;
 			}
 		}
 	}
