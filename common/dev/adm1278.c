@@ -9,7 +9,7 @@
 #define ADM1278_EIN_SAMPLE_CNT_MAX 0x1000000
 #define ADM1278_EIN_ENERGY_CNT_MAX 0x800000
 
-float adm1278_read_ein_ext(float rsense, int *val, uint8_t sensor_num)
+int adm1278_read_ein_ext(float rsense, float *val, uint8_t sensor_num)
 {
 	I2C_MSG msg;
 	uint8_t retry = 5;
@@ -89,7 +89,7 @@ uint8_t adm1278_read(uint8_t sensor_num, int *reading)
 	}
 
 	float Rsense = init_arg->r_sense;
-	int val;
+	float val;
 	uint8_t retry = 5;
 	I2C_MSG msg;
 	int ret = 0;
@@ -109,7 +109,7 @@ uint8_t adm1278_read(uint8_t sensor_num, int *reading)
 	switch (offset) {
 	case ADM1278_VSOURCE_OFFSET:
 		// m = +19599, b = 0, R = -2
-		val = (float)(((msg.data[1] << 8) | msg.data[0]) * 100 / 19599);
+		val = (float)((msg.data[1] << 8) | msg.data[0]) * 100 / 19599;
 		break;
 
 	case ADM1278_CURRENT_OFFSET:

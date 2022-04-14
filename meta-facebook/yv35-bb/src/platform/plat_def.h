@@ -3,4 +3,6 @@
 
 #define ENABLE_FAN
 
+#define HSC_DEVICE_READY_DELAY_MS 2000
+
 #endif
