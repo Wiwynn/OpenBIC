@@ -547,13 +547,6 @@ __weak void OEM_1S_PECI_ACCESS(ipmi_msg *msg)
 			return;
 		}
 		memcpy(&msg->data[0], &readBuf[0], readLen);
-		if ((cmd != PECI_GET_DIB_CMD) && (cmd != PECI_GET_TEMP0_CMD)) {
-			if (msg->data[0] != PECI_CC_RSP_SUCCESS) {
-				msg->data[0] = (msg->data[0] == 0xf9) ? PECI_CC_ILLEGAL_REQUEST :
-									      msg->data[0];
-				memset(&msg->data[1], 0xff, readLen - 1);
-			}
-		}
 		if (writeBuf != NULL) {
 			free(writeBuf);
 		}
