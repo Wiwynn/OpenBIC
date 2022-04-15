@@ -10,6 +10,8 @@
 
 #define SYS_RST_EVT_LOG_REG 0x7e6e2074
 
+static uint8_t ME_mode = ME_INIT_MODE;
+
 /* Check AC lost */
 bool is_ac_lost()
 {
@@ -94,6 +96,9 @@ void set_me_firmware_mode(uint8_t me_fw_mode)
 	if ((me_fw_mode != ME_FW_RECOVERY) && (me_fw_mode != ME_FW_RESTORE)) {
 		printf("Not support the ME frimware mode 0x%x setting", me_fw_mode);
 		return;
+	}
+	if (ME_mode != ME_RECOVERY_MODE) {
+		ME_mode = ME_RECOVERY_MODE;
 	}
 
 	ipmi_msg *me_msg = (ipmi_msg *)malloc(sizeof(ipmi_msg));
@@ -190,5 +195,13 @@ void init_me_firmware()
 	} else {
 		printf("Failed to get ME self test result, ret: 0x%x\n", ret);
 	}
+	if (ME_mode != ME_NORMAL_MODE) {
+		ME_mode = ME_NORMAL_MODE;
+	}
 	return;
+}
+
+uint8_t get_me_mode()
+{
+	return ME_mode;
 }

@@ -61,7 +61,6 @@ void ISR_DC_ON()
 		set_DC_off_delayed_status();
 	} else {
 		set_DC_on_delayed_status();
-		clear_unaccessible_sensor_cache();
 		k_work_schedule(&set_DC_off_10s_work, K_SECONDS(DC_OFF_10_SECOND));
 
 		if (gpio_get(FM_SLPS3_PLD_N) && gpio_get(RST_RSMRST_BMC_N)) {
