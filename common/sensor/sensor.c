@@ -31,6 +31,8 @@ uint8_t sdr_index_map[SENSOR_NUM_MAX];
 bool enable_sensor_poll_thread = true;
 static bool sensor_poll_enable_flag = true;
 
+static bool is_sensor_ready_flag = false;
+
 const int negative_ten_power[16] = { 1,	    1,		1,	   1,	     1,	      1,
 				     1,	    1000000000, 100000000, 10000000, 1000000, 100000,
 				     10000, 1000,	100,	   10 };
@@ -232,6 +234,11 @@ void sensor_poll_handler(void *arug0, void *arug1, void *arug2)
 
 			k_yield();
 		}
+
+		if (is_sensor_ready_flag == false) {
+			is_sensor_ready_flag = true;
+		}
+
 		k_msleep(sensor_poll_interval_ms);
 	}
 }
@@ -372,4 +379,9 @@ bool sensor_init(void)
 	}
 
 	return true;
+}
+
+bool check_is_sensor_ready()
+{
+	return is_sensor_ready_flag;
 }

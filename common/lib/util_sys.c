@@ -7,6 +7,7 @@
 #include "util_sys.h"
 #include "ipmi.h"
 #include "libutil.h"
+#include "sensor.h"
 
 #define SYS_RST_EVT_LOG_REG 0x7e6e2074
 
@@ -204,4 +205,20 @@ void init_me_firmware()
 uint8_t get_me_mode()
 {
 	return ME_mode;
+}
+
+void set_sys_ready_pin(uint8_t ready_gpio_name)
+{
+	bool is_bic_ready = false;
+
+	do {
+		k_msleep(500);
+
+		if (check_is_sensor_ready() == true) {
+			is_bic_ready = true;
+		}
+	} while (is_bic_ready == false);
+
+	gpio_set(ready_gpio_name, GPIO_HIGH);
+	printf("BIC Ready\n");
 }
