@@ -20,6 +20,7 @@
 #endif
 #include "power_status.h"
 #include "pmbus.h"
+#include "altera.h"
 #include "util_spi.h"
 #include "util_sys.h"
 
@@ -209,6 +210,10 @@ __weak void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 		}
 		status = fw_update(offset, length, &msg->data[7], (target & IS_SECTOR_END_MASK),
 				   DEVSPI_FMC_CS0);
+
+	} else if ((target == CPLD_UPDATE) || (target == (CPLD_UPDATE | IS_SECTOR_END_MASK))) {
+		status = cpld_altera_max10_fw_update(offset, length, &msg->data[7]);
+
 	} else {
 		msg->completion_code = CC_INVALID_DATA_FIELD;
 		return;
@@ -240,7 +245,7 @@ __weak void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 		break;
 	}
 	if (status != FWUPDATE_SUCCESS) {
-		printf("spi fw cc: %x\n", msg->completion_code);
+		printf("firmware (0x%02X) update failed cc: %x\n", target, msg->completion_code);
 	}
 
 	return;
