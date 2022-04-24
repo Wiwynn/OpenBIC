@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include "ipmi.h"
+#include "ipmb.h"
+#include "pmic.h"
 #include "sensor.h"
+#include "libutil.h"
 #include "plat_i2c.h"
 #include "plat_gpio.h"
 #include "plat_hook.h"
@@ -22,6 +27,15 @@ adm1278_init_arg adm1278_init_args[] = {
 mp5990_init_arg mp5990_init_args[] = {
 	[0] = { .is_init = false, .iout_cal_gain = 0x0104, .iout_oc_fault_limit = 0x0028 },
 	[1] = { .is_init = false, .iout_cal_gain = 0x01BF, .iout_oc_fault_limit = 0x0046 }
+};
+
+pmic_init_arg pmic_init_args[] = {
+	[0] = { .is_init = false, .smbus_bus_identifier = 0x00, .smbus_addr = 0x90 },
+	[1] = { .is_init = false, .smbus_bus_identifier = 0x00, .smbus_addr = 0x9C },
+	[2] = { .is_init = false, .smbus_bus_identifier = 0x00, .smbus_addr = 0x98 },
+	[3] = { .is_init = false, .smbus_bus_identifier = 0x01, .smbus_addr = 0x90 },
+	[4] = { .is_init = false, .smbus_bus_identifier = 0x01, .smbus_addr = 0x9C },
+	[5] = { .is_init = false, .smbus_bus_identifier = 0x01, .smbus_addr = 0x98 }
 };
 
 /**************************************************************************************************
@@ -114,6 +128,106 @@ bool pre_vol_bat3v_read(uint8_t sensor_num, void *args)
 		k_msleep(1);
 	}
 
+	return true;
+}
+
+bool pre_pmic_read(uint8_t sensor_num, void *args)
+{
+	ARG_UNUSED(args);
+
+	pmic_init_arg *pmic_arg = sensor_config[sensor_config_index_map[sensor_num]].init_args;
+	if (pmic_arg->is_init == false) {
+		static bool is_ME_reset = false;
+		bool ret = false;
+		uint8_t seq_source = 0xFF, write_data = 0x0;
+		uint8_t *data = NULL;
+		ipmb_error ipmb_ret = IPMB_ERROR_UNKNOWN;
+
+		memory_write_read_req *pmic_req =
+			(memory_write_read_req *)malloc(sizeof(memory_write_read_req));
+		ipmi_msg *pmic_msg = (ipmi_msg *)malloc(sizeof(ipmi_msg));
+		if ((pmic_msg == NULL) || (pmic_req == NULL)) {
+			printf("[%s] Failed to allocate memory\n", __func__);
+			ret = false;
+			goto clean_up;
+		}
+
+		// ME reset to let ME regain bus setting
+		if (is_ME_reset != true) {
+			*pmic_msg = construct_ipmi_message(seq_source, NETFN_APP_REQ,
+							   CMD_APP_COLD_RESET, SELF, ME_IPMB, 0x0,
+							   NULL);
+			ipmb_ret = ipmb_read(pmic_msg, IPMB_inf_index_map[pmic_msg->InF_target]);
+			if ((ipmb_ret != IPMB_ERROR_SUCCESS) ||
+			    (pmic_msg->completion_code != CC_SUCCESS)) {
+				printf("Failed to send ME reset command ret: 0x%x CC: 0x%x\n",
+				       ipmb_ret, pmic_msg->completion_code);
+				ret = false;
+				goto clean_up;
+			}
+			is_ME_reset = true;
+			k_msleep(ME_COLD_RESET_DELAY_MSEC);
+		}
+
+		// Enable PMIC ADC
+		write_data = PMIC_ENABLE_ADC_BIT;
+		init_memory_req(pmic_req);
+		write_memory_req(pmic_req, pmic_arg->smbus_bus_identifier, pmic_arg->smbus_addr,
+				 PMIC_ADC_ADDR_VAL, &write_data, 0x1);
+		data = (uint8_t *)pmic_req;
+		*pmic_msg = construct_ipmi_message(seq_source, NETFN_NM_REQ, CMD_SMBUS_WRITE_MEMORY,
+						   SELF, ME_IPMB, PMIC_WRITE_DATA_LEN, data);
+		ipmb_ret = ipmb_read(pmic_msg, IPMB_inf_index_map[pmic_msg->InF_target]);
+		if ((ipmb_ret != IPMB_ERROR_SUCCESS) || (pmic_msg->completion_code != CC_SUCCESS)) {
+			printf("[%s] Failed to send enable PMIC ADC command ret: 0x%x CC: 0x%x\n",
+			       __func__, ipmb_ret, pmic_msg->completion_code);
+			ret = false;
+			goto clean_up;
+		}
+		k_msleep(PMIC_COMMAND_DELAY_MSEC);
+
+		// Initial PMIC report total mode
+		write_data = WRITE_DEV_REPROT_TOTAL;
+		init_memory_req(pmic_req);
+		write_memory_req(pmic_req, pmic_arg->smbus_bus_identifier, pmic_arg->smbus_addr,
+				 PMIC_TOTAL_INDIV_ADDR_VAL, &write_data, 0x1);
+		data = (uint8_t *)pmic_req;
+		*pmic_msg = construct_ipmi_message(seq_source, NETFN_NM_REQ, CMD_SMBUS_WRITE_MEMORY,
+						   SELF, ME_IPMB, PMIC_WRITE_DATA_LEN, data);
+		ipmb_ret = ipmb_read(pmic_msg, IPMB_inf_index_map[pmic_msg->InF_target]);
+		if ((ipmb_ret != IPMB_ERROR_SUCCESS) || (pmic_msg->completion_code != CC_SUCCESS)) {
+			printf("Failed to send Pre_pmic report total command ret: 0x%x CC: 0x%x write_data: 0x%x\n",
+			       ipmb_ret, pmic_msg->completion_code, write_data);
+			ret = false;
+			goto clean_up;
+		}
+		k_msleep(PMIC_COMMAND_DELAY_MSEC);
+
+		// Initial PMIC report power mode
+		write_data = WRITE_DEV_REPROT_POWER;
+		init_memory_req(pmic_req);
+		write_memory_req(pmic_req, pmic_arg->smbus_bus_identifier, pmic_arg->smbus_addr,
+				 PMIC_PWR_CURR_ADDR_VAL, &write_data, 0x1);
+		data = (uint8_t *)pmic_req;
+		*pmic_msg = construct_ipmi_message(seq_source, NETFN_NM_REQ, CMD_SMBUS_WRITE_MEMORY,
+						   SELF, ME_IPMB, PMIC_WRITE_DATA_LEN, data);
+		ipmb_ret = ipmb_read(pmic_msg, IPMB_inf_index_map[pmic_msg->InF_target]);
+		if ((ipmb_ret != IPMB_ERROR_SUCCESS) || (pmic_msg->completion_code != CC_SUCCESS)) {
+			printf("Failed to send Pre_pmic report total command ret: 0x%x CC: 0x%x write_data: 0x%x\n",
+			       ipmb_ret, pmic_msg->completion_code, write_data);
+			ret = false;
+			goto clean_up;
+		}
+		k_msleep(PMIC_COMMAND_DELAY_MSEC);
+
+		pmic_arg->is_init = true;
+		ret = true;
+
+	clean_up:
+		SAFE_FREE(pmic_req);
+		SAFE_FREE(pmic_msg);
+		return ret;
+	}
 	return true;
 }
 
