@@ -3330,6 +3330,7 @@ uint8_t load_sdr_table(void)
 void pal_fix_full_sdr_table()
 {
 	// Fix sdr table according to bic type.
+	bool ret = false;
 	uint8_t fix_array_num;
 	float voltage_hsc_type_adc;
 	if (get_system_class() == SYS_CLASS_1) {
@@ -3350,7 +3351,11 @@ void pal_fix_full_sdr_table()
 			 * If the voltage of ADC-7 is 1.0V(+/- 15%), the hotswap model is LTC4282.
 			 * If the voltage of ADC-7 is 1.5V(+/- 15%), the hotswap model is LTC4286.
 			 */
-			voltage_hsc_type_adc = get_hsc_type_adc_voltage();
+			ret = get_adc_voltage(7, &voltage_hsc_type_adc);
+			if (!ret) {
+				break;
+			}
+
 			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
 			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
 				fix_array_num = ARRAY_SIZE(hotswap_sdr_table);

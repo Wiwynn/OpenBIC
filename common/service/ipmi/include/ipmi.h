@@ -5,6 +5,7 @@
 #include "ipmb.h"
 #include "plat_version.h"
 
+#define IANA_ID 0x00A015 // Meta's IANA ID
 #define IPMI_THREAD_STACK_SIZE 4096
 #define IPMI_BUF_LEN 10
 #define DEBUG_IPMI 0
@@ -192,6 +193,7 @@ enum {
 	CMD_OEM_1S_SENSOR_POLL_EN = 0x30,
 	CMD_OEM_1S_GET_BIC_STATUS = 0x31,
 	CMD_OEM_1S_RESET_BIC = 0x32,
+	CMD_OEM_1S_GET_1OU_CARD_TYPE = 0x33,
 	CMD_OEM_1S_GET_SET_GPIO = 0x41,
 	CMD_OEM_1S_SET_FAN_DUTY_AUTO = 0x50,
 	CMD_OEM_1S_GET_FAN_DUTY = 0x51,

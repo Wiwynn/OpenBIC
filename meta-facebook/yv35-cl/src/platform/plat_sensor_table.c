@@ -277,14 +277,11 @@ void check_vr_type(uint8_t index)
 	if ((msg.data[0] == 0x06) && (msg.data[1] == 0x54) && (msg.data[2] == 0x49) &&
 	    (msg.data[3] == 0x53) && (msg.data[4] == 0x68) && (msg.data[5] == 0x90) &&
 	    (msg.data[6] == 0x00)) {
-		printf("VR type: TPS53689\n");
 		sensor_config[index].type = sensor_dev_tps53689;
 	} else if ((msg.data[0] == 0x02) && (msg.data[2] == 0x8A)) {
-		printf("VR type: XDPE15284\n");
 		sensor_config[index].type = sensor_dev_xdpe15284;
 	} else if ((msg.data[0] == 0x04) && (msg.data[1] == 0x00) && (msg.data[2] == 0x81) &&
 		   (msg.data[3] == 0xD2) && (msg.data[4] == 0x49)) {
-		printf("VR type: ISL69259\n");
 	} else {
 		printf("Unknown VR type\n");
 	}
@@ -303,6 +300,8 @@ void pal_fix_sensor_config()
 		}
 	}
 
+	bool ret = false;
+	CARD_STATUS _2ou_status = get_2ou_status();
 	/* Fix sensor table according to the different class types and board revisions */
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
@@ -318,7 +317,7 @@ void pal_fix_sensor_config()
 		case SYS_BOARD_EVT3_EFUSE:
 			sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
 			for (int index = 0; index < sensor_count; index++) {
-				if (get_2ou_status()) {
+				if (_2ou_status.present) {
 					/* For the class type 1 and 2OU system,
 					 * set the IMON based total over current fault limit to 70A(0x0046),
 					 * set the gain for output current reporting to 0x01BF following the power team's experiment
@@ -346,7 +345,11 @@ void pal_fix_sensor_config()
 			 * If the voltage of ADC-7 is 1.0V(+/- 15%), the hotswap model is LTC4282.
 			 * If the voltage of ADC-7 is 1.5V(+/- 15%), the hotswap model is LTC4286.
 			 */
-			voltage_hsc_type_adc = get_hsc_type_adc_voltage();
+			ret = get_adc_voltage(7, &voltage_hsc_type_adc);
+			if (!ret) {
+				break;
+			}
+
 			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
 			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
 				printf("Added ADM1278 sensor configuration\n");

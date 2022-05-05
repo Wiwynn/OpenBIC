@@ -5,6 +5,7 @@
 
 #include "libutil.h"
 #include "ipmi.h"
+#include "plat_class.h"
 #include "plat_ipmb.h"
 
 bool add_sel_evt_record(addsel_msg_t *sel_msg)
@@ -62,4 +63,30 @@ bool add_sel_evt_record(addsel_msg_t *sel_msg)
 	}
 
 	return true;
+}
+
+void OEM_1S_GET_1OU_CARD_TYPE(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		printf("[%s] Failed due to parameter *msg is NULL\n", __func__);
+		return;
+	}
+
+	if (msg->data_len != 0) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	CARD_STATUS _1ou_status = get_1ou_status();
+	if (_1ou_status.present) {
+		msg->data[0] = _1ou_status.card_type;
+		msg->data_len = 1;
+		msg->completion_code = CC_SUCCESS;
+	} else {
+		printf("[%s] Undetected the 1OU card on system\n", __func__);
+		msg->data_len = 0;
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+	}
+
+	return;
 }

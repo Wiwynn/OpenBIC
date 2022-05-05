@@ -1190,6 +1190,18 @@ __weak void OEM_1S_INFORM_PEER_SLED_CYCLE(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_GET_1OU_CARD_TYPE(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		printf("%s failed due to parameter *msg is NULL\n", __func__);
+		return;
+	}
+
+	msg->data_len = 0;
+	msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+	return;
+}
+
 void IPMI_OEM_1S_handler(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -1285,6 +1297,9 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 #endif
 	case CMD_OEM_1S_INFORM_PEER_SLED_CYCLE:
 		OEM_1S_INFORM_PEER_SLED_CYCLE(msg);
+		break;
+	case CMD_OEM_1S_GET_1OU_CARD_TYPE:
+		OEM_1S_GET_1OU_CARD_TYPE(msg);
 		break;
 	default:
 		printf("Invalid OEM message, netfn(0x%x) cmd(0x%x)\n", msg->netfn, msg->cmd);
