@@ -3,6 +3,8 @@
 
 void ISR_CL_DC_ON();
 void ISR_DC_ON();
+void ISR_DEV_RST();
+void ISR_MB_RST();
 void control_power_sequence();
 void init_power_on_thread();
 void init_power_off_thread();
