@@ -1,9 +1,8 @@
-#ifndef PLAT_HOOK_H
-#define PLAT_HOOK_H
+#include <stdio.h>
+#include "sensor.h"
+#include "plat_hook.h"
 
 /**************************************************************************************************
  * INIT ARGS
 **************************************************************************************************/
-extern adc_asd_init_arg adc_asd_init_args[];
-
-#endif
+adc_asd_init_arg adc_asd_init_args[] = { [0] = { .is_init = false } };
