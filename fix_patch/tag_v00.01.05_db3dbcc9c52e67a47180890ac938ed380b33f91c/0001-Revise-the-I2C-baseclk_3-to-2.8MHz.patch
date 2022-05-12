@@ -1,0 +1,25 @@
+From 367e594a78b50c7e81dbf7966b4cfc2da4b32618 Mon Sep 17 00:00:00 2001
+From: Ren Chen <ren_chen@wiwynn.com>
+Date: Thu, 12 May 2022 10:07:11 +0800
+Subject: [PATCH] Revise the I2C baseclk_3 to 2.8MHz
+
+---
+ drivers/i2c/i2c_global_aspeed.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/i2c_global_aspeed.c b/drivers/i2c/i2c_global_aspeed.c
+index e3038ad039..c04a95e0c4 100644
+--- a/drivers/i2c/i2c_global_aspeed.c
++++ b/drivers/i2c/i2c_global_aspeed.c
+@@ -59,7 +59,7 @@ struct i2c_global_config {
+ static uint32_t base_freq[BASE_CLK_COUNT] = {
+ 	20000000,	/* 20M */
+ 	10000000,	/* 10M */
+-	3250000,	/* 3.25M */
++	2800000,	/* 2.8M */
+ 	1000000,	/* 1M */
+ };
+ 
+-- 
+2.35.1
+
