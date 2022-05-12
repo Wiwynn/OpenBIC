@@ -7,10 +7,11 @@
 
 #define SELF_I2C_ADDRESS 0x20
 #define RF_BIC_I2C_ADDRESS 0x20
+#define MAX_IPMB_IDX 2
 
 enum {
 	RF_BIC_IPMB_IDX,
-	MAX_IPMB_IDX,
+	RESERVE_IPMB_IDX,
 };
 
 #endif

@@ -21,19 +21,19 @@ sensor_cfg plat_sensor_config[] = {
 	  stby_access, 0, 0, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
 
 	// ADC
-	{ SENSOR_NUM_VOL_STBY5V, sensor_dev_ast_adc, ADC_PORT14, NONE, NONE, stby_access, 711, 200, 0,
-	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
+	{ SENSOR_NUM_VOL_STBY5V, sensor_dev_ast_adc, ADC_PORT9, NONE, NONE, stby_access, 711, 200,
+	  0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
 	{ SENSOR_NUM_VOL_STBY1V2, sensor_dev_ast_adc, ADC_PORT6, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
 	{ SENSOR_NUM_VOL_ASIC_1V8, sensor_dev_ast_adc, ADC_PORT7, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
-	{ SENSOR_NUM_VOL_PVPP_AB, sensor_dev_ast_adc, ADC_PORT10, NONE, NONE, stby_access, 1, 1, 0,
+	{ SENSOR_NUM_VOL_PVPP_AB, sensor_dev_ast_adc, ADC_PORT13, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
-	{ SENSOR_NUM_VOL_PVPP_CD, sensor_dev_ast_adc, ADC_PORT11, NONE, NONE, stby_access, 1, 1, 0,
+	{ SENSOR_NUM_VOL_PVPP_CD, sensor_dev_ast_adc, ADC_PORT12, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
-	{ SENSOR_NUM_VOL_PVTT_AB, sensor_dev_ast_adc, ADC_PORT12, NONE, NONE, stby_access, 1, 1, 0,
+	{ SENSOR_NUM_VOL_PVTT_AB, sensor_dev_ast_adc, ADC_PORT11, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
-	{ SENSOR_NUM_VOL_PVTT_CD, sensor_dev_ast_adc, ADC_PORT13, NONE, NONE, stby_access, 1, 1, 0,
+	{ SENSOR_NUM_VOL_PVTT_CD, sensor_dev_ast_adc, ADC_PORT10, NONE, NONE, stby_access, 1, 1, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, &adc_asd_init_args[0] },
 };
 
