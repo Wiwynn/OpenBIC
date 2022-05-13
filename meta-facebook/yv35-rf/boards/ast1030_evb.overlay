@@ -112,3 +112,7 @@
 &wdt2 {
   status = "okay";
 };
+
+&wdt3 {
+  status = "okay";
+};
