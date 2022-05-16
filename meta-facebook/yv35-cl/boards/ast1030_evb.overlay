@@ -241,3 +241,7 @@
 &wdt4 {
 	status = "okay";
 };
+
+&sgpiom {
+	status = "okay";
+};
