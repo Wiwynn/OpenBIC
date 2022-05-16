@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ipmi.h"
 
 typedef struct addsel_msg_t {
 	uint8_t sensor_type;
@@ -14,5 +15,6 @@ typedef struct addsel_msg_t {
 } addsel_msg_t;
 
 bool add_sel_evt_record(addsel_msg_t *sel_msg);
+void OEM_1S_GET_BOARD_ID(ipmi_msg *msg);
 
 #endif
