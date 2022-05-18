@@ -28,12 +28,12 @@ void ISR_DEV_RST()
 	if (gpio_get(ASIC_DEV_RST_N) == DEVICE_ENABLED) {
 		// Enable i2c synchronized during error recovery/uart/ASIC i2c pin
 		gpio_set(I2CS_SRSTB_GPIO, DEVICE_ENABLED);
-		gpio_set(FM_ISOLATED_EN_N, DEVICE_ENABLED);
+		gpio_set(FM_ISOLATED_EN_N, DEVICE_DISABLED);
 		gpio_set(LSFT_SMB_DIMM_EN, DEVICE_ENABLED);
 	} else {
 		// Disable i2c synchronized during error recovery/uart/ASIC i2c pin
 		gpio_set(I2CS_SRSTB_GPIO, DEVICE_DISABLED);
-		gpio_set(FM_ISOLATED_EN_N, DEVICE_DISABLED);
+		gpio_set(FM_ISOLATED_EN_N, DEVICE_ENABLED);
 		gpio_set(LSFT_SMB_DIMM_EN, DEVICE_DISABLED);
 	}
 }

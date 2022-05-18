@@ -13,7 +13,7 @@
 #define VR_A0V8_ADDR (0xC8 >> 1)
 #define VR_D0V8_ADDR (0xB0 >> 1)
 #define VR_VDDQAB_ADDR (0xB0 >> 1)
-#define VR_VDDQCD_ADDR (0xB0 >> 1)
+#define VR_VDDQCD_ADDR (0xB4 >> 1)
 #define ASIC_OFFSET 0x00 // TBU
 #define TMP75_TEMP_OFFSET 0x00
 #define SMBUS_VOL_CMD 0x8B
