@@ -27,24 +27,28 @@ __weak void SENSOR_GET_SENSOR_READING(ipmi_msg *msg)
 	} else {
 		status = SENSOR_POLLING_DISABLE;
 	}
-	
+
 	sensor_val *sval = (sensor_val *)(&reading);
 	switch (status) {
 	case SENSOR_READ_SUCCESS:
 	case SENSOR_READ_ACUR_SUCCESS:
 	case SENSOR_READ_4BYTE_ACUR_SUCCESS:
-		msg->data[0] = calculate_MBR(msg->data[0], (int)((sval->integer * 1000) + sval->fraction)) / 1000;
+		msg->data[0] = calculate_MBR(msg->data[0],
+					     (int)((sval->integer * 1000) + sval->fraction)) /
+			       1000;
 		msg->data[1] = sensor_report_status;
-		msg->data[2] = SENSOR_THRESHOLD_STATUS; // fix to threshold deassert status, BMC will compare with UCR/UNR itself
+		// fix to threshold deassert status, BMC will compare with UCR/UNR itself
+		msg->data[2] = SENSOR_THRESHOLD_STATUS;
 		msg->data_len = 3;
 		msg->completion_code = CC_SUCCESS;
 		break;
 	case SENSOR_NOT_ACCESSIBLE:
 	case SENSOR_INIT_STATUS:
-		msg->data[0] = 0;;
+		msg->data[0] = 0;
 		// notice BMC about sensor temporary in not accessible status
 		msg->data[1] = (sensor_report_status | SENSOR_READING_STATE_UNAVAILABLE);
-		msg->data[2] = SENSOR_THRESHOLD_STATUS; // fix to threshold deassert status, BMC will compare with UCR/UNR itself
+		// fix to threshold deassert status, BMC will compare with UCR/UNR itself
+		msg->data[2] = SENSOR_THRESHOLD_STATUS;
 		msg->data_len = 3;
 		msg->completion_code = CC_SUCCESS;
 		break;

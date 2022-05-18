@@ -1024,6 +1024,11 @@ __weak void OEM_1S_WRITE_BIC_REGISTER(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_GET_BOARD_ID(ipmi_msg *msg)
+{
+	return;
+}
+
 #ifdef ENABLE_FAN
 __weak void OEM_1S_SET_FAN_DUTY_AUTO(ipmi_msg *msg)
 {
@@ -1248,6 +1253,9 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		break;
 	case CMD_OEM_1S_WRITE_BIC_REGISTER:
 		OEM_1S_WRITE_BIC_REGISTER(msg);
+		break;
+	case CMD_OEM_1S_GET_BOARD_ID:
+		OEM_1S_GET_BOARD_ID(msg);
 		break;
 #ifdef CONFIG_IPMI_KCS_ASPEED
 	case CMD_OEM_1S_GET_POST_CODE:
