@@ -6,6 +6,7 @@
 #include "libutil.h"
 #include "ipmi.h"
 #include "plat_ipmb.h"
+#include "plat_gpio.h"
 
 bool add_sel_evt_record(addsel_msg_t *sel_msg)
 {
@@ -62,4 +63,23 @@ bool add_sel_evt_record(addsel_msg_t *sel_msg)
 	}
 
 	return true;
+}
+
+void OEM_1S_GET_BOARD_ID(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	if (msg->data_len >= 1) {
+		msg->completion_code = CC_INVALID_LENGTH;
+	}
+
+	msg->data[0] = gpio_get(BOARD_ID3);
+	msg->data[0] = ((msg->data[0] << 1) | gpio_get(BOARD_ID2));
+	msg->data[0] = ((msg->data[0] << 1) | gpio_get(BOARD_ID1));
+	msg->data[0] = ((msg->data[0] << 1) | gpio_get(BOARD_ID0));
+	msg->data_len = 1; // Return BOARD ID
+	msg->completion_code = CC_SUCCESS;
+	return;
 }
