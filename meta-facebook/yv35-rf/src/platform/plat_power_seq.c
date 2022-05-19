@@ -228,6 +228,10 @@ bool power_on_handler(uint8_t initial_stage)
 		}
 	}
 	if (check_power_ret == 0) {
+		// If power on successful
+		// Enable i2c synchronized during error recovery/ASIC i2c pin
+		gpio_set(I2CS_SRSTB_GPIO, POSITIVE_ACTIVATE);
+		gpio_set(LSFT_SMB_DIMM_EN, POSITIVE_ACTIVATE);
 		return true;
 	} else {
 		return false;
@@ -346,6 +350,10 @@ bool power_off_handler(uint8_t initial_stage)
 		}
 	}
 	if (check_power_ret == 0) {
+		// If power off successful
+		// Enable i2c synchronized during error recovery/ASIC i2c pin
+		gpio_set(I2CS_SRSTB_GPIO, POSITIVE_DEACTIVATE);
+		gpio_set(LSFT_SMB_DIMM_EN, POSITIVE_DEACTIVATE);
 		return true;
 	} else {
 		return false;
