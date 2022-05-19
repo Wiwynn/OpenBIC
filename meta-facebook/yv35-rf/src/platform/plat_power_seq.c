@@ -48,6 +48,10 @@ void control_power_off_sequence()
 	gpio_set(PWRGD_CARD_PWROK, POWER_OFF);
 	gpio_set(ASIC_DEV_RST_N, POWER_OFF);
 
+	// Disable i2c synchronized during error recovery/ASIC i2c pin
+	gpio_set(I2CS_SRSTB_GPIO, POSITIVE_DEACTIVATE);
+	gpio_set(LSFT_SMB_DIMM_EN, POSITIVE_DEACTIVATE);
+
 	is_power_off = power_off_handler(DIMM_POWER_OFF_STAGE1);
 
 	if (is_power_off == true) {
@@ -209,6 +213,11 @@ bool power_on_handler(uint8_t initial_stage)
 			break;
 		case BOARD_POWER_ON_STAGE:
 			control_power_stage(ENABLE_POWER_MODE, ASIC_DEV_RST_N);
+
+			// Enable i2c synchronized during error recovery/ASIC i2c pin
+			gpio_set(I2CS_SRSTB_GPIO, POSITIVE_ACTIVATE);
+			gpio_set(LSFT_SMB_DIMM_EN, POSITIVE_ACTIVATE);
+
 			check_power_ret = 0;
 			enable_power_on_handler = false;
 			break;
