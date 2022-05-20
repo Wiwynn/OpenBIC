@@ -55,6 +55,7 @@ void OEM_1S_RESET_BIC(ipmi_msg *msg);
 void OEM_1S_12V_CYCLE_SLOT(ipmi_msg *msg);
 void OEM_1S_READ_BIC_REGISTER(ipmi_msg *msg);
 void OEM_1S_WRITE_BIC_REGISTER(ipmi_msg *msg);
+void OEM_1S_CLEAR_CMOS(ipmi_msg *msg);
 void OEM_1S_GET_BOARD_ID(ipmi_msg *msg);
 
 #ifdef CONFIG_IPMI_KCS_ASPEED
