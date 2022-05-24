@@ -1,9 +1,10 @@
 #include <zephyr.h>
 #include <stdio.h>
+#include "ipmi.h"
+#include "ipmb.h"
 #include "plat_isr.h"
 #include "libipmi.h"
 #include "plat_gpio.h"
-#include "plat_ipmi.h"
 #include "plat_class.h"
 #include "plat_sensor_table.h"
 #include "plat_power_seq.h"
@@ -85,11 +86,13 @@ int check_power_stage(uint8_t check_mode, uint8_t check_seq)
 	int ret = 0;
 	switch (check_mode) {
 	case ENABLE_POWER_MODE: // Check power on stage
+		power_on_seq += 1;
 		if (gpio_get(check_seq) != POWER_ON) {
 			ret = -1;
 		}
 		break;
 	case DISABLE_POWER_MODE: // Check power off stage
+		power_off_seq -= 1;
 		if (gpio_get(check_seq) != POWER_OFF) {
 			ret = -1;
 		}
@@ -101,16 +104,23 @@ int check_power_stage(uint8_t check_mode, uint8_t check_seq)
 	}
 
 	if (ret == -1) { // Addsel if check power stage fail
-		addsel_msg_t sel_msg;
+		bool is_addsel_success = false;
+		common_addsel_msg_t sel_msg;
+		memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
+
+		sel_msg.InF_target = CL_BIC_IPMB;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_OEM_C3;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPEC;
 		sel_msg.sensor_number = SENSOR_NUM_POWER_ERROR;
 		sel_msg.event_data1 =
 			((check_mode == ENABLE_POWER_MODE) ? IPMI_OEM_EVENT_OFFSET_EXP_PWRON_FAIL :
 								   IPMI_OEM_EVENT_OFFSET_EXP_PWROFF_FAIL);
-		sel_msg.event_data2 = check_seq;
+		sel_msg.event_data2 =
+			((check_mode == ENABLE_POWER_MODE) ? power_on_seq : power_off_seq);
 		sel_msg.event_data3 = get_board_id();
-		if (!add_sel_evt_record(&sel_msg)) {
+
+		is_addsel_success = common_add_sel_evt_record(&sel_msg);
+		if (is_addsel_success == false) {
 			printf("[%s] control power event addsel fail  mode: 0x%x  seq: 0x%x\n",
 			       __func__, check_mode, check_seq);
 		}

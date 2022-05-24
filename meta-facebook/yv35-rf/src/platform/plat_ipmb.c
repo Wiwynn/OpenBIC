@@ -9,8 +9,8 @@
 IPMB_config pal_IPMB_config_table[] = {
 	// index, interface, channel, bus, channel_target_address, enable_status, self_address,
 	// rx_thread_name, tx_thread_name
-	{ RF_BIC_IPMB_IDX, I2C_IF, RF_BIC_IPMB, IPMB_RF_BIC_BUS, RF_BIC_I2C_ADDRESS, ENABLE,
-	  SELF_I2C_ADDRESS, "RX_RF_BIC_IPMB_TASK", "TX_RF_BIC_IPMB_TASK" },
+	{ CL_BIC_IPMB_IDX, I2C_IF, CL_BIC_IPMB, IPMB_CL_BIC_BUS, CL_BIC_I2C_ADDRESS, ENABLE,
+	  SELF_I2C_ADDRESS, "RX_CL_BIC_IPMB_TASK", "TX_CL_BIC_IPMB_TASK" },
 	{ RESERVED_IDX, RESERVED_IF, RESERVED, RESERVED_BUS, RESERVED_ADDRESS, DISABLE,
 	  RESERVED_ADDRESS, "RESERVED_ATTR", "RESERVED_ATTR" },
 };
