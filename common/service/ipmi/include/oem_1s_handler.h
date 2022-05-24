@@ -41,6 +41,7 @@ typedef struct _ACCURACY_SENSOR_READING_RES {
 
 void OEM_1S_MSG_OUT(ipmi_msg *msg);
 void OEM_1S_GET_GPIO(ipmi_msg *msg);
+void OEM_1S_GET_GPIO_CONFIG(ipmi_msg *msg);
 void OEM_1S_FW_UPDATE(ipmi_msg *msg);
 void OEM_1S_GET_FW_VERSION(ipmi_msg *msg);
 void OEM_1S_SET_VR_MONITOR_STATUS(ipmi_msg *msg);

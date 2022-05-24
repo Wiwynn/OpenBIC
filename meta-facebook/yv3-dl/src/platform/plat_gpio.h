@@ -3,6 +3,8 @@
 
 #include "hal_gpio.h"
 
+#define GET_BIT_VAL(val, n) ((val & BIT(n)) >> (n))
+
 // gpio_cfg(chip, number, is_init, direction, status, int_type, int_callback)
 // dedicate gpio A0~A7, B0~B7, C0~C7, D0~D7, E0~E7, total 40 gpios
 // Default name: Reserve_GPIOH0
@@ -140,6 +142,13 @@ extern enum _GPIO_NUMS_ GPIO_NUMS;
 
 extern const char *const gpio_name[];
 
+extern uint32_t GPIO_GROUP_REG_ACCESS[];
+
 void enable_PRDY_interrupt();
 void disable_PRDY_interrupt();
+
+uint8_t pal_get_gpio_direction(int gpio_idx);
+uint8_t pal_get_gpio_interrupt_enable(int gpio_idx);
+uint8_t pal_get_gpio_interrupt_type(int gpio_idx);
+uint8_t pal_get_gpio_interrupt_trigger_mode(int gpio_idx);
 #endif

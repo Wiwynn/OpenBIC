@@ -151,6 +151,11 @@ __weak void OEM_1S_GET_GPIO(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_GET_GPIO_CONFIG(ipmi_msg *msg)
+{
+	return;
+}
+
 __weak void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -1236,6 +1241,9 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		OEM_1S_GET_GPIO(msg);
 		break;
 	case CMD_OEM_1S_SET_GPIO:
+		break;
+	case CMD_OEM_1S_GET_GPIO_CONFIG:
+		OEM_1S_GET_GPIO_CONFIG(msg);
 		break;
 	case CMD_OEM_1S_FW_UPDATE:
 		OEM_1S_FW_UPDATE(msg);
