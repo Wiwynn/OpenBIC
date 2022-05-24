@@ -83,3 +83,44 @@ void OEM_1S_GET_BOARD_ID(ipmi_msg *msg)
 	msg->completion_code = CC_SUCCESS;
 	return;
 }
+
+void OEM_1S_GET_GPIO_CONFIG(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	// Bump up the gpio_ind_to_num_table_cnt to multiple of 8.
+	uint8_t gpio_cnt, data_len;
+	gpio_cnt = gpio_ind_to_num_table_cnt + (8 - (gpio_ind_to_num_table_cnt % 8));
+	data_len = gpio_cnt / 8;
+	if (msg->data_len != data_len) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t gpio_select_table[data_len];
+	uint8_t direction, intr_status, intr_type, trigger_type;
+	uint8_t index = 0;
+	memcpy(gpio_select_table, &msg->data[0], msg->data_len);
+	for (uint8_t i = 0; i < gpio_cnt; i++) {
+		if ((i <= gpio_ind_to_num_table_cnt) &&
+		    (gpio_select_table[i / 8] & (1 << (i % 8)))) {
+			direction = pal_get_gpio_direction(
+				gpio_ind_to_num_table[i]); //GPIO pin direction
+			intr_status = pal_get_gpio_interrupt_enable(
+				gpio_ind_to_num_table[i]); //Interrupt enable or disable
+			intr_type = pal_get_gpio_interrupt_type(
+				gpio_ind_to_num_table[i]); //Level or Edge trigger
+			trigger_type = pal_get_gpio_interrupt_trigger_mode(
+				gpio_ind_to_num_table[i]); //trigger type:both,falling,rising
+
+			msg->data[index++] = direction | (intr_status << 1) | (intr_type << 2) |
+					     (trigger_type << 3);
+		}
+	}
+	msg->data_len = index;
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
