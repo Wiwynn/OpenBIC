@@ -362,3 +362,44 @@ void disable_PRDY_interrupt()
 {
 	gpio_interrupt_conf(H_BMC_PRDY_BUF_N, GPIO_INT_DISABLE);
 }
+
+uint8_t pal_get_gpio_direction(int gpio_idx)
+{
+	uint32_t gpio_dir = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x4);
+
+	return GET_BIT_VAL(gpio_dir, gpio_idx % 32);
+}
+
+uint8_t pal_get_gpio_interrupt_enable(int gpio_idx)
+{
+	uint32_t gpio_intr_en = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x8);
+
+	return GET_BIT_VAL(gpio_intr_en, gpio_idx % 32);
+}
+
+uint8_t pal_get_gpio_interrupt_type(int gpio_idx)
+{
+	uint32_t gpio_intr_type = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x10);
+
+	return GET_BIT_VAL(gpio_intr_type, gpio_idx % 32);
+}
+
+uint8_t pal_get_gpio_interrupt_trigger_mode(int gpio_idx)
+{
+	uint8_t trigger_mode = 0;
+	uint32_t gpio_intr_dual_edge = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x14);
+	uint32_t gpio_intr_rsing_falling_edge =
+		sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0xC);
+
+	if (gpio_intr_dual_edge & BIT(gpio_idx % 32)) {
+		trigger_mode = 0x2; //both edge
+	} else {
+		if (gpio_intr_rsing_falling_edge & BIT(gpio_idx % 32)) {
+			trigger_mode = 0x1; //rising edge
+		} else {
+			trigger_mode = 0x0; //falling edge
+		}
+	}
+
+	return trigger_mode;
+}
