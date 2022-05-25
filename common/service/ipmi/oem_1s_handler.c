@@ -830,6 +830,54 @@ __weak void OEM_1S_GET_SET_GPIO(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_GET_FW_SHA256(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	uint8_t status = -1;
+	uint32_t target = msg->data[0];
+	uint32_t offset = (msg->data[1] | (msg->data[2] << 8) | (msg->data[3] << 16) | (msg->data[4] << 24));
+	uint32_t length = (msg->data[5] | (msg->data[6] << 8) | (msg->data[7] << 16) | (msg->data[8] << 24));
+
+	if (msg->data_len != 9) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+	if (target == BIOS_UPDATE) {
+		int pos = pal_get_bios_flash_position(); // todo: add pal function
+		if (pos == -1) {
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+
+		// Switch GPIO(BIOS SPI Selection Pin) to BIC
+		bool ret = pal_switch_bios_spi_mux(GPIO_HIGH);
+		if (!ret) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+		status = get_fw_sha256(&msg->data[0], offset, length, pos);
+
+		// Switch GPIO(BIOS SPI Selection Pin) to PCH
+		ret = pal_switch_bios_spi_mux(GPIO_LOW);
+		if (!ret) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+	} else {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	msg->completion_code = status;
+	msg->data_len = SHA256_DIGEST_SIZE;
+
+	return;
+}
+
 __weak void OEM_1S_I2C_DEV_SCAN(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -1224,6 +1272,9 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		break;
 	case CMD_OEM_1S_GET_SET_GPIO:
 		OEM_1S_GET_SET_GPIO(msg);
+		break;
+	case CMD_OEM_1S_GET_FW_SHA256:
+		OEM_1S_GET_FW_SHA256(msg);
 		break;
 	case CMD_OEM_1S_I2C_DEV_SCAN: // debug command
 		OEM_1S_I2C_DEV_SCAN(msg);
