@@ -247,6 +247,24 @@ sensor_cfg ltc4286_sensor_config_table[] = {
 	  post_ltc4286_read, NULL, &ltc4286_init_args[0] },
 };
 
+sensor_cfg ltc4282_sensor_config_table[] = {
+	/* number,                  type,       port,      address,      offset,
+	   access check arg0, arg1, sample_count, cache, cache_status, mux_address, mux_offset,
+	   pre_sensor_read_fn, pre_sensor_read_args, post_sensor_read_fn, post_sensor_read_fn  */
+	{ SENSOR_NUM_TEMP_HSC, sensor_dev_ltc4282, I2C_BUS2, ADI_LTC4282_ADDR,
+	  PMBUS_READ_TEMPERATURE_1, stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS,
+	  NULL, NULL, NULL, NULL, &ltc4282_init_args[0] },
+	{ SENSOR_NUM_VOL_HSCIN, sensor_dev_ltc4282, I2C_BUS2, ADI_LTC4282_ADDR, PMBUS_READ_VIN,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &ltc4282_init_args[0] },
+	{ SENSOR_NUM_CUR_HSCOUT, sensor_dev_ltc4282, I2C_BUS2, ADI_LTC4282_ADDR, PMBUS_READ_IOUT,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &ltc4282_init_args[0] },
+	{ SENSOR_NUM_PWR_HSCIN, sensor_dev_ltc4282, I2C_BUS2, ADI_LTC4282_ADDR, PMBUS_READ_PIN,
+	  stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  &ltc4282_init_args[0] },
+};
+
 sensor_cfg evt3_class1_adi_temperature_sensor_table[] = {
 	{ SENSOR_NUM_TEMP_TMP75_OUT, sensor_dev_tmp431, I2C_BUS2, TMP431_ADDR,
 	  TMP431_LOCAL_TEMPERATRUE, stby_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS,
@@ -354,6 +372,10 @@ void pal_fix_sensor_config()
 		for (int index = 0; index < sensor_count; index++) {
 			ltc4286_sensor_config_table[index].init_args = &ltc4286_init_args[1];
 		}
+		sensor_count = ARRAY_SIZE(ltc4282_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			ltc4282_sensor_config_table[index].init_args = &ltc4282_init_args[1];
+		}
 		gpio_set(HSC_SET_EN_R, GPIO_HIGH);
 	} else {
 		sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
@@ -363,6 +385,10 @@ void pal_fix_sensor_config()
 		sensor_count = ARRAY_SIZE(ltc4286_sensor_config_table);
 		for (int index = 0; index < sensor_count; index++) {
 			ltc4286_sensor_config_table[index].init_args = &ltc4286_init_args[0];
+		}
+		sensor_count = ARRAY_SIZE(ltc4282_sensor_config_table);
+		for (int index = 0; index < sensor_count; index++) {
+			ltc4282_sensor_config_table[index].init_args = &ltc4282_init_args[0];
 		}
 		gpio_set(HSC_SET_EN_R, GPIO_LOW);
 	}
@@ -405,7 +431,11 @@ void pal_fix_sensor_config()
 				}
 			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
-				printf("TODO: Support LTC4282 sensor config\n");
+				printf("Added LTC4282 sensor configuration\n");
+				sensor_count = ARRAY_SIZE(ltc4282_sensor_config_table);
+				for (int index = 0; index < sensor_count; index++) {
+					add_sensor_config(ltc4282_sensor_config_table[index]);
+				}
 			} else if ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15))) {
 				printf("Added LTC4286 sensor configuration\n");
