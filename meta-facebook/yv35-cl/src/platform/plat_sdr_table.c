@@ -3634,10 +3634,9 @@ uint8_t load_sdr_table(void)
 void pal_fix_full_sdr_table()
 {
 	// Fix sdr table according to bic type.
-	bool ret = false;
 	uint8_t fix_array_num;
 	uint8_t array_max_num = MAX_SENSOR_SIZE;
-	float voltage_hsc_type_adc;
+
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
 		switch (board_revision) {
@@ -3645,44 +3644,16 @@ void pal_fix_full_sdr_table()
 		case SYS_BOARD_EVT:
 		case SYS_BOARD_EVT2:
 		case SYS_BOARD_EVT3_EFUSE:
+		case SYS_BOARD_EVT3_HOTSWAP:
 			fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
 			for (int index = 0; index < fix_array_num; index++) {
 				add_full_sdr_table(hotswap_sdr_table[index]);
 			}
 			break;
-		case SYS_BOARD_EVT3_HOTSWAP:
-			/* Follow the GPIO table, the HSC device type can be by ADC7(net name: HSC_TYPE_ADC)
-			 * If the voltage of ADC-7 is 0.5V(+/- 15%), the hotswap model is ADM1278.
-			 * If the voltage of ADC-7 is 1.0V(+/- 15%), the hotswap model is LTC4282.
-			 * If the voltage of ADC-7 is 1.5V(+/- 15%), the hotswap model is LTC4286.
-			 */
-			ret = get_adc_voltage(CHANNEL_7, &voltage_hsc_type_adc);
-			if (!ret) {
-				break;
-			}
-
-			if (((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
-			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) ||
-			    ((voltage_hsc_type_adc > 1.5 - (1.5 * 0.15)) &&
-			     (voltage_hsc_type_adc < 1.5 + (1.5 * 0.15)))) {
-				fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
-				for (int index = 0; index < fix_array_num; index++) {
-					add_full_sdr_table(hotswap_sdr_table[index]);
-				}
-			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
-				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
-				printf("TODO: Support LTC4282 sensor config\n");
-			} else {
-				printf("Unknown hotswap model type, HSC_TYPE_ADC voltage: %fV\n",
-				       voltage_hsc_type_adc);
-			}
-			break;
 		default:
 			break;
 		}
-
 	} else { // Class-2
-
 		fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
 		for (int index = 0; index < fix_array_num; index++) {
 			add_full_sdr_table(hotswap_sdr_table[index]);
