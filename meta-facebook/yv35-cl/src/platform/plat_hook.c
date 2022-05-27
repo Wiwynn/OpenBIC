@@ -29,6 +29,10 @@ ltc4286_init_arg ltc4286_init_args[] = {
 	[0] = { .is_init = false, .r_sense = 0.25, .mfr_config_1 = 0x1570},
 	[1] = { .is_init = false, .r_sense = 0.25, .mfr_config_1 = 0x3570}
 };
+ltc4282_init_arg ltc4282_init_args[] = {
+	[0] = { .is_init = false, .r_sense = 0.25, .ilim_adjust = 0x17},
+	[1] = { .is_init = false, .r_sense = 0.25, .ilim_adjust = 0x57}
+};
 
 pmic_init_arg pmic_init_args[] = {
 	[0] = { .is_init = false, .smbus_bus_identifier = 0x00, .smbus_addr = 0x90 },

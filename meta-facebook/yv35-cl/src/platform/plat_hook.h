@@ -14,6 +14,7 @@ extern adm1278_init_arg adm1278_init_args[];
 extern mp5990_init_arg mp5990_init_args[];
 extern pmic_init_arg pmic_init_args[];
 extern ltc4286_init_arg ltc4286_init_args[];
+extern ltc4282_init_arg ltc4282_init_args[];
 
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
