@@ -25,7 +25,7 @@
 #define SAMPLE_COUNT_DEFAULT 1
 
 enum LTC4282_OFFSET {
-	LTC4282_ADJUST_OFFSET = 0x11,
+	LTC4282_ILIM_ADJUST_OFFSET = 0x11,
 	LTC4282_VSENSE_OFFSET = 0x40,
 	LTC4282_POWER_OFFSET = 0x46,
 	LTC4282_VSOURCE_OFFSET = 0x3A,
@@ -196,8 +196,12 @@ typedef struct _pex89000_init_arg {
 } pex89000_init_arg;
 
 typedef struct _ltc4282_init_arg {
+	/* Rsense valus, unit: milliohm */
 	float r_sense;
+	uint8_t ilim_adjust;
 
+	/* Initialize function will set following arguments, no need to give value */
+	bool is_init;
 } ltc4282_init_arg;
 
 typedef struct _ltc4286_init_arg {
