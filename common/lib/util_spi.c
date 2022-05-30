@@ -13,6 +13,10 @@
 #include "util_spi.h"
 #include "util_sys.h"
 #include "libutil.h"
+#include "ipmi.h"
+#include <crypto/hash.h>
+
+#define HASH_DRV_NAME CONFIG_CRYPTO_ASPEED_HASH_DRV_NAME
 
 static char *flash_device[6] = { "fmc_cs0",  "fmc_cs1",	 "spi1_cs0",
 				 "spi1_cs1", "spi2_cs0", "spi2_cs1" };
@@ -158,6 +162,89 @@ end:
 	SAFE_FREE(op_buf);
 	SAFE_FREE(read_back_buf);
 
+	return ret;
+}
+
+uint8_t get_fw_sha256(uint8_t *msg_buf, uint32_t offset, uint32_t length, uint8_t flash_position) {
+	const struct device *flash_dev;
+	uint8_t *buf = NULL;
+	uint8_t ret = 0;
+	bool need_free_section = false;
+
+	if (flash_position >= (sizeof(flash_device)/sizeof(char *))) {
+		return CC_PARAM_OUT_OF_RANGE;
+	}
+
+	if (msg_buf == NULL) {
+		return CC_UNSPECIFIED_ERROR;
+	}
+
+	buf = (uint8_t *)malloc(length);
+	if (buf == NULL) {
+		printf("spi index%x update buffer alloc fail\n", flash_position);
+		return CC_OUT_OF_SPACE;
+	}
+
+	flash_dev = device_get_binding(flash_device[flash_position]);
+	if (flash_position == DEVSPI_SPI1_CS0 && !isInitialized) {
+		ret = spi_nor_re_init(flash_dev);
+		if (ret != 0) {
+			printf("flash init fail %u \n", ret);
+			ret = CC_UNSPECIFIED_ERROR;
+			goto end;
+		}
+		isInitialized = true;
+	}
+	ret = flash_read(flash_dev, offset, buf, length);
+	if (ret != 0) {
+		printf("flash read fail, error: %d\n", ret);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	const struct device *dev = device_get_binding(HASH_DRV_NAME);
+
+	uint8_t digest[SHA256_DIGEST_SIZE];
+	struct hash_ctx ini;
+	struct hash_pkt pkt;
+
+	pkt.in_buf = buf;
+	pkt.in_len = length;
+	pkt.out_buf = digest;
+	pkt.out_buf_max = sizeof(digest);
+
+	ret = hash_begin_session(dev, &ini, HASH_SHA256);
+	if (ret) {
+		printf("hash_begin_session error: %d\n", ret);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	need_free_section = true;
+
+	ret = hash_update(&ini, &pkt);
+	if (ret) {
+		printf("hash_update error: %d\n", ret);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	ret = hash_final(&ini, &pkt);
+	if (ret) {
+		printf("hash_final error: %d\n", ret);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	memcpy(msg_buf, &digest[0], sizeof(digest));
+	ret = CC_SUCCESS;
+end:
+	if (buf) {
+		free(buf);
+	}
+	if (need_free_section) {
+		hash_free_session(dev, &ini);
+	}
 	return ret;
 }
 
