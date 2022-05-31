@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "ipmi.h"
 #include "ipmb.h"
+#include "util_spi.h"
 #include "plat_isr.h"
 #include "libipmi.h"
 #include "plat_gpio.h"

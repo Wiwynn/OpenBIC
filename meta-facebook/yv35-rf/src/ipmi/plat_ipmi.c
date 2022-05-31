@@ -1,10 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <drivers/spi_nor.h>
 #include "ipmi.h"
 #include "plat_ipmi.h"
 #include "plat_ipmb.h"
 #include "plat_class.h"
 #include "libutil.h"
+
+int pal_update_cxl()
+{
+	const struct device *flash_dev;
+	int ret = 0;
+
+	gpio_set(SPI_MASTER_SEL, GPIO_HIGH);
+	gpio_set(FM_SPI_MUX_OE_CTL_N, GPIO_LOW);
+	flash_dev = device_get_binding("spi1_cs0");
+	ret = spi_nor_re_init(flash_dev);
+	printf("[%s] ret%d\n", __func__, ret);
+	return 0;
+}
 
 void OEM_1S_GET_BOARD_ID(ipmi_msg *msg)
 {

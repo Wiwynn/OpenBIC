@@ -27,6 +27,11 @@
 #define BIOS_UPDATE_MAX_OFFSET 0x4000000
 #define BIC_UPDATE_MAX_OFFSET 0x50000
 
+__weak int pal_update_cxl()
+{
+	return 0;
+}
+
 __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -222,6 +227,8 @@ __weak void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 	} else if ((target == CPLD_UPDATE) || (target == (CPLD_UPDATE | IS_SECTOR_END_MASK))) {
 		status = cpld_altera_max10_fw_update(offset, length, &msg->data[7]);
 
+	} else if (target == CXL_UPDATE) {
+		status = pal_update_cxl();
 	} else {
 		msg->completion_code = CC_INVALID_DATA_FIELD;
 		return;

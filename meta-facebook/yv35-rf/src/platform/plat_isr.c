@@ -1,6 +1,7 @@
 #include <zephyr.h>
 #include <stdio.h>
 #include <string.h>
+#include <drivers/spi_nor.h>
 #include "plat_isr.h"
 #include "power_status.h"
 #include "plat_gpio.h"

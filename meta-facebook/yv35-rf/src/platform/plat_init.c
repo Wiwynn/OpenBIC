@@ -17,7 +17,7 @@ void pal_set_sys_status()
 	control_power_sequence();
 }
 
-#define DEF_PROJ_GPIO_PRIORITY 61
+#define DEF_PROJ_GPIO_PRIORITY 50
 
 DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,
 	      POST_KERNEL, DEF_PROJ_GPIO_PRIORITY, NULL);
