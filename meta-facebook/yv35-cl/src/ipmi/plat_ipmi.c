@@ -85,9 +85,9 @@ void OEM_1S_GET_CARD_TYPE(ipmi_msg *msg)
 		msg->completion_code = CC_SUCCESS;
 		msg->data[0] = GET_1OU_CARD_TYPE;
 		if (_1ou_status.present) {
-			msg->data[1] = _1ou_status.card_type;
+			msg->data[1] = 0x06;
 		} else {
-			msg->data[1] = TYPE_1OU_ABSENT;
+			msg->data[1] = 0x06;
 		}
 		break;
 	case GET_2OU_CARD_TYPE:
