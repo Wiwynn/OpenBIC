@@ -23,9 +23,12 @@
 #include "altera.h"
 #include "util_spi.h"
 #include "util_sys.h"
+#include "libcpld.h"
 
 #define BIOS_UPDATE_MAX_OFFSET 0x4000000
 #define BIC_UPDATE_MAX_OFFSET 0x50000
+#define MAX_CPLD_VER_LEN 4
+#define GET_CPLD_VER_OFFSET 0x28002000
 
 __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 {
@@ -274,20 +277,36 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		msg->completion_code = CC_INVALID_LENGTH;
 		return;
 	}
-
+	uint32_t ver_reg = GET_CPLD_VER_OFFSET;
+	uint8_t tbuf[MAX_CPLD_VER_LEN] = {0x00};
+	uint8_t tx_len = sizeof(tbuf);
+	uint8_t rx_len = MAX_CPLD_VER_LEN;
 	uint8_t component;
+	uint8_t bus = 0, addr = 0;
 	component = msg->data[0];
 	ipmb_error status;
 	ipmi_msg *bridge_msg;
+	I2C_MSG i2c_msg;
 
 #ifdef ENABLE_ISL69260
-	I2C_MSG i2c_msg;
 	uint8_t retry = 3;
 #endif
 
 	switch (component) {
 	case COMPNT_CPLD:
-		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		if (pal_get_cpld_bus_addr(&bus, &addr) < 0) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+		memcpy(tbuf, &ver_reg, sizeof(tbuf));
+		i2c_msg = construct_i2c_message(bus, addr, tx_len, tbuf, rx_len);
+		if (i2c_master_read(&i2c_msg, retry) != 0) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+		memcpy(&msg->data[0], &i2c_msg.data[0], MAX_CPLD_VER_LEN);
+		msg->data_len = MAX_CPLD_VER_LEN;
+		msg->completion_code = CC_SUCCESS;
 		break;
 	case COMPNT_BIC:
 		msg->data[0] = BIC_FW_YEAR_MSB;
