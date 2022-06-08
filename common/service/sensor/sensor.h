@@ -95,6 +95,17 @@ static inline float convert_MBR_to_reading(uint8_t sensor_num, uint8_t val)
 	return (val - round_add(sensor_num, val)) * SDR_M(sensor_num) / SDR_Rexp(sensor_num);
 }
 
+enum CHECK_SENSOR_INFO {
+	CHECK_SDR_INFO,
+	CHECK_SENSOR_CONFIG_INFO,
+#ifdef ENABLE_FIX_SENSOR_INFO
+	CHECK_FIX_ADM1278_SENSOR_INFO,
+	CHECK_FIX_MP5990_SENSOR_INFO,
+	CHECK_FIX_EVT3_ADI_SENSOR_INFO,
+	CHECK_FIX_DPV2_SENSOR_INFO,
+#endif
+};
+
 enum {
 	SENSOR_READ_SUCCESS,
 	SENSOR_READ_ACUR_SUCCESS,
@@ -250,5 +261,7 @@ void pal_fix_sensor_config(void);
 bool check_sensor_num_exist(uint8_t sensor_num);
 void add_sensor_config(sensor_cfg config);
 bool check_is_sensor_ready();
+int check_sensor_init_info(SDR_Full_sensor *sdr_table, sensor_cfg *sensor_config_table,
+			   uint8_t input_sdr_size, uint8_t input_config_size, uint8_t check_mode);
 
 #endif

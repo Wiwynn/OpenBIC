@@ -2145,6 +2145,37 @@ SDR_Full_sensor plat_sdr_table[] = {
 
 uint8_t load_sdr_table(void)
 {
-	memcpy(full_sdr_table, plat_sdr_table, sizeof(plat_sdr_table));
-	return (sizeof(plat_sdr_table) / sizeof(plat_sdr_table[0]));
+	uint8_t array_size = ARRAY_SIZE(plat_sdr_table), input_array_size = 0;
+	int ret = -1;
+
+	// Check sensor initial information is exist before loading SDR to common SDR table
+	// Get sensor config information to check sensor initial information
+	sensor_cfg *input_config_table = get_sensor_config_info(&input_array_size);
+	if (input_config_table == NULL) {
+		printf("[%s] fail to get sensor config information\n", __func__);
+		return 0;
+	}
+
+	ret = check_sensor_init_info(plat_sdr_table, input_config_table, array_size,
+				     input_array_size, CHECK_SDR_INFO);
+	if (ret < 0) {
+		printf("[%s] check sensor init information fail ret: %d\n", __func__, ret);
+		return 0;
+	}
+
+	return ret;
 };
+
+SDR_Full_sensor *get_sdr_info(uint8_t *array_size)
+{
+	SDR_Full_sensor *pointer = NULL;
+
+	if (array_size == NULL) {
+		printf("[%s] input array size pointer is NULL\n", __func__);
+		return pointer;
+	}
+
+	*array_size = ARRAY_SIZE(plat_sdr_table);
+	pointer = plat_sdr_table;
+	return pointer;
+}

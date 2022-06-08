@@ -38,7 +38,7 @@ const int negative_ten_power[16] = { 1,	    1,		1,	   1,	     1,	      1,
 				     10000, 1000,	100,	   10 };
 
 sensor_cfg *sensor_config;
-uint8_t sensor_config_num;
+uint8_t sensor_config_num = 0;
 
 SENSOR_DRIVE_INIT_DECLARE(tmp75);
 SENSOR_DRIVE_INIT_DECLARE(ast_adc);
@@ -416,4 +416,135 @@ bool sensor_init(void)
 bool check_is_sensor_ready()
 {
 	return is_sensor_ready_flag;
+}
+
+int get_sensor_info_index(uint8_t sensor_num, uint8_t get_sensor_info)
+{
+	// Function usage: Find sensor information in SDR/sensor config table through sensor number
+	// Function would return SDR/sensor config table index if finding sensor information through sensor number, otherwise return -1
+	int ret = -1;
+	uint8_t index = 0;
+	switch (get_sensor_info) {
+	case CHECK_SDR_INFO:
+		for (index = 0; index < SDR_NUM; ++index) {
+			if (sensor_num == full_sdr_table[index].sensor_num) {
+				ret = index;
+				break;
+			}
+		}
+		break;
+	case CHECK_SENSOR_CONFIG_INFO:
+		for (index = 0; index < sensor_config_num; ++index) {
+			if (sensor_num == sensor_config[index].num) {
+				ret = index;
+				break;
+			}
+		}
+		break;
+	default:
+		printf("[%s] not support get mode 0x%x\n", __func__, get_sensor_info);
+		break;
+	}
+
+	return ret;
+}
+
+int check_sensor_init_info(SDR_Full_sensor *sdr_table, sensor_cfg *sensor_config_table,
+			   uint8_t input_sdr_size, uint8_t input_config_size, uint8_t check_mode)
+{
+	int ret = -1, get_sensor_index_ret = -1;
+	if ((sdr_table == NULL) || (sensor_config_table == NULL)) {
+		printf("[%s] input check array pointer is NULL  check mode: 0x%x\n", __func__,
+		       check_mode);
+		return ret;
+	}
+
+	uint8_t config_index = 0, sdr_index = 0;
+	uint8_t sdr_load_index = SDR_NUM, config_load_index = sensor_config_num;
+
+	switch (check_mode) {
+	case CHECK_SENSOR_CONFIG_INFO:
+		// Check sensor config table max size avoiding over table max size after adding new sensor config
+		if (input_config_size + sensor_config_num > MAX_SENSOR_SIZE) {
+			printf("[%s] add sensor would over array max size  check mode: 0x%x  current size: 0x%x  add size: 0x%x\n",
+			       __func__, check_mode, sensor_config_num, input_config_size);
+			break;
+		}
+		// Check adding sensor config initial information is exist in SDR table
+		for (config_index = 0; config_index < input_config_size; ++config_index) {
+			// Check common sensor config table before adding new config
+			// Add new config to sensor config table if new config can't be found in common sensor config table, otherwise replace duplicate config
+			get_sensor_index_ret = get_sensor_info_index(
+				sensor_config_table[config_index].num, CHECK_SENSOR_CONFIG_INFO);
+			if (get_sensor_index_ret < 0) {
+				for (sdr_index = 0; sdr_index < input_sdr_size; ++sdr_index) {
+					if (sensor_config_table[config_index].num ==
+					    sdr_table[sdr_index].sensor_num) {
+						memcpy(&sensor_config[sensor_config_num++],
+						       &sensor_config_table[config_index],
+						       sizeof(sensor_cfg));
+						break;
+					}
+					// Print error message if BIC can't find sensor information in SDR table
+					if (sdr_index == (input_sdr_size - 1)) {
+						printf("[%s] fail to find sensor num 0x%x in sensor config table\n",
+						       __func__,
+						       sensor_config_table[config_index].num);
+					}
+				}
+			} else {
+				printf("[%s] replace sensor num 0x%x in sensor config table\n",
+				       __func__, sensor_config_table[config_index].num);
+				memcpy(&sensor_config[get_sensor_index_ret],
+				       &sensor_config_table[config_index], sizeof(sensor_cfg));
+			}
+		}
+		ret = sensor_config_num - config_load_index;
+		break;
+
+	case CHECK_SDR_INFO:
+		// Check SDR table max size avoiding over table max size after adding new SDR
+		if (input_sdr_size + SDR_NUM > MAX_SENSOR_SIZE) {
+			printf("[%s] add sensor would over array max size  check mode: 0x%x  current size: 0x%x  add size: 0x%x\n",
+			       __func__, check_mode, SDR_NUM, input_sdr_size);
+			break;
+		}
+		// Check adding SDR initial information is exist in sensor config table
+		for (sdr_index = 0; sdr_index < input_sdr_size; ++sdr_index) {
+			// Check common SDR table before adding new SDR
+			// Add new config to SDR table if new SDR can't be found in common SDR table, otherwise replace duplicate SDR
+			get_sensor_index_ret = get_sensor_info_index(
+				sdr_table[sdr_index].sensor_num, CHECK_SDR_INFO);
+			if (get_sensor_index_ret < 0) {
+				for (config_index = 0; config_index < input_config_size;
+				     ++config_index) {
+					if (sdr_table[sdr_index].sensor_num ==
+					    sensor_config_table[config_index].num) {
+						memcpy(&full_sdr_table[SDR_NUM++],
+						       &sdr_table[sdr_index],
+						       sizeof(SDR_Full_sensor));
+						break;
+					}
+					// Print error message if BIC can't find sensor information in sensor config table
+					if (config_index == (input_config_size - 1)) {
+						printf("[%s] fail to find sensor num 0x%x in SDR table\n",
+						       __func__, sdr_table[sdr_index].sensor_num);
+					}
+				}
+			} else {
+				printf("[%s] replace sensor num 0x%x in SDR table\n", __func__,
+				       sdr_table[sdr_index].sensor_num);
+				memcpy(&full_sdr_table[get_sensor_index_ret], &sdr_table[sdr_index],
+				       sizeof(SDR_Full_sensor));
+			}
+		}
+		ret = SDR_NUM - sdr_load_index;
+		break;
+	default:
+		printf("[%s] not support check mode 0x%x\n", __func__, check_mode);
+		break;
+	}
+
+	// Return add numbers of sdr/sensor config
+	return ret;
 }

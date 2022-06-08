@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "sdr.h"
 #include "sensor.h"
 #include "ast_adc.h"
 #include "intel_peci.h"
@@ -16,6 +17,7 @@
 #include "pmbus.h"
 #include "tmp431.h"
 #include "libutil.h"
+#include "plat_sdr_table.h"
 
 SET_GPIO_VALUE_CFG pre_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_HIGH };
 SET_GPIO_VALUE_CFG post_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_LOW };
@@ -258,8 +260,25 @@ sensor_cfg DPV2_sensor_config_table[] = {
 
 uint8_t load_sensor_config(void)
 {
-	memcpy(sensor_config, plat_sensor_config, sizeof(plat_sensor_config));
-	return ARRAY_SIZE(plat_sensor_config);
+	uint8_t array_size = ARRAY_SIZE(plat_sensor_config), input_array_size = 0;
+	int ret = -1;
+
+	// Check sensor initial information is exist before loading sensor config to common config table
+	// Get SDR information to check sensor initial information
+	SDR_Full_sensor *input_sdr_table = get_sdr_info(CHECK_SDR_INFO, &input_array_size);
+	if (input_sdr_table == NULL) {
+		printf("[%s] fail to get sensor SDR information\n", __func__);
+		return 0;
+	}
+
+	ret = check_sensor_init_info(input_sdr_table, plat_sensor_config, input_array_size,
+				     array_size, CHECK_SENSOR_CONFIG_INFO);
+	if (ret < 0) {
+		printf("[%s] check sensor init information fail ret: %d\n", __func__, ret);
+		return 0;
+	}
+
+	return ret;
 }
 
 void check_vr_type(uint8_t index)
@@ -309,7 +328,7 @@ void pal_fix_sensor_config()
 {
 	uint8_t sensor_count;
 	// Sensor config table max size is set according to sdr table size
-	uint8_t sensor_max_num = SDR_NUM;
+	uint8_t check_mode = 0, input_array_size = 0;
 	float voltage_hsc_type_adc;
 
 	/* Check the VR sensor type */
@@ -321,7 +340,10 @@ void pal_fix_sensor_config()
 	}
 
 	bool ret = false;
+	int check_sensor_ret = -1;
 	CARD_STATUS _2ou_status = get_2ou_status();
+	SDR_Full_sensor *input_sdr_table = NULL;
+	sensor_cfg *check_sensor_config_table = NULL;
 	/* Fix sensor table according to the different class types and board revisions */
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
@@ -330,12 +352,14 @@ void pal_fix_sensor_config()
 		case SYS_BOARD_EVT:
 		case SYS_BOARD_EVT2:
 			sensor_count = ARRAY_SIZE(adm1278_sensor_config_table);
-			for (int index = 0; index < sensor_count; index++) {
-				add_sensor_config(adm1278_sensor_config_table[index]);
-			}
+			check_mode = CHECK_FIX_ADM1278_SENSOR_INFO;
+			check_sensor_config_table = adm1278_sensor_config_table;
 			break;
 		case SYS_BOARD_EVT3_EFUSE:
 			sensor_count = ARRAY_SIZE(mp5990_sensor_config_table);
+			check_mode = CHECK_FIX_MP5990_SENSOR_INFO;
+			check_sensor_config_table = mp5990_sensor_config_table;
+
 			for (int index = 0; index < sensor_count; index++) {
 				if (_2ou_status.present) {
 					/* For the class type 1 and 2OU system,
@@ -356,7 +380,6 @@ void pal_fix_sensor_config()
 						&mp5990_init_args[0];
 					gpio_set(HSC_SET_EN_R, GPIO_LOW);
 				}
-				add_sensor_config(mp5990_sensor_config_table[index]);
 			}
 			break;
 		case SYS_BOARD_EVT3_HOTSWAP:
@@ -367,15 +390,28 @@ void pal_fix_sensor_config()
 			 */
 			ret = get_adc_voltage(CHANNEL_7, &voltage_hsc_type_adc);
 			if (!ret) {
-				break;
+				goto skip_check_sensor_info;
 			}
 
 			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
 			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
 				printf("Added ADM1278 sensor configuration\n");
 				sensor_count = ARRAY_SIZE(adm1278_sensor_config_table);
-				for (int index = 0; index < sensor_count; index++) {
-					add_sensor_config(adm1278_sensor_config_table[index]);
+				input_sdr_table = get_sdr_info(CHECK_FIX_ADM1278_SENSOR_INFO,
+							       &input_array_size);
+				if (input_sdr_table == NULL) {
+					printf("[%s] fail to get sensor SDR information  class type: 0x%x check mode: 0x%x\n",
+					       __func__, get_system_class(),
+					       CHECK_FIX_ADM1278_SENSOR_INFO);
+					goto skip_check_sensor_info;
+				}
+				check_sensor_ret = check_sensor_init_info(
+					input_sdr_table, adm1278_sensor_config_table,
+					input_array_size, sensor_count, CHECK_SENSOR_CONFIG_INFO);
+				if (check_sensor_ret < 0) {
+					printf("[%s] check sensor init information fail ret: %d\n",
+					       __func__, check_sensor_ret);
+					goto skip_check_sensor_info;
 				}
 			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
@@ -391,38 +427,94 @@ void pal_fix_sensor_config()
 			 * For these two sensors, the reading values are read from TMP431 chip.data.num
 			 */
 			sensor_count = ARRAY_SIZE(evt3_class1_adi_temperature_sensor_table);
-			for (int index = 0; index < sensor_count; index++) {
-				add_sensor_config(evt3_class1_adi_temperature_sensor_table[index]);
-			}
+			check_mode = CHECK_FIX_EVT3_ADI_SENSOR_INFO;
+			check_sensor_config_table = evt3_class1_adi_temperature_sensor_table;
 			break;
 		default:
 			break;
 		}
 	} else { // Class-2
 		sensor_count = ARRAY_SIZE(adm1278_sensor_config_table);
-		for (int index = 0; index < sensor_count; index++) {
-			add_sensor_config(adm1278_sensor_config_table[index]);
+		check_mode = CHECK_FIX_ADM1278_SENSOR_INFO;
+		check_sensor_config_table = adm1278_sensor_config_table;
+	}
+
+	input_sdr_table = get_sdr_info(check_mode, &input_array_size);
+	if (input_sdr_table == NULL) {
+		printf("[%s] fail to get sensor SDR information  class type: 0x%x check mode: 0x%x\n",
+		       __func__, get_system_class(), check_mode);
+	} else {
+		check_sensor_ret =
+			check_sensor_init_info(input_sdr_table, check_sensor_config_table,
+					       input_array_size, sensor_count,
+					       CHECK_SENSOR_CONFIG_INFO);
+		if (check_sensor_ret < 0) {
+			printf("[%s] check sensor init information fail ret: %d\n", __func__,
+			       check_sensor_ret);
 		}
 	}
+skip_check_sensor_info:
 
 	/* Fix sensor table if 2ou card is present */
 	if (_2ou_status.present) {
 		// Add DPV2 sensor config if DPV2_16 is present
 		if ((_2ou_status.card_type & TYPE_2OU_DPV2_16) == TYPE_2OU_DPV2_16) {
 			sensor_count = ARRAY_SIZE(DPV2_sensor_config_table);
-			// Check sensor config table max size avoiding over table max size after adding new sensor config
-			if ((sensor_config_num + sensor_count) > sensor_max_num) {
-				printf("[%s] over sensor config table max size after adding DPV2_16 sensor config, config table max size: %d  config table size after adding: %d\n",
-				       __func__, sensor_max_num, sensor_config_num + sensor_count);
-				return;
+			input_sdr_table =
+				get_sdr_info(CHECK_FIX_DPV2_SENSOR_INFO, &input_array_size);
+			if (input_sdr_table == NULL) {
+				printf("[%s] fail to get DPV2 sensor SDR information\n", __func__);
+			} else {
+				check_sensor_ret = check_sensor_init_info(
+					input_sdr_table, DPV2_sensor_config_table, input_array_size,
+					sensor_count, CHECK_SENSOR_CONFIG_INFO);
+				if (check_sensor_ret < 0) {
+					printf("[%s] check sensor init information fail ret: %d\n",
+					       __func__, check_sensor_ret);
+				}
 			}
-			memcpy(&sensor_config[sensor_config_num], &DPV2_sensor_config_table[0],
-			       sensor_count * sizeof(sensor_cfg));
-			sensor_config_num += sensor_count;
 		}
 	}
 
 	if (sensor_config_num != SDR_NUM) {
 		printf("fix sensor SDR and config table not match\n");
 	}
+}
+
+sensor_cfg *get_sensor_config_info(uint8_t get_mode, uint8_t *array_size)
+{
+	sensor_cfg *pointer = NULL;
+
+	if (array_size == NULL) {
+		printf("[%s] input array size pointer is NULL\n", __func__);
+		return pointer;
+	}
+
+	switch (get_mode) {
+	case CHECK_SENSOR_CONFIG_INFO:
+		*array_size = ARRAY_SIZE(plat_sensor_config);
+		pointer = plat_sensor_config;
+		break;
+	case CHECK_FIX_ADM1278_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(adm1278_sensor_config_table);
+		pointer = adm1278_sensor_config_table;
+		break;
+	case CHECK_FIX_MP5990_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(mp5990_sensor_config_table);
+		pointer = mp5990_sensor_config_table;
+		break;
+	case CHECK_FIX_EVT3_ADI_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(evt3_class1_adi_temperature_sensor_table);
+		pointer = evt3_class1_adi_temperature_sensor_table;
+		break;
+	case CHECK_FIX_DPV2_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(DPV2_sensor_config_table);
+		pointer = DPV2_sensor_config_table;
+		break;
+	default:
+		printf("[%s] not support get mode 0x%x\n", __func__, get_mode);
+		break;
+	}
+
+	return pointer;
 }

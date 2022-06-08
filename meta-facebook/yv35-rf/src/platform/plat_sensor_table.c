@@ -5,6 +5,7 @@
 #include "plat_hook.h"
 #include "plat_i2c.h"
 #include "plat_sensor_table.h"
+#include "plat_sdr_table.h"
 
 sensor_cfg plat_sensor_config[] = {
 	/* number,                  type,       port,      address,      offset,
@@ -133,6 +134,37 @@ sensor_cfg plat_sensor_config[] = {
 
 uint8_t load_sensor_config(void)
 {
-	memcpy(sensor_config, plat_sensor_config, sizeof(plat_sensor_config));
-	return ARRAY_SIZE(plat_sensor_config);
+	uint8_t array_size = ARRAY_SIZE(plat_sensor_config), input_array_size = 0;
+	int ret = -1;
+
+	// Check sensor initial information is exist before loading sensor config to common config table
+	// Get SDR information to check sensor initial information
+	SDR_Full_sensor *input_sdr_table = get_sdr_info(&input_array_size);
+	if (input_sdr_table == NULL) {
+		printf("[%s] fail to get sensor SDR information\n", __func__);
+		return 0;
+	}
+
+	ret = check_sensor_init_info(input_sdr_table, plat_sensor_config, input_array_size,
+				     array_size, CHECK_SENSOR_CONFIG_INFO);
+	if (ret < 0) {
+		printf("[%s] check sensor init information fail ret: %d\n", __func__, ret);
+		return 0;
+	}
+
+	return ret;
+}
+
+sensor_cfg *get_sensor_config_info(uint8_t *array_size)
+{
+	sensor_cfg *pointer = NULL;
+
+	if (array_size == NULL) {
+		printf("[%s] input array size pointer is NULL\n", __func__);
+		return pointer;
+	}
+
+	*array_size = ARRAY_SIZE(plat_sensor_config);
+	pointer = plat_sensor_config;
+	return pointer;
 }

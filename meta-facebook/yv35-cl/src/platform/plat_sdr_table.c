@@ -3627,28 +3627,53 @@ SDR_Full_sensor dpv2_sdr_table[] = {
 
 uint8_t load_sdr_table(void)
 {
-	memcpy(full_sdr_table, plat_sdr_table, sizeof(plat_sdr_table));
-	return ARRAY_SIZE(plat_sdr_table);
+	uint8_t array_size = ARRAY_SIZE(plat_sdr_table), input_array_size = 0;
+	int ret = -1;
+
+	// Check sensor initial information is exist before loading SDR to common SDR table
+	// Get sensor config information to check sensor initial information
+	sensor_cfg *input_config_table =
+		get_sensor_config_info(CHECK_SENSOR_CONFIG_INFO, &input_array_size);
+	if (input_config_table == NULL) {
+		printf("[%s] fail to get sensor config information\n", __func__);
+		return 0;
+	}
+
+	ret = check_sensor_init_info(plat_sdr_table, input_config_table, array_size,
+				     input_array_size, CHECK_SDR_INFO);
+	if (ret < 0) {
+		printf("[%s] check sensor init information fail ret: %d\n", __func__, ret);
+		return 0;
+	}
+
+	return ret;
 }
 
 void pal_fix_full_sdr_table()
 {
 	// Fix sdr table according to bic type.
 	bool ret = false;
-	uint8_t fix_array_num;
-	uint8_t array_max_num = MAX_SENSOR_SIZE;
+	uint8_t fix_array_num = 0;
+	uint8_t input_array_size = 0, check_mode = 0;
 	float voltage_hsc_type_adc;
+	int check_sensor_ret = -1;
+	sensor_cfg *input_config_table = NULL;
+	SDR_Full_sensor *check_SDR_table = NULL;
+
 	if (get_system_class() == SYS_CLASS_1) {
 		uint8_t board_revision = get_board_revision();
 		switch (board_revision) {
 		case SYS_BOARD_POC:
 		case SYS_BOARD_EVT:
 		case SYS_BOARD_EVT2:
+			fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
+			check_mode = CHECK_FIX_ADM1278_SENSOR_INFO;
+			check_SDR_table = hotswap_sdr_table;
+			break;
 		case SYS_BOARD_EVT3_EFUSE:
 			fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
-			for (int index = 0; index < fix_array_num; index++) {
-				add_full_sdr_table(hotswap_sdr_table[index]);
-			}
+			check_mode = CHECK_FIX_MP5990_SENSOR_INFO;
+			check_SDR_table = hotswap_sdr_table;
 			break;
 		case SYS_BOARD_EVT3_HOTSWAP:
 			/* Follow the GPIO table, the HSC device type can be by ADC7(net name: HSC_TYPE_ADC)
@@ -3664,9 +3689,8 @@ void pal_fix_full_sdr_table()
 			if ((voltage_hsc_type_adc > 0.5 - (0.5 * 0.15)) &&
 			    (voltage_hsc_type_adc < 0.5 + (0.5 * 0.15))) {
 				fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
-				for (int index = 0; index < fix_array_num; index++) {
-					add_full_sdr_table(hotswap_sdr_table[index]);
-				}
+				check_mode = CHECK_FIX_ADM1278_SENSOR_INFO;
+				check_SDR_table = hotswap_sdr_table;
 			} else if ((voltage_hsc_type_adc > 1.0 - (1.0 * 0.15)) &&
 				   (voltage_hsc_type_adc < 1.0 + (1.0 * 0.15))) {
 				printf("TODO: Support LTC4282 sensor config\n");
@@ -3682,22 +3706,51 @@ void pal_fix_full_sdr_table()
 			break;
 		}
 
+		if (fix_array_num != 0) {
+			input_config_table = get_sensor_config_info(check_mode, &input_array_size);
+			if (input_config_table == NULL) {
+				printf("[%s] fail to get sensor config information  class1 check mode: 0x%x\n",
+				       __func__, check_mode);
+			} else {
+				check_sensor_ret =
+					check_sensor_init_info(check_SDR_table, input_config_table,
+							       fix_array_num, input_array_size,
+							       CHECK_SDR_INFO);
+				if (check_sensor_ret < 0) {
+					printf("[%s] check sensor init information fail ret: %d\n",
+					       __func__, check_sensor_ret);
+				}
+			}
+		}
 	} else { // Class-2
 
 		fix_array_num = ARRAY_SIZE(hotswap_sdr_table);
-		for (int index = 0; index < fix_array_num; index++) {
-			add_full_sdr_table(hotswap_sdr_table[index]);
-		}
-
-		fix_array_num = ARRAY_SIZE(fix_class2_sdr_table);
-		for (int index = 0; index < fix_array_num; index++) {
-			for (int i = MBR_R; i >= THRESHOLD_UNR; --i) {
-				if (i < MBR_M) {
-					change_sensor_threshold(fix_class2_sdr_table[index][0], i,
+		input_config_table =
+			get_sensor_config_info(CHECK_FIX_ADM1278_SENSOR_INFO, &input_array_size);
+		if (input_config_table == NULL) {
+			printf("[%s] fail to get class 2 ADM1278 sensor config information\n",
+			       __func__);
+		} else {
+			check_sensor_ret = check_sensor_init_info(hotswap_sdr_table,
+								  input_config_table, fix_array_num,
+								  input_array_size, CHECK_SDR_INFO);
+			if (check_sensor_ret < 0) {
+				printf("[%s] check class 2 sensor init information fail ret: %d\n",
+				       __func__, check_sensor_ret);
+			} else {
+				fix_array_num = ARRAY_SIZE(fix_class2_sdr_table);
+				for (int index = 0; index < fix_array_num; index++) {
+					for (int i = MBR_R; i >= THRESHOLD_UNR; --i) {
+						if (i < MBR_M) {
+							change_sensor_threshold(
+								fix_class2_sdr_table[index][0], i,
 								fix_class2_sdr_table[index][i + 1]);
-				} else {
-					change_sensor_mbr(fix_class2_sdr_table[index][0], i,
-							  fix_class2_sdr_table[index][i + 1]);
+						} else {
+							change_sensor_mbr(
+								fix_class2_sdr_table[index][0], i,
+								fix_class2_sdr_table[index][i + 1]);
+						}
+					}
 				}
 			}
 		}
@@ -3709,15 +3762,53 @@ void pal_fix_full_sdr_table()
 		// Add DPV2 sdr if DPV2_16 is present
 		if ((_2ou_status.card_type & TYPE_2OU_DPV2_16) == TYPE_2OU_DPV2_16) {
 			fix_array_num = ARRAY_SIZE(dpv2_sdr_table);
-			// Check sdr table max size before adding new sdr, avoiding over sdr table max size after adding new sdr
-			if ((SDR_NUM + fix_array_num) > array_max_num) {
-				printf("[%s] over sdr table max size after adding DPV2_16 sdr, sdr table max size: %d  sdr table size after adding: %d\n",
-				       __func__, array_max_num, SDR_NUM + fix_array_num);
-				return;
+			input_config_table = get_sensor_config_info(CHECK_FIX_DPV2_SENSOR_INFO,
+								    &input_array_size);
+			if (input_config_table == NULL) {
+				printf("[%s] fail to get sensor config information  mode: 0x%x\n",
+				       __func__, CHECK_FIX_DPV2_SENSOR_INFO);
+			} else {
+				check_sensor_ret =
+					check_sensor_init_info(hotswap_sdr_table,
+							       input_config_table, fix_array_num,
+							       input_array_size, CHECK_SDR_INFO);
+				if (check_sensor_ret < 0) {
+					printf("[%s] check sensor init information fail ret: %d\n",
+					       __func__, check_sensor_ret);
+				}
 			}
-			memcpy(&full_sdr_table[SDR_NUM], &dpv2_sdr_table[0],
-			       fix_array_num * sizeof(SDR_Full_sensor));
-			SDR_NUM += fix_array_num;
 		}
 	}
 };
+
+SDR_Full_sensor *get_sdr_info(uint8_t get_mode, uint8_t *array_size)
+{
+	SDR_Full_sensor *pointer = NULL;
+
+	if (array_size == NULL) {
+		printf("[%s] input array size pointer is NULL\n", __func__);
+		return pointer;
+	}
+
+	switch (get_mode) {
+	case CHECK_SDR_INFO:
+		*array_size = ARRAY_SIZE(plat_sdr_table);
+		pointer = plat_sdr_table;
+		break;
+	case CHECK_FIX_ADM1278_SENSOR_INFO:
+	case CHECK_FIX_MP5990_SENSOR_INFO:
+	case CHECK_FIX_EVT3_ADI_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(hotswap_sdr_table);
+		pointer = hotswap_sdr_table;
+		break;
+	case CHECK_FIX_DPV2_SENSOR_INFO:
+		*array_size = ARRAY_SIZE(dpv2_sdr_table);
+		pointer = dpv2_sdr_table;
+		break;
+	default:
+		printf("[%s] not support get mode 0x%x\n", __func__, get_mode);
+		break;
+	}
+
+	return pointer;
+}

@@ -2,6 +2,7 @@
 #define PLAT_SENSOR_TABLE_H
 
 #include <stdint.h>
+#include "sensor.h"
 
 /*  define config for sensors  */
 #define TMP75_MB_ADDR (0x92 >> 1)
@@ -70,5 +71,6 @@
 #define SENSOR_NUM_PWR_VRVDDQCD 0x79
 
 extern uint8_t load_sensor_config(void);
+sensor_cfg *get_sensor_config_info(uint8_t *array_size);
 
 #endif
