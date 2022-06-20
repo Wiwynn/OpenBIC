@@ -23,7 +23,7 @@
 typedef struct _EEPROM_CFG_ {
 	uint8_t dev_type;
 	uint8_t dev_id;
-	uint8_t port;
+	uint8_t bus;
 	uint8_t target_addr;
 	uint8_t access;
 	uint16_t start_offset;

@@ -11,7 +11,7 @@ bool eeprom_mux_check(EEPROM_ENTRY *entry)
 	I2C_MSG msg;
 	uint8_t retry = 5;
 	if (entry->config.mux_present) {
-		msg.bus = entry->config.port;
+		msg.bus = entry->config.bus;
 		msg.target_addr = entry->config.mux_addr;
 		msg.tx_len = 1;
 		msg.data[0] = (1 << (entry->config.mux_channel));
@@ -35,7 +35,7 @@ bool eeprom_write(EEPROM_ENTRY *entry)
 		if (eeprom_mux_check(entry) == false)
 			continue;
 
-		msg.bus = entry->config.port;
+		msg.bus = entry->config.bus;
 		msg.target_addr = entry->config.target_addr;
 		msg.tx_len = entry->data_len + 2; // write 2 byte offset to EEPROM
 		msg.data[0] =
@@ -65,7 +65,7 @@ bool eeprom_read(EEPROM_ENTRY *entry)
 		if (eeprom_mux_check(entry) == false)
 			continue;
 
-		msg.bus = entry->config.port;
+		msg.bus = entry->config.bus;
 		msg.target_addr = entry->config.target_addr;
 		msg.tx_len = 2; // write 2 byte offset to EEPROM
 		msg.rx_len = entry->data_len;
