@@ -77,8 +77,14 @@ int pmic_ipmb_transfer(int *total_pmic_power, uint8_t seq_source, uint8_t netFn,
 	return 0;
 }
 
+static bool one_time_flag = false;
 uint8_t pmic_read(uint8_t sensor_num, int *reading)
 {
+
+	if (one_time_flag) {
+		return SENSOR_READ_SUCCESS;
+	}
+
 	if (reading == NULL) {
 		printf("[%s] input parameter reading is NULL\n", __func__);
 		return SENSOR_UNSPECIFIED_ERROR;
@@ -112,10 +118,13 @@ uint8_t pmic_read(uint8_t sensor_num, int *reading)
 		return SENSOR_FAIL_TO_ACCESS;
 	}
 
-	memset(reading, 0, sizeof(int));
-	sensor_val *sval = (sensor_val *)reading;
-	sval->integer = (total_pmic_power / 1000) & 0xFFFF;
-	sval->fraction = (total_pmic_power % 1000) & 0xFFFF;
+	if (!one_time_flag) {
+		memset(reading, 0, sizeof(int));
+		sensor_val *sval = (sensor_val *)reading;
+		sval->integer = (total_pmic_power / 1000) & 0xFFFF;
+		sval->fraction = (total_pmic_power % 1000) & 0xFFFF;
+		one_time_flag = true;
+	}
 
 	return SENSOR_READ_SUCCESS;
 #else

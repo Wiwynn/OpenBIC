@@ -137,21 +137,9 @@ bool pre_pmic_read(uint8_t sensor_num, void *args)
 
 	pmic_init_arg *pmic_arg = sensor_config[sensor_config_index_map[sensor_num]].init_args;
 	if (pmic_arg->is_init == false) {
-		static bool is_ME_reset = false;
 		int ret = 0;
 		uint8_t seq_source = 0xFF, write_data = 0x0;
 		uint8_t *compose_memory_write_read_msg = NULL;
-
-		// ME reset to let ME regain bus setting
-		if (is_ME_reset != true) {
-			ret = pmic_ipmb_transfer(NULL, seq_source, NETFN_APP_REQ,
-						 CMD_APP_COLD_RESET, SELF, ME_IPMB, 0x0, NULL);
-			if (ret != 0) {
-				goto PMIC_IPMB_TRANSFER_ERR;
-			}
-			is_ME_reset = true;
-			k_msleep(ME_COLD_RESET_DELAY_MSEC);
-		}
 
 		// Enable PMIC ADC
 		write_data = PMIC_ENABLE_ADC_BIT;
