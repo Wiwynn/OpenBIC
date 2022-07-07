@@ -1311,6 +1311,16 @@ __weak void OEM_1S_BRIDGE_I2C_MSG_BY_COMPNT(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_DEBUG(ipmi_msg *msg)
+{
+	return;
+}
+
+__weak void OEM_1S_DEBUG2(ipmi_msg *msg)
+{
+	return;
+}
+
 void IPMI_OEM_1S_handler(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -1424,6 +1434,12 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		break;
 	case CMD_OEM_1S_BRIDGE_I2C_MSG_BY_COMPNT:
 		OEM_1S_BRIDGE_I2C_MSG_BY_COMPNT(msg);
+		break;
+	case 0x99:
+		OEM_1S_DEBUG(msg);
+		break;
+	case 0x98:
+		OEM_1S_DEBUG2(msg);
 		break;
 	default:
 		printf("Invalid OEM message, netfn(0x%x) cmd(0x%x)\n", msg->netfn, msg->cmd);

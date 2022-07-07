@@ -2,11 +2,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "i2c-mux-pca984x.h"
 
 #include "libutil.h"
 #include "ipmi.h"
 #include "plat_class.h"
 #include "plat_ipmb.h"
+#include "plat_i2c.h"
 
 bool add_sel_evt_record(addsel_msg_t *sel_msg)
 {
@@ -105,6 +107,90 @@ void OEM_1S_GET_CARD_TYPE(ipmi_msg *msg)
 		msg->completion_code = CC_INVALID_DATA_FIELD;
 		break;
 	}
+
+	return;
+}
+
+
+void OEM_1S_DEBUG(ipmi_msg *msg)
+{
+	if (!msg)
+		return;
+
+	msg->completion_code = CC_SUCCESS;
+
+	// Call MUX Function
+	I2C_MSG *i2c_msg = (I2C_MSG *)malloc(sizeof(I2C_MSG));
+	i2c_msg->bus = I2C_BUS9;
+	i2c_msg->target_addr = 0x71;
+	i2c_msg->rx_len = 1;
+	i2c_msg->tx_len = 1;
+	i2c_msg->data[0] = msg->data[0];
+	
+	i2c_msg->lock = &i2c_mutex_bus9;
+
+	if (msg->data[1] == 0) {
+		i2c_mux_pca9846_lock(i2c_msg);
+	} else {
+		i2c_mux_pca9846_unlock(i2c_msg);
+	}
+
+	SAFE_FREE(i2c_msg);
+
+	return;
+}
+
+void OEM_1S_DEBUG2(ipmi_msg *msg)
+{
+	if (!msg)
+		return;
+
+	msg->completion_code = CC_SUCCESS;
+
+	// uint8_t retry = 1;
+	// Call MUX Function
+	I2C_MSG *i2c_msg = (I2C_MSG *)malloc(sizeof(I2C_MSG));
+	i2c_msg->bus = I2C_BUS9;
+	i2c_msg->target_addr = 0x71;
+	i2c_msg->rx_len = 1;
+	i2c_msg->tx_len = 1;
+	i2c_msg->data[0] = msg->data[0];
+	
+	i2c_msg->lock = &i2c_mutex_bus9;
+	if (msg->data[1] == 0) {
+		i2c_mux_pca9846_lock(i2c_msg);
+	} else {
+		i2c_mux_pca9846_unlock(i2c_msg);
+	}
+	
+	// I2C_MSG *i2c_msg = (I2C_MSG *)malloc(sizeof(I2C_MSG));
+	// i2c_msg->bus = I2C_BUS9;
+	// i2c_msg->target_addr = 0x71;
+	// i2c_msg->rx_len = 1;
+	// i2c_msg->tx_len = 1;
+	// i2c_msg->data[0] = 2;
+	// i2c_msg->lock = &i2c_mutex_bus9;
+	// i2c_mux_pca9846_lock(i2c_msg);
+	// 
+	// i2c_msg->target_addr = 0x40;
+	// i2c_msg->rx_len = 2;
+	// i2c_msg->tx_len = 2;
+	// i2c_msg->data[0] = 0x00;
+	// i2c_msg->data[1] = 0x02;
+	// i2c_master_read(i2c_msg, retry);
+	// 
+	// msg->data_len = 2;
+	// msg->data[0] = i2c_msg->data[0];
+	// msg->data[1] = i2c_msg->data[1];
+	// 
+	// i2c_msg->target_addr = 0x71;
+	// i2c_msg->rx_len = 1;
+	// i2c_msg->tx_len = 1;
+	// i2c_mux_pca9846_unlock(i2c_msg);
+	// 
+	// msg->completion_code = CC_SUCCESS;
+
+	SAFE_FREE(i2c_msg);
 
 	return;
 }

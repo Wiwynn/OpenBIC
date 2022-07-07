@@ -64,6 +64,8 @@ void OEM_1S_INFORM_PEER_SLED_CYCLE(ipmi_msg *msg);
 void OEM_1S_PEX_FLASH_READ(ipmi_msg *msg);
 void OEM_1S_GET_FPGA_USER_CODE(ipmi_msg *msg);
 void OEM_1S_GET_CARD_TYPE(ipmi_msg *msg);
+void OEM_1S_DEBUG(ipmi_msg *msg);
+void OEM_1S_DEBUG2(ipmi_msg *msg);
 
 #ifdef CONFIG_IPMI_KCS_ASPEED
 void OEM_1S_GET_POST_CODE(ipmi_msg *msg);
@@ -89,5 +91,6 @@ void OEM_1S_GET_FAN_RPM(ipmi_msg *msg);
 #endif
 
 void IPMI_OEM_1S_handler(ipmi_msg *msg);
+
 
 #endif

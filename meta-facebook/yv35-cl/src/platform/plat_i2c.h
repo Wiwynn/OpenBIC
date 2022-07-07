@@ -19,4 +19,6 @@
 #define IPMB_I2C_BMC I2C_BUS7
 #define I2C_BUS_MAX_NUM 10
 
+extern struct k_mutex i2c_mutex_bus9;
+
 #endif

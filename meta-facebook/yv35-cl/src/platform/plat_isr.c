@@ -11,6 +11,10 @@
 #include "oem_1s_handler.h"
 #include "hal_gpio.h"
 #include "util_sys.h"
+#include <stdlib.h>
+#include "plat_i2c.h"
+#include "hal_i2c.h"
+#include "i2c-mux-pca984x.h"
 
 void send_gpio_interrupt(uint8_t gpio_num)
 {
@@ -447,4 +451,42 @@ void ISR_RMCA()
 			printf("RMCA addsel fail\n");
 		}
 	}
+}
+
+void ISR_DEBUG()
+{
+	uint8_t retry = 1;
+	I2C_MSG *i2c_msg = (I2C_MSG *)malloc(sizeof(I2C_MSG));
+	i2c_msg->bus = I2C_BUS9;
+	i2c_msg->target_addr = 0x71;
+	i2c_msg->rx_len = 1;
+	i2c_msg->tx_len = 1;
+	i2c_msg->data[0] = 0x01;
+
+	i2c_msg->lock = &i2c_mutex_bus9;
+
+	if (gpio_get(FM_BMC_PCH_SCI_LPC_R_N) == GPIO_LOW) {
+		i2c_mux_pca9846_lock(i2c_msg);
+
+		i2c_msg->target_addr = 0x45;
+		i2c_msg->rx_len = 2;
+		i2c_msg->tx_len = 1;
+		i2c_msg->data[0] = 0x00;
+
+		i2c_master_read(i2c_msg, retry);
+
+		addsel_msg_t sel_msg;
+		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
+		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPEC;
+		sel_msg.sensor_number = 0x99;
+		sel_msg.event_data1 = i2c_msg->data[0];
+		sel_msg.event_data2 = i2c_msg->data[1];
+		sel_msg.event_data3 = 0xFF;
+		add_sel_evt_record(&sel_msg);
+
+	} else {
+		i2c_mux_pca9846_unlock(i2c_msg);
+	}
+
+	SAFE_FREE(i2c_msg);
 }
