@@ -1,6 +1,8 @@
 #include "fru.h"
 #include "plat_fru.h"
+#include "plat_i2c.h"
 #include <string.h>
+#include <stdio.h>
 
 const EEPROM_CFG plat_fru_config[] = {
 	{
@@ -17,6 +19,15 @@ const EEPROM_CFG plat_fru_config[] = {
 		DPV2_FRU_ID,
 		DPV2_FRU_PORT,
 		DPV2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+	},
+	{
+		ST_M24128,
+		MB_FRU_ID,
+		I2C_BUS9,
+		KF_FRU_ADDR,
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,

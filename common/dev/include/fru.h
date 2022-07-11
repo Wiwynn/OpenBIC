@@ -8,6 +8,7 @@ enum {
 	NV_ATMEL_24C02,
 	NV_ATMEL_24C64,
 	NV_ATMEL_24C128,
+	ST_M24128,
 };
 
 enum {

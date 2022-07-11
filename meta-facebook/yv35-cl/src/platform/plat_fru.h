@@ -7,6 +7,8 @@
 #define DPV2_FRU_PORT 0x08
 #define DPV2_FRU_ADDR 0x51
 
+#define KF_FRU_ADDR 0x54
+
 enum {
 	MB_FRU_ID,
 	DPV2_FRU_ID,
