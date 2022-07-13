@@ -7,6 +7,7 @@
 #include "ipmi.h"
 #include "plat_class.h"
 #include "plat_ipmb.h"
+#include "plat_sensor_table.h"
 
 bool add_sel_evt_record(addsel_msg_t *sel_msg)
 {
@@ -105,6 +106,55 @@ void OEM_1S_GET_CARD_TYPE(ipmi_msg *msg)
 		msg->completion_code = CC_INVALID_DATA_FIELD;
 		break;
 	}
+
+	return;
+}
+
+void APP_GET_DEVICE_ID(ipmi_msg *msg)
+{
+	int ret;
+	if (msg == NULL) {
+		return;
+	}
+
+	printf("Get device ID\n");
+
+	printf("Get device ID lock\n");
+
+	ret = k_mutex_lock(&vr_page_mutex, K_MSEC(1000));
+	if (ret) {
+		printf("[%s] Failed to lock the mutex\n", __func__);
+		return;
+	}
+
+	if (k_mutex_unlock(&vr_page_mutex)) {
+		printf("Get device ID unlock fail\n");
+	}
+	printf("Get device ID unlock\n");
+
+
+	if (msg->data_len != 0) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	msg->data[0] = DEVICE_ID;
+	msg->data[1] = DEVICE_REVISION;
+	msg->data[2] = FIRMWARE_REVISION_1;
+	msg->data[3] = FIRMWARE_REVISION_2;
+	msg->data[4] = IPMI_VERSION;
+	msg->data[5] = ADDITIONAL_DEVICE_SUPPORT;
+	msg->data[6] = (IANA_ID & 0xFF);
+	msg->data[7] = (IANA_ID >> 8) & 0xFF;
+	msg->data[8] = (IANA_ID >> 16) & 0xFF;
+	msg->data[9] = (PRODUCT_ID & 0xFF);
+	msg->data[10] = (PRODUCT_ID >> 8) & 0xFF;
+	msg->data[11] = (AUXILIARY_FW_REVISION >> 24) & 0xFF;
+	msg->data[12] = (AUXILIARY_FW_REVISION >> 16) & 0xFF;
+	msg->data[13] = (AUXILIARY_FW_REVISION >> 8) & 0xFF;
+	msg->data[14] = (AUXILIARY_FW_REVISION & 0xFF);
+	msg->data_len = 15;
+	msg->completion_code = CC_SUCCESS;
 
 	return;
 }

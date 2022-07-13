@@ -20,6 +20,8 @@
 SET_GPIO_VALUE_CFG pre_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_HIGH };
 SET_GPIO_VALUE_CFG post_bat_3v = { A_P3V_BAT_SCALED_EN_R, GPIO_LOW };
 
+struct k_mutex vr_page_mutex;
+
 sensor_cfg plat_sensor_config[] = {
 	/* number,                  type,       port,      address,      offset,
 	   access check arg0, arg1, sample_count, cache, cache_status, mux_ADDRess, mux_offset,
@@ -263,6 +265,11 @@ uint8_t plat_get_config_size()
 
 void load_sensor_config(void)
 {
+
+	if (k_mutex_init(&vr_page_mutex)) {
+		printf("vr_page_mutex mutex init fail\n");
+	}
+
 	memcpy(sensor_config, plat_sensor_config, sizeof(plat_sensor_config));
 	sensor_config_count = ARRAY_SIZE(plat_sensor_config);
 

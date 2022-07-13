@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+extern struct k_mutex vr_page_mutex;
+
 /*  define config for sensors  */
 #define TMP75_IN_ADDR (0x92 >> 1)
 #define TMP75_OUT_ADDR (0x94 >> 1)

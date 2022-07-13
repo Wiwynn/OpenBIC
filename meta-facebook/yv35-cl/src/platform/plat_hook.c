@@ -78,6 +78,24 @@ bool pre_isl69259_read(uint8_t sensor_num, void *args)
 		return false;
 	}
 
+	if (sensor_num == SENSOR_NUM_VOL_PVCCD_HV) {
+		int ret;
+		printf("lock\n");
+
+		ret = k_mutex_lock(&vr_page_mutex, K_MSEC(1000));
+		if (ret) {
+			printf("[%s] Failed to lock the mutex\n", __func__);
+			return -1;
+		}
+
+		k_msleep(5000);
+
+		if (k_mutex_unlock(&vr_page_mutex)) {
+			printf("unlock fail\n");
+		}
+		printf("unlock\n");
+	}
+
 	isl69259_pre_proc_arg *pre_proc_args = (isl69259_pre_proc_arg *)args;
 	uint8_t retry = 5;
 	I2C_MSG msg;
