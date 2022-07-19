@@ -181,9 +181,9 @@ sensor_cfg plat_sensor_config[] = {
 	  &isl69259_pre_read_args[1], NULL, NULL, NULL },
 
 	// ME
-	{ SENSOR_NUM_TEMP_PCH, sensor_dev_pch, I2C_BUS3, PCH_ADDR, ME_SENSOR_NUM_TEMP_PCH,
-	  me_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT, ENABLE_SENSOR_POLLING, 0,
-	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
+	/*{ SENSOR_NUM_TEMP_PCH, sensor_dev_pch, I2C_BUS3, PCH_ADDR, ME_SENSOR_NUM_TEMP_PCH,
+	  me_access, 0, 0, SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL,
+	  NULL },
 	{ SENSOR_NUM_PWR_DIMMA_PMIC, sensor_dev_pmic, I2C_BUS3, PCH_ADDR, NONE, me_access, 0, 0,
 	  SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT, ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS,
 	  pre_pmic_read, &pmic_pre_read_args[0], NULL, NULL, &pmic_init_args[0] },
@@ -200,8 +200,9 @@ sensor_cfg plat_sensor_config[] = {
 	  SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT, ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS,
 	  pre_pmic_read, &pmic_pre_read_args[4], NULL, NULL, &pmic_init_args[4] },
 	{ SENSOR_NUM_PWR_DIMMH_PMIC, sensor_dev_pmic, I2C_BUS3, PCH_ADDR, NONE, me_access, 0, 0,
-	  SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT, ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS,
-	  pre_pmic_read, &pmic_pre_read_args[5], NULL, NULL, &pmic_init_args[5] },
+	  SAMPLE_COUNT_DEFAULT, 0, SENSOR_INIT_STATUS, pre_pmic_read, NULL, NULL, NULL,
+	  &pmic_init_args[5] },
+	  */
 };
 
 sensor_cfg mp5990_sensor_config_table[] = {
