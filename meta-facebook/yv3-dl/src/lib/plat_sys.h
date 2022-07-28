@@ -1,4 +1,10 @@
 #ifndef PLAT_SYS_H
 #define PLAT_SYS_H
 
+typedef enum {
+	VENDOR_RENESAS = 0,
+	VENDOR_TI,
+	VENDOR_INFINEON,
+	VENDOR_VISHAY,
+} VR_VENDOR_ID;
 #endif

@@ -10,6 +10,7 @@
 #include "pmbus.h"
 #include "plat_sensor_table.h"
 #include "util_sys.h"
+#include "plat_sys.h"
 
 void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 {
@@ -100,8 +101,8 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		if (memcmp(i2c_msg.data, ISL69254_DEVICE_ID, sizeof(ISL69254_DEVICE_ID)) == 0) {
 			/* Renesas isl69254 */
 			i2c_msg.tx_len = 3;
-			i2c_msg.data[0] = 0xC7; //command code
-			i2c_msg.data[1] = 0x3F; //register
+			i2c_msg.data[0] = 0xC7; //DMAADDR command code
+			i2c_msg.data[1] = 0x3F; //DMA register offset
 			i2c_msg.data[2] = 0x00; //dummy data
 
 			if (i2c_master_write(&i2c_msg, retry)) {
@@ -111,7 +112,7 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 
 			i2c_msg.tx_len = 1;
 			i2c_msg.rx_len = 4;
-			i2c_msg.data[0] = 0xC5; //command code
+			i2c_msg.data[0] = 0xC5; //DMAFIX command code
 
 			if (i2c_master_read(&i2c_msg, retry)) {
 				msg->completion_code = CC_UNSPECIFIED_ERROR;
@@ -122,7 +123,29 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 			msg->data[1] = i2c_msg.data[2];
 			msg->data[2] = i2c_msg.data[1];
 			msg->data[3] = i2c_msg.data[0];
-			msg->data_len = 4;
+
+			//Get remain write
+			i2c_msg.tx_len = 3;
+			i2c_msg.data[0] = 0xC7; //DMAADDR command code
+			i2c_msg.data[1] = 0xC2; //DMA register offset
+			i2c_msg.data[2] = 0x00; //dummy data
+
+			if (i2c_master_write(&i2c_msg, retry)) {
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+
+			i2c_msg.tx_len = 1;
+			i2c_msg.rx_len = 1;
+			i2c_msg.data[0] = 0xC5; //DMAFIX command code
+
+			if (i2c_master_read(&i2c_msg, retry)) {
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+			msg->data[4] = i2c_msg.data[0];
+			msg->data[5] = VENDOR_RENESAS;
+			msg->data_len = 6;
 			msg->completion_code = CC_SUCCESS;
 
 		} else if (memcmp(i2c_msg.data, XDPE12284C_DEVICE_ID,
@@ -169,7 +192,28 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 
 			msg->data[2] = i2c_msg.data[1];
 			msg->data[3] = i2c_msg.data[0];
-			msg->data_len = 4;
+
+			i2c_msg.tx_len = 2;
+			i2c_msg.data[0] = 0x00;
+			i2c_msg.data[1] = 0x50; //set page to 0x50
+
+			if (i2c_master_write(&i2c_msg, retry)) {
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+
+			//Read the remaining writes from register address 0x82
+			i2c_msg.tx_len = 1;
+			i2c_msg.rx_len = 2;
+			i2c_msg.data[0] = 0x82;
+			if (i2c_master_read(&i2c_msg, retry)) {
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+			//the data residing in bit11~bit6 is the number of the remaining writes.
+			msg->data[4] = (((i2c_msg.data[1] << 8) | i2c_msg.data[0]) & 0xFC0) >> 6;
+			msg->data[5] = VENDOR_INFINEON;
+			msg->data_len = 6;
 			msg->completion_code = CC_SUCCESS;
 		} else {
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
