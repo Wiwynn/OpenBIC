@@ -163,6 +163,46 @@ __weak void OEM_1S_GET_GPIO(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_GET_GPIO_CONFIG(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	// Bump up the gpio_ind_to_num_table_cnt to multiple of 8.
+	uint8_t gpio_cnt = gpio_ind_to_num_table_cnt + (8 - (gpio_ind_to_num_table_cnt % 8));
+	uint8_t data_len = gpio_cnt / 8;
+	if (msg->data_len != data_len) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t gpio_select_table[data_len];
+	uint8_t direction, intr_status, intr_type, trigger_type;
+	uint8_t index = 0;
+	memcpy(gpio_select_table, &msg->data[0], msg->data_len);
+	for (uint8_t i = 0; i < gpio_cnt; i++) {
+		if ((i <= gpio_ind_to_num_table_cnt) &&
+		    (gpio_select_table[i / 8] & (1 << (i % 8)))) {
+			direction =
+				get_gpio_direction(gpio_ind_to_num_table[i]); //GPIO pin direction
+			intr_status = get_gpio_interrupt_enable(
+				gpio_ind_to_num_table[i]); //Interrupt enable or disable
+			intr_type = get_gpio_interrupt_type(
+				gpio_ind_to_num_table[i]); //Level or Edge trigger
+			trigger_type = get_gpio_interrupt_trigger_mode(
+				gpio_ind_to_num_table[i]); //trigger type:both,falling,rising
+
+			msg->data[index++] = direction | (intr_status << 1) | (intr_type << 2) |
+					     (trigger_type << 3);
+		}
+	}
+	msg->data_len = index;
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
 __weak void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 {
 	if (msg == NULL) {
@@ -815,7 +855,14 @@ __weak void OEM_1S_GET_SET_GPIO(ipmi_msg *msg)
 	}
 
 	uint8_t completion_code = CC_INVALID_LENGTH;
-	uint8_t gpio_num = gpio_ind_to_num_table[msg->data[1]];
+	uint8_t gpio_num = 0;
+	if (msg->data[1] < gpio_ind_to_num_table_cnt) {
+		gpio_num = gpio_ind_to_num_table[msg->data[1]];
+	} else {
+		msg->completion_code = CC_INVALID_DATA_FIELD;
+		msg->data_len = 0;
+		return;
+	}
 
 	switch (msg->data[0]) {
 	case GET_GPIO_OUTPUT_STATUS:
@@ -835,7 +882,11 @@ __weak void OEM_1S_GET_SET_GPIO(ipmi_msg *msg)
 		}
 		break;
 	case GET_GPIO_DIRECTION_STATUS:
-		completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		if (msg->data_len == 2) {
+			msg->data[0] = gpio_num;
+			msg->data[1] = get_gpio_direction(gpio_num);
+			completion_code = CC_SUCCESS;
+		}
 		break;
 	case SET_GPIO_DIRECTION_STATUS:
 		if (msg->data_len == 3) {
@@ -1687,6 +1738,9 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		break;
 	case CMD_OEM_1S_GET_GPIO:
 		OEM_1S_GET_GPIO(msg);
+		break;
+	case CMD_OEM_1S_GET_GPIO_CONFIG:
+		OEM_1S_GET_GPIO_CONFIG(msg);
 		break;
 	case CMD_OEM_1S_SET_GPIO:
 		break;

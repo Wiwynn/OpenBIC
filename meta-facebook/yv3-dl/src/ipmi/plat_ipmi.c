@@ -3,10 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "hal_gpio.h"
 #include "libutil.h"
 #include "ipmi.h"
+#include "oem_1s_handler.h"
 #include "plat_class.h"
 #include "plat_ipmb.h"
+#include "plat_gpio.h"
 #include "pmbus.h"
 #include "plat_sensor_table.h"
 #include "util_sys.h"
@@ -161,5 +164,161 @@ unlock_exit:
 		printf("[%s] Failed to unlock vr page\n", __func__);
 	}
 
+	return;
+}
+
+void OEM_1S_GET_GPIO(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	// only input enable status
+	if (msg->data_len != 0) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t eight_bit_value = 0, gpio_value = 0;
+	// Bump up the gpio_align_table_length to multiple of 8.
+	uint8_t gpio_cnt = gpio_align_table_length + (8 - (gpio_align_table_length % 8));
+	uint8_t data_len = gpio_cnt / 8;
+	msg->data_len = data_len;
+	for (uint8_t i = 0; i < gpio_cnt; i++) {
+		if ((gpio_align_t[i] == PVCCIO_CPU) || (gpio_align_t[i] == BMC_HARTBEAT_LED_R)) {
+			//pass dummy data to bmc, because AST bic do not have this gpio
+			gpio_value = 0;
+		} else {
+			//if i large than length, fill 0 into the last byte
+			gpio_value = (i >= gpio_align_table_length) ? 0 : gpio_get(gpio_align_t[i]);
+		}
+
+		// clear temporary variable to avoid return wrong GPIO value
+		if (i % 8 == 0) {
+			eight_bit_value = 0;
+		}
+
+		eight_bit_value = eight_bit_value | (gpio_value << (i % 8));
+		msg->data[i / 8] = eight_bit_value;
+	}
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
+void OEM_1S_GET_GPIO_CONFIG(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	// Bump up the gpio_align_table_length to multiple of 8.
+	uint8_t gpio_cnt = gpio_align_table_length + (8 - (gpio_align_table_length % 8));
+	uint8_t data_len = gpio_cnt / 8;
+	if (msg->data_len != data_len) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t gpio_select_table[data_len];
+	uint8_t direction, intr_status, intr_type, trigger_type;
+	uint8_t index = 0;
+	memcpy(gpio_select_table, &msg->data[0], msg->data_len);
+	for (uint8_t i = 0; i < gpio_cnt; i++) {
+		if ((i <= gpio_align_table_length) && (gpio_select_table[i / 8] & (1 << (i % 8)))) {
+			if ((gpio_align_t[i] == PVCCIO_CPU) ||
+			    (gpio_align_t[i] == BMC_HARTBEAT_LED_R)) {
+				//pass dummy data to bmc, because AST bic do not have this gpio
+				msg->data[index++] = 0x0;
+			} else {
+				direction =
+					get_gpio_direction(gpio_align_t[i]); //GPIO pin direction
+				intr_status = get_gpio_interrupt_enable(
+					gpio_align_t[i]); //Interrupt enable or disable
+				intr_type = get_gpio_interrupt_type(
+					gpio_align_t[i]); //Level or Edge trigger
+				trigger_type = get_gpio_interrupt_trigger_mode(
+					gpio_align_t[i]); //trigger type:both,falling,rising
+
+				msg->data[index++] = direction | (intr_status << 1) |
+						     (intr_type << 2) | (trigger_type << 3);
+			}
+		}
+	}
+	msg->data_len = index;
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
+void OEM_1S_GET_SET_GPIO(ipmi_msg *msg)
+{
+	if (msg == NULL) {
+		return;
+	}
+
+	uint8_t completion_code = CC_INVALID_DATA_FIELD;
+	uint8_t gpio_num = 0;
+	if (msg->data[1] < gpio_align_table_length) {
+		gpio_num = gpio_align_t[msg->data[1]];
+	} else {
+		msg->completion_code = CC_INVALID_DATA_FIELD;
+		msg->data_len = 0;
+		return;
+	}
+
+	if ((gpio_num == PVCCIO_CPU) || (gpio_num == BMC_HARTBEAT_LED_R)) {
+		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		msg->data_len = 0;
+		return;
+	}
+
+	switch (msg->data[0]) {
+	case GET_GPIO_OUTPUT_STATUS:
+		if (msg->data_len == 2) {
+			msg->data[0] = gpio_num;
+			msg->data[1] = gpio_get(gpio_num);
+			completion_code = CC_SUCCESS;
+		}
+		break;
+	case SET_GPIO_OUTPUT_STATUS:
+		if (msg->data_len == 3) {
+			msg->data[0] = gpio_num;
+			gpio_conf(gpio_num, GPIO_OUTPUT);
+			gpio_set(gpio_num, msg->data[2]);
+			msg->data[1] = gpio_get(gpio_num);
+			completion_code = CC_SUCCESS;
+		}
+		break;
+	case GET_GPIO_DIRECTION_STATUS:
+		if (msg->data_len == 2) {
+			msg->data[0] = gpio_num;
+			msg->data[1] = get_gpio_direction(gpio_num);
+			completion_code = CC_SUCCESS;
+		}
+		break;
+	case SET_GPIO_DIRECTION_STATUS:
+		if (msg->data_len == 3) {
+			if (msg->data[2]) {
+				gpio_conf(gpio_num, GPIO_OUTPUT);
+			} else {
+				gpio_conf(gpio_num, GPIO_INPUT);
+			}
+			msg->data[0] = gpio_num;
+			msg->data[1] = msg->data[2];
+			completion_code = CC_SUCCESS;
+		}
+		break;
+	default:
+		printf("[%s] Unknown options(0x%x)", __func__, msg->data[0]);
+		break;
+	}
+
+	if (completion_code != CC_SUCCESS) {
+		msg->data_len = 0;
+	} else {
+		msg->data_len = 2; // Return GPIO number, status
+	}
+	msg->completion_code = completion_code;
 	return;
 }
