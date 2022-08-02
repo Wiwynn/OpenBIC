@@ -92,6 +92,7 @@ extern const char *const gpio_name[];
 
 extern uint8_t gpio_ind_to_num_table[];
 extern uint8_t gpio_ind_to_num_table_cnt;
+extern uint32_t GPIO_GROUP_REG_ACCESS[];
 
 typedef struct _SCU_CFG_ {
 	int reg;
@@ -107,5 +108,9 @@ int gpio_init(const struct device *args);
 int gpio_interrupt_conf(uint8_t, gpio_flags_t);
 uint8_t gpio_conf(uint8_t gpio_num, int dir);
 void scu_init(SCU_CFG cfg[], size_t size);
+uint8_t get_gpio_direction(uint8_t gpio_idx);
+uint8_t get_gpio_interrupt_enable(uint8_t gpio_idx);
+uint8_t get_gpio_interrupt_type(uint8_t gpio_idx);
+uint8_t get_gpio_interrupt_trigger_mode(uint8_t gpio_idx);
 
 #endif

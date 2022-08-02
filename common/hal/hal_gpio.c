@@ -3,6 +3,7 @@
 #include <string.h>
 #include "hal_gpio.h"
 #include "util_sys.h"
+#include "libutil.h"
 
 #define STACK_SIZE 2048
 
@@ -133,6 +134,47 @@ int gpio_set(uint8_t gpio_num, uint8_t status)
 		return gpio_pin_set(dev_gpio[gpio_num / GPIO_GROUP_SIZE],
 				    (gpio_num % GPIO_GROUP_SIZE), status);
 	}
+}
+
+uint8_t get_gpio_direction(uint8_t gpio_idx)
+{
+	uint32_t gpio_dir = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x4);
+
+	return GETBIT(gpio_dir, gpio_idx % 32);
+}
+
+uint8_t get_gpio_interrupt_enable(uint8_t gpio_idx)
+{
+	uint32_t gpio_intr_en = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x8);
+
+	return GETBIT(gpio_intr_en, gpio_idx % 32);
+}
+
+uint8_t get_gpio_interrupt_type(uint8_t gpio_idx)
+{
+	uint32_t gpio_intr_type = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x10);
+
+	return GETBIT(gpio_intr_type, gpio_idx % 32);
+}
+
+uint8_t get_gpio_interrupt_trigger_mode(uint8_t gpio_idx)
+{
+	uint8_t trigger_mode = 0;
+	uint32_t gpio_intr_dual_edge = sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0x14);
+	uint32_t gpio_intr_rsing_falling_edge =
+		sys_read32(GPIO_GROUP_REG_ACCESS[gpio_idx / 32] + 0xC);
+
+	if (gpio_intr_dual_edge & BIT(gpio_idx % 32)) {
+		trigger_mode = 0x2; //both edge
+	} else {
+		if (gpio_intr_rsing_falling_edge & BIT(gpio_idx % 32)) {
+			trigger_mode = 0x1; //rising edge
+		} else {
+			trigger_mode = 0x0; //falling edge
+		}
+	}
+
+	return trigger_mode;
 }
 
 void gpio_index_to_num(void)
