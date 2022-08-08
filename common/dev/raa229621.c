@@ -30,7 +30,7 @@ uint8_t raa229621_read(uint8_t sensor_num, int *reading)
 	memset(sval, 0, sizeof(sensor_val));
 	int val = 0;
 	val = (msg.data[1] << 8) | msg.data[0];
-
+	printf("jeff_debug : data[0] : %d data[1] : %d target_addr : 0x%08x\n", msg.data[0], msg.data[1], msg.target_addr);
 	switch (offset) {
 	case PMBUS_READ_VOUT:
 		/* 1 mV/LSB, unsigned integer */
@@ -38,9 +38,10 @@ uint8_t raa229621_read(uint8_t sensor_num, int *reading)
 		sval->fraction = val % 1000;
 		break;
 	case PMBUS_READ_IOUT:
-		/* 0.1 A/LSB, 2's complement */
+		/*	/LSB, 2's complement */
 		sval->integer = (int16_t)val / 10;
 		sval->fraction = ((int16_t)val - (sval->integer * 10)) * 100;
+		printf("jeff_debug : IOUT val : %d integer : %d fraction : %d\n", val, sval->integer, sval->fraction);
 		break;
 	case PMBUS_READ_TEMPERATURE_1:
 		/* 1 Degree C/LSB, 2's complement */
@@ -51,6 +52,7 @@ uint8_t raa229621_read(uint8_t sensor_num, int *reading)
 		/* 1 Watt/LSB, 2's complement */
 		sval->integer = val;
 		sval->fraction = 0;
+		printf("jeff_debug : POUT val : %d integer : %d fraction : %d\n", val, sval->integer, sval->fraction);
 		break;
 	default:
 		printf("[%s] not support offset: 0x%x\n", __func__, offset);
