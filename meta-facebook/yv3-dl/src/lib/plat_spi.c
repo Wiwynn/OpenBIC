@@ -27,6 +27,7 @@ bool pal_switch_bios_spi_mux(int gpio_status)
 		return false;
 	}
 
+	msg.tx_len = 2;
 	//set the spi mux status to bit 2;
 	if (gpio_status == GPIO_HIGH) {
 		msg.data[1] = SETBIT(msg.data[0], 2);
