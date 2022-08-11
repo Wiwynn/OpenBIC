@@ -159,8 +159,7 @@ uint8_t get_sensor_reading(uint8_t sensor_num, int *reading, uint8_t read_mode)
 	// Check sensor information in sensor config table
 	// Block BMC send invalid sensor number by OEM accurate read command
 	if (sensor_config_index_map[sensor_num] == SENSOR_FAIL) {
-		printf("[%s] fail to find sensor info in config table, sensor_num: 0x%x\n",
-		       __func__, sensor_num);
+		// printf("[%s] fail to find sensor info in config table, sensor_num: 0x%x\n",__func__ , sensor_num);
 		return SENSOR_NOT_FOUND;
 	}
 

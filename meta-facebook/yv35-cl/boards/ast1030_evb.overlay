@@ -60,22 +60,10 @@
 
 &i3c3 {
         status = "okay";
-        assigned-address = <0x9>;
+        assigned-address = <0x11>;
 	i3c-scl-hz = <8000000>;
  	pinctrl-0 = <&pinctrl_i3c3_default>;
-        secondary;
-        i3c1_smq:i3c-slave-mqueue@9 {
-                compatible = "aspeed,i3c-slave-mqueue";
-                reg = <0x9>;
-                msg-size = <256>;
-                num-of-msgs = <4>;
-                mandatory-data-byte = <0xbf>;
-                label = "I3C_1_SMQ";
-                status = "okay";
-        };
 };
-
-
 
 &i2c4 {
 	pinctrl-0 = <&pinctrl_i2c4_default>;

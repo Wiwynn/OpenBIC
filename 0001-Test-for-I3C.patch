@@ -1,0 +1,76 @@
+From c8d1923f0fbbde17f1bd7c1df18b48e0dc2297e4 Mon Sep 17 00:00:00 2001
+From: Bonnie Lo <bonnie_lo@wiwynn.com>
+Date: Thu, 26 May 2022 15:19:03 +0800
+Subject: [PATCH] Test for I3C
+
+---
+ meta-facebook/yv35-cl/boards/ast1030_evb.conf   |  2 +-
+ .../yv35-cl/boards/ast1030_evb.overlay          | 17 +++++++++++++++--
+ meta-facebook/yv35-cl/prj.conf                  |  8 +++++---
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/meta-facebook/yv35-cl/boards/ast1030_evb.conf b/meta-facebook/yv35-cl/boards/ast1030_evb.conf
+index de5d57b..7bf7926 100644
+--- a/meta-facebook/yv35-cl/boards/ast1030_evb.conf
++++ b/meta-facebook/yv35-cl/boards/ast1030_evb.conf
+@@ -10,7 +10,7 @@ CONFIG_ESPI_ASPEED=y
+ CONFIG_PECI_ASPEED=y
+ CONFIG_PECI_ASPEED_INTERRUPT_DRIVEN=y
+ CONFIG_USB_ASPEED=y
+-CONFIG_I3C_ASPEED=n
++CONFIG_I3C_ASPEED=y
+ CONFIG_CRYPTO=n
+ CONFIG_CRYPTO_ASPEED=n
+ CONFIG_RSA_ASPEED=n
+diff --git a/meta-facebook/yv35-cl/boards/ast1030_evb.overlay b/meta-facebook/yv35-cl/boards/ast1030_evb.overlay
+index 7ddc469..ad6012b 100644
+--- a/meta-facebook/yv35-cl/boards/ast1030_evb.overlay
++++ b/meta-facebook/yv35-cl/boards/ast1030_evb.overlay
+@@ -50,10 +50,23 @@
+ 
+ &i2c3 {
+ 	pinctrl-0 = <&pinctrl_i2c3_default>;
+-	status = "okay";
+-  clock-frequency = <I2C_BITRATE_STANDARD>;
++	status = "disabled";
++  	clock-frequency = <I2C_BITRATE_STANDARD>;
++};
++
++&i3c_gr {
++  status = "okay";
++  pull-up-resistor-ohm = <2000>, <2000>, <2000>, <2000>, <2000>, <2000>;
+ };
+ 
++&i3c3 {
++  status = "okay";
++  assigned-address = <0x11>;
++  i3c-scl-hz = <8000000>;
++  pinctrl-0 = <&pinctrl_i3c3_default>;
++};
++
++
+ &i2c4 {
+ 	pinctrl-0 = <&pinctrl_i2c4_default>;
+ 	status = "okay";
+diff --git a/meta-facebook/yv35-cl/prj.conf b/meta-facebook/yv35-cl/prj.conf
+index 5b09ea9..b785de7 100644
+--- a/meta-facebook/yv35-cl/prj.conf
++++ b/meta-facebook/yv35-cl/prj.conf
+@@ -52,9 +52,11 @@ CONFIG_SHELL=y
+ CONFIG_SHELL_BACKEND_SERIAL_INIT_PRIORITY=99
+ CONFIG_IPMI=y
+ CONFIG_IPMI_KCS_ASPEED=y
+-CONFIG_I3C=n
+-CONFIG_I3C_SLAVE=n
+-CONFIG_I3C_SLAVE_MQUEUE=n
++CONFIG_I3C=y
++CONFIG_I3C_SLAVE=y
++CONFIG_I3C_SLAVE_MQUEUE=y
++CONFIG_I3C_ASPEED_MAX_IBI_PAYLOAD=3
++CONFIG_I3C_SLAVE_INIT_PRIORITY=49
+ CONFIG_WATCHDOG=y
+ CONFIG_WDT_DISABLE_AT_BOOT=n
+ #USB
+-- 
+2.17.1
+
