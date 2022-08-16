@@ -1,0 +1,25 @@
+From 04a20179d935289a0db01a2c7a3fdd75f37e1433 Mon Sep 17 00:00:00 2001
+From: Bonnie Lo <bonnie_lo@wiwynn.com>
+Date: Thu, 2 Jun 2022 13:23:29 +0800
+Subject: [PATCH 2/6] Fix I3C communication issue while HOST power off
+
+---
+ drivers/i3c/i3c_aspeed.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/i3c/i3c_aspeed.c b/drivers/i3c/i3c_aspeed.c
+index e53a6c06bb..0369392c52 100644
+--- a/drivers/i3c/i3c_aspeed.c
++++ b/drivers/i3c/i3c_aspeed.c
+@@ -1410,7 +1410,7 @@ static int i3c_aspeed_init(const struct device *dev)
+ 	intr_reg.fields.xfr_error = 1;
+ 	intr_reg.fields.resp_q_ready = 1;
+ 	/* for main master mode */
+-	intr_reg.fields.ibi_thld = 1;
++	//intr_reg.fields.ibi_thld = 1;
+ 
+ 	/* for slave mode */
+ 	intr_reg.fields.ibi_update = 1;
+-- 
+2.25.1
+

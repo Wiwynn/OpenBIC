@@ -1,0 +1,1112 @@
+From f31fa5edc80c1671bfe6946a6ac8feab92738a19 Mon Sep 17 00:00:00 2001
+From: Kaidan_Wu <kaidan_wu@wiwynn.com>
+Date: Thu, 11 Aug 2022 17:14:27 +0800
+Subject: [PATCH 6/6] Commit for unstaged files        modified:  
+ drivers/i3c/i3c_aspeed.c        modified:   drivers/i3c/i3c_common.c       
+ modified:   drivers/i3c/i3c_shell.c        modified:  
+ drivers/i3c/slave/i3c_slave_mqueue.c        modified:  
+ include/drivers/i3c/i3c.h
+
+---
+ drivers/i3c/i3c_aspeed.c             | 417 +++++++++++++++++++--------
+ drivers/i3c/i3c_common.c             |  54 +++-
+ drivers/i3c/i3c_shell.c              | 107 +------
+ drivers/i3c/slave/i3c_slave_mqueue.c |  33 ++-
+ include/drivers/i3c/i3c.h            |  70 ++++-
+ 5 files changed, 421 insertions(+), 260 deletions(-)
+
+diff --git a/drivers/i3c/i3c_aspeed.c b/drivers/i3c/i3c_aspeed.c
+index 379d90d49e..b3bb9fc9e6 100644
+--- a/drivers/i3c/i3c_aspeed.c
++++ b/drivers/i3c/i3c_aspeed.c
+@@ -20,9 +20,22 @@ LOG_MODULE_REGISTER(i3c);
+ 
+ #include <portability/cmsis_os2.h>
+ 
+-#define I3C_ASPEED_CCC_TIMEOUT	K_MSEC(10)
+-#define I3C_ASPEED_XFER_TIMEOUT	K_MSEC(10)
+-#define I3C_ASPEED_SIR_TIMEOUT	K_MSEC(10)
++#define I3C_ASPEED_CCC_TIMEOUT		K_MSEC(10)
++#define I3C_ASPEED_XFER_TIMEOUT		K_MSEC(10)
++#define I3C_ASPEED_SIR_TIMEOUT		K_MSEC(10)
++
++#define I3C_BUS_I2C_STD_TLOW_MIN_NS	4700
++#define I3C_BUS_I2C_STD_THIGH_MIN_NS	4000
++#define I3C_BUS_I2C_STD_TR_MAX_NS	1000
++#define I3C_BUS_I2C_STD_TF_MAX_NS	300
++#define I3C_BUS_I2C_FM_TLOW_MIN_NS	1300
++#define I3C_BUS_I2C_FM_THIGH_MIN_NS	600
++#define I3C_BUS_I2C_FM_TR_MAX_NS	300
++#define I3C_BUS_I2C_FM_TF_MAX_NS	300
++#define I3C_BUS_I2C_FMP_TLOW_MIN_NS	500
++#define I3C_BUS_I2C_FMP_THIGH_MIN_NS	260
++#define I3C_BUS_I2C_FMP_TR_MAX_NS	120
++#define I3C_BUS_I2C_FMP_TF_MAX_NS	120
+ 
+ union i3c_device_ctrl_s {
+ 	volatile uint32_t value;
+@@ -366,11 +379,30 @@ union i3c_ext_termn_timing_s {
+ 	} fields;
+ }; /* offset 0xcc */
+ 
++union sda_hold_switch_dly_timing_s {
++	volatile uint32_t value;
++	struct {
++		volatile uint32_t reserved0 : 16;		/* bit[15:0] */
++		volatile uint32_t sda_tx_hold : 3;		/* bit[18:16] */
++		volatile uint32_t reserved1 : 13;		/* bit[31:19] */
++	} fields;
++}; /* offset 0xd0 */
++
++union bus_free_timing_s {
++	volatile uint32_t value;
++	struct {
++		volatile uint32_t i3c_mst_free : 16;		/* bit[15:0] */
++		volatile uint32_t i3c_ibi_free : 16;		/* bit[31:16] */
++	} fields;
++}; /* offset 0xd4 */
++
+ union i3c_ibi_payload_length_s {
+ 	volatile uint32_t value;
+ 	struct {
+-		volatile uint32_t ibi_size : 16;		/* bit[15:0] */
+-		volatile uint32_t max_ibi_size : 16;		/* bit[31:16] */
++		volatile uint32_t max_ibi_size : 8;		/* bit[7:0] */
++		volatile uint32_t reserved0 : 8;		/* bit[15:8] */
++		volatile uint32_t ibi_size : 8;			/* bit[23:16] */
++		volatile uint32_t reserved1 : 8;		/* bit[31:24] */
+ 	} fields;
+ }; /* offset 0xec */
+ 
+@@ -431,8 +463,10 @@ struct i3c_register_s {
+ 	union i2c_scl_timing_s fmp_timing;			/* 0xc0 */
+ 	uint32_t reserved5[2];					/* 0xc4 ~ 0xc8 */
+ 	union i3c_ext_termn_timing_s ext_termn_timing;		/* 0xcc */
+-	uint32_t reservedˊ[7];					/* 0xd0 ~ 0xe8 */
+-	union i3c_ibi_payload_length_s ibi_payload_config;			/* 0xec */
++	union sda_hold_switch_dly_timing_s sda_hold_switch_dly_timing; /* 0xd0 */
++	union bus_free_timing_s bus_free_timing;		/* 0xd4 */
++	uint32_t reserved[5];					/* 0xd8 ~ 0xe8 */
++	union i3c_ibi_payload_length_s ibi_payload_config;	/* 0xec */
+ };
+ 
+ struct i3c_aspeed_config {
+@@ -445,6 +479,12 @@ struct i3c_aspeed_config {
+ 	int secondary;
+ 	int assigned_addr;
+ 	int inst_id;
++	int ibi_append_pec;
++	int sda_tx_hold_ns;
++	int i3c_pp_scl_hi_period_ns;
++	int i3c_pp_scl_lo_period_ns;
++	int i3c_od_scl_hi_period_ns;
++	int i3c_od_scl_lo_period_ns;
+ };
+ 
+ struct i3c_aspeed_cmd {
+@@ -474,14 +514,13 @@ struct i3c_aspeed_dev_priv {
+ };
+ 
+ struct i3c_aspeed_obj {
+-	int init;
+ 	const struct device *dev;
+ 	struct i3c_aspeed_config *config;
+ 	struct k_spinlock lock;
+ 	struct i3c_aspeed_xfer *curr_xfer;
+ 	struct {
+ 		uint32_t ibi_status_correct : 1;
+-		uint32_t ibi_flexible_length : 1;
++		uint32_t ibi_pec_force_enable : 1;
+ 		uint32_t reserved : 30;
+ 	} hw_feature;
+ 
+@@ -703,34 +742,17 @@ static void i3c_aspeed_master_rx_ibi(struct i3c_aspeed_obj *obj)
+ 	}
+ }
+ 
+-static void i3c_aspeed_isr(const struct device *dev)
++static void i3c_aspeed_slave_event(const struct device *dev, union i3c_intr_s status)
+ {
+ 	struct i3c_aspeed_config *config = DEV_CFG(dev);
+-	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
+ 	struct i3c_register_s *i3c_register = config->base;
+-	union i3c_intr_s status;
+-
+-	status.value = i3c_register->intr_status.value;
+-	if (config->secondary && status.fields.dyn_addr_assign) {
+-		LOG_DBG("slave received DA assignment\n");
+-	}
++	uint32_t cm_tfr_sts = i3c_register->present_state.fields.cm_tfr_sts;
+ 
+-	if (status.fields.resp_q_ready) {
+-		if (config->secondary) {
+-			i3c_aspeed_slave_rx_data(obj);
+-		} else {
+-			i3c_aspeed_end_xfer(obj);
+-		}
+-	}
+-
+-	if (status.fields.ibi_thld) {
+-		i3c_aspeed_master_rx_ibi(obj);
++	if (status.fields.dyn_addr_assign) {
++		LOG_DBG("dynamic address assigned\n");
+ 	}
+ 
+-
+ 	if (status.fields.ccc_update) {
+-		uint32_t cm_tfr_sts = i3c_register->present_state.fields.cm_tfr_sts;
+-
+ 		if (cm_tfr_sts == CM_TFR_STS_SLAVE_HALT) {
+ 			LOG_DBG("slave halt resume\n");
+ 			i3c_register->device_ctrl.fields.resume = 1;
+@@ -744,23 +766,70 @@ static void i3c_aspeed_isr(const struct device *dev)
+ 			LOG_DBG("master sets MWL %d\n", i3c_register->slave_max_len.fields.mwl);
+ 		}
+ 
++		if (i3c_register->slave_event_ctrl.fields.sir_allowed) {
++			LOG_DBG("master allows slave sending sir\n");
++		}
++
+ 		/* W1C the slave events */
+ 		i3c_register->slave_event_ctrl.value = i3c_register->slave_event_ctrl.value;
+ 	}
++}
++
++static void i3c_aspeed_isr(const struct device *dev)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	union i3c_intr_s status;
++
++	status.value = i3c_register->intr_status.value;
++	if (config->secondary) {
++		if (status.fields.resp_q_ready) {
++			i3c_aspeed_slave_rx_data(obj);
++		}
++
++		i3c_aspeed_slave_event(dev, status);
++
++		osEventFlagsSet(obj->event_id, status.value);
++
++	} else {
++		if (status.fields.resp_q_ready) {
++			i3c_aspeed_end_xfer(obj);
++		}
++
++		if (status.fields.ibi_thld) {
++			i3c_aspeed_master_rx_ibi(obj);
++		}
++	}
++
+ 
+ 	if (status.fields.xfr_error) {
+ 		i3c_register->device_ctrl.fields.resume = 1;
+ 	}
+ 
+-	if (config->secondary && status.fields.dyn_addr_assign) {
+-		LOG_DBG("dynamic address assigned\n");
+-	}
++	i3c_register->intr_status.value = status.value;
++}
+ 
+-	if (config->secondary) {
+-		osEventFlagsSet(obj->event_id, status.value);
++static void calc_i2c_clk(int fscl, int *period_hi, int *period_lo)
++{
++	int hi_min, lo_min;
++	int margin;
++	int period = DIV_ROUND_UP(1000000000, fscl);
++
++	if (fscl <= 100000) {
++		lo_min = DIV_ROUND_UP(I3C_BUS_I2C_STD_TLOW_MIN_NS + I3C_BUS_I2C_STD_TF_MAX_NS, period);
++		hi_min = DIV_ROUND_UP(I3C_BUS_I2C_STD_THIGH_MIN_NS + I3C_BUS_I2C_STD_TR_MAX_NS, period);
++	} else if (fscl <= 400000) {
++		lo_min = DIV_ROUND_UP(I3C_BUS_I2C_FM_TLOW_MIN_NS + I3C_BUS_I2C_FM_TF_MAX_NS, period);
++		hi_min = DIV_ROUND_UP(I3C_BUS_I2C_FM_THIGH_MIN_NS + I3C_BUS_I2C_FM_TR_MAX_NS, period);
++	} else {
++		lo_min = DIV_ROUND_UP(I3C_BUS_I2C_FMP_TLOW_MIN_NS + I3C_BUS_I2C_FMP_TF_MAX_NS, period);
++		hi_min = DIV_ROUND_UP(I3C_BUS_I2C_FMP_THIGH_MIN_NS + I3C_BUS_I2C_FMP_TR_MAX_NS, period);
+ 	}
+ 
+-	i3c_register->intr_status.value = status.value;
++	margin = (period - lo_min - hi_min) >> 1;
++	*period_lo = lo_min + margin;
++	*period_hi = MAX(period - *period_lo, hi_min);
+ }
+ 
+ static void i3c_aspeed_init_clock(struct i3c_aspeed_obj *obj)
+@@ -769,19 +838,24 @@ static void i3c_aspeed_init_clock(struct i3c_aspeed_obj *obj)
+ 	struct i3c_register_s *i3c_register = config->base;
+ 	union i3c_scl_timing_s i3c_scl;
+ 	union i2c_scl_timing_s i2c_scl;
+-	int i3cclk, period, hcnt, lcnt;
++	union bus_free_timing_s bus_free;
++	union sda_hold_switch_dly_timing_s sda_hold;
++	int core_rate, core_period, hcnt, lcnt, scl_timing;
++	int lo_ns, hi_ns;
+ 
+-	clock_control_get_rate(config->clock_dev, config->clock_id, &i3cclk);
+-	LOG_DBG("i3cclk %d hz\n", i3cclk);
++	clock_control_get_rate(config->clock_dev, config->clock_id, &core_rate);
++	core_period = DIV_ROUND_UP(1000000000, core_rate);
+ 
++	LOG_INF("core_rate %d hz (%d ns)\n", core_rate, core_period);
+ 	LOG_INF("i2c-scl = %d, i3c-scl = %d\n", config->i2c_scl_hz, config->i3c_scl_hz);
+ 
+-	/* Configure I2C FM mode timing parameters */
+-	period = DIV_ROUND_UP(i3cclk, 400000);
+-
+-	/* 40-60 of the clock duty configuration to meet JESD403-1A timing constrain */
+-	lcnt = DIV_ROUND_UP(period * 6, 10);
+-	hcnt = period - lcnt;
++	if (config->i2c_scl_hz) {
++		calc_i2c_clk(config->i2c_scl_hz, &hi_ns, &lo_ns);
++	} else {
++		calc_i2c_clk(400000, &hi_ns, &lo_ns);
++	}
++	hcnt = DIV_ROUND_UP(hi_ns, core_period);
++	lcnt = DIV_ROUND_UP(lo_ns, core_period);
+ 
+ 	i2c_scl.value = 0;
+ 	i2c_scl.fields.lcnt = lcnt;
+@@ -789,9 +863,9 @@ static void i3c_aspeed_init_clock(struct i3c_aspeed_obj *obj)
+ 	i3c_register->fm_timing.value = i2c_scl.value;
+ 
+ 	/* Configure I2C FM+ mode timing parameters */
+-	period = DIV_ROUND_UP(i3cclk, 1000000);
+-	lcnt = DIV_ROUND_UP(period * 6, 10);
+-	hcnt = period - lcnt;
++	calc_i2c_clk(1000000, &hi_ns, &lo_ns);
++	hcnt = DIV_ROUND_UP(hi_ns, core_period);
++	lcnt = DIV_ROUND_UP(lo_ns, core_period);
+ 
+ 	i2c_scl.value = 0;
+ 	i2c_scl.fields.lcnt = lcnt;
+@@ -799,17 +873,28 @@ static void i3c_aspeed_init_clock(struct i3c_aspeed_obj *obj)
+ 	i3c_register->fmp_timing.value = i2c_scl.value;
+ 
+ 	/* Configure I3C OD mode timing parameters */
+-	lcnt = lcnt > 255 ? 255 : lcnt;
+-	hcnt = period - lcnt;
++	if (config->i3c_od_scl_hi_period_ns && config->i3c_od_scl_lo_period_ns) {
++		lcnt = DIV_ROUND_UP(config->i3c_od_scl_lo_period_ns, core_period);
++		hcnt = DIV_ROUND_UP(config->i3c_od_scl_hi_period_ns, core_period);
++	} else {
++		/* use FMP timing if OD periods are not specified in DT */
++		lcnt = lcnt > 0xff ? 0xff : lcnt;
++		hcnt = hcnt > 0xff ? 0xff : hcnt;
++	}
+ 	i3c_scl.value = 0;
+ 	i3c_scl.fields.hcnt = hcnt;
+ 	i3c_scl.fields.lcnt = lcnt;
+ 	i3c_register->od_timing.value = i3c_scl.value;
+ 
+ 	/* Configure PP mode timing parameters */
+-	period = DIV_ROUND_UP(i3cclk, config->i3c_scl_hz);
+-	hcnt = period >> 1;
+-	lcnt = period - hcnt;
++	if (config->i3c_pp_scl_hi_period_ns && config->i3c_pp_scl_lo_period_ns) {
++		lcnt = DIV_ROUND_UP(config->i3c_pp_scl_lo_period_ns, core_period);
++		hcnt = DIV_ROUND_UP(config->i3c_pp_scl_hi_period_ns, core_period);
++	} else {
++		scl_timing = DIV_ROUND_UP(core_rate, config->i3c_scl_hz);
++		hcnt = scl_timing >> 1;
++		lcnt = scl_timing - hcnt;
++	}
+ 
+ 	i3c_scl.fields.hcnt = hcnt;
+ 	i3c_scl.fields.lcnt = lcnt;
+@@ -817,6 +902,19 @@ static void i3c_aspeed_init_clock(struct i3c_aspeed_obj *obj)
+ 
+ 	/* Configure extra termination timing */
+ 	i3c_register->ext_termn_timing.fields.lcnt = DEFAULT_EXT_TERMN_LCNT;
++
++	/* Configure bus free condition */
++	bus_free.fields.i3c_ibi_free = 0xffff;
++	bus_free.fields.i3c_mst_free = i3c_register->od_timing.fields.lcnt;
++	i3c_register->bus_free_timing.value = bus_free.value;
++
++	/* Configure SDA TX hold time */
++	if (config->sda_tx_hold_ns) {
++		sda_hold.fields.sda_tx_hold = DIV_ROUND_UP(config->sda_tx_hold_ns, core_period);
++	} else {
++		sda_hold.fields.sda_tx_hold = 1;
++	}
++	i3c_register->sda_hold_switch_dly_timing.value = sda_hold.value;
+ }
+ 
+ static void i3c_aspeed_init_hw_feature(struct i3c_aspeed_obj *obj)
+@@ -837,13 +935,14 @@ static void i3c_aspeed_init_hw_feature(struct i3c_aspeed_obj *obj)
+ 	}
+ 
+ 	/*
+-	 * if AST10x0-A1, the IBI size is flexible.
+-	 * The others need to be configured by the master device through SETMRL CCC
++	 * if AST10x0-A0 and AST2600, the I3C controller will get stuck if
++	 * received IBI data with length (4n + 1) bytes.  This bug can be worked
++	 * arround if IBI PEC is enabled.
+ 	 */
+ 	if (rev_id == 0x8001) {
+-		obj->hw_feature.ibi_flexible_length = 1;
++		obj->hw_feature.ibi_pec_force_enable = 0;
+ 	} else {
+-		obj->hw_feature.ibi_flexible_length = 0;
++		obj->hw_feature.ibi_pec_force_enable = 1;
+ 		__ASSERT((CONFIG_I3C_ASPEED_MAX_IBI_PAYLOAD & 0x3) != 1,
+ 			 "the max IBI payload size shall not be (4n + 1)\n");
+ 	}
+@@ -989,7 +1088,7 @@ int i3c_aspeed_master_priv_xfer(struct i3c_dev_desc *i3cdev, struct i3c_priv_xfe
+ 	struct i3c_aspeed_obj *obj = DEV_DATA(i3cdev->master_dev);
+ 	struct i3c_aspeed_dev_priv *priv = DESC_PRIV(i3cdev);
+ 	struct i3c_aspeed_xfer xfer;
+-	struct i3c_aspeed_cmd *cmds;
++	struct i3c_aspeed_cmd *cmds, *cmd;
+ 	union i3c_device_cmd_queue_port_s cmd_hi, cmd_lo;
+ 	int pos = 0;
+ 	int i, ret;
+@@ -1011,7 +1110,7 @@ int i3c_aspeed_master_priv_xfer(struct i3c_dev_desc *i3cdev, struct i3c_priv_xfe
+ 	xfer.ret = 0;
+ 
+ 	for (i = 0; i < nxfers; i++) {
+-		struct i3c_aspeed_cmd *cmd = &xfer.cmds[i];
++		cmd = &xfer.cmds[i];
+ 
+ 		cmd_hi.value = 0;
+ 		cmd_hi.xfer_arg.cmd_attr = COMMAND_PORT_XFER_ARG;
+@@ -1046,6 +1145,15 @@ int i3c_aspeed_master_priv_xfer(struct i3c_dev_desc *i3cdev, struct i3c_priv_xfe
+ 	/* wait done, xfer.ret will be changed in ISR */
+ 	k_sem_take(&xfer.sem, I3C_ASPEED_XFER_TIMEOUT);
+ 
++	/* report actual read length */
++	for (i = 0; i < nxfers; i++) {
++		cmd = &xfer.cmds[i];
++
++		if (xfers[i].rnw) {
++			xfers[i].len = cmd->rx_length;
++		}
++	}
++
+ 	ret = xfer.ret;
+ 	k_free(cmds);
+ 
+@@ -1151,6 +1259,7 @@ int i3c_aspeed_master_enable_ibi(struct i3c_dev_desc *i3cdev)
+ 	struct i3c_register_s *i3c_register = obj->config->base;
+ 	struct i3c_aspeed_dev_priv *priv = DESC_PRIV(i3cdev);
+ 	union i3c_dev_addr_tbl_s dat;
++	union i3c_intr_s intr_reg;
+ 	uint32_t dat_addr, sir_reject;
+ 	int ret;
+ 	int pos = 0;
+@@ -1166,7 +1275,10 @@ int i3c_aspeed_master_enable_ibi(struct i3c_dev_desc *i3cdev)
+ 
+ 	dat_addr = (uint32_t)obj->config->base + obj->hw_dat.fields.start_addr + (pos << 2);
+ 	dat.value = sys_read32(dat_addr);
+-	dat.fields.ibi_with_data = 1;
++	if (i3cdev->info.bcr & I3C_BCR_IBI_PAYLOAD)
++		dat.fields.ibi_with_data = 1;
++	if (obj->hw_feature.ibi_pec_force_enable)
++		dat.fields.ibi_pec_en = 1;
+ 	dat.fields.sir_reject = 0;
+ 	sys_write32(dat.value, dat_addr);
+ 
+@@ -1186,6 +1298,14 @@ int i3c_aspeed_master_enable_ibi(struct i3c_dev_desc *i3cdev)
+ 		__ASSERT(!ret, "failed to send SETMRL\n");
+ 	}
+ 
++	intr_reg.value = i3c_register->intr_status_en.value;
++	intr_reg.fields.ibi_thld = 1;
++	i3c_register->intr_status_en.value = intr_reg.value;
++
++	intr_reg.value = i3c_register->intr_signal_en.value;
++	intr_reg.fields.ibi_thld = 1;
++	i3c_register->intr_signal_en.value = intr_reg.value;
++
+ 	return i3c_master_send_enec(i3cdev->master_dev, i3cdev->info.dynamic_addr, I3C_CCC_EVT_SIR);
+ }
+ 
+@@ -1200,71 +1320,89 @@ int i3c_aspeed_slave_register(const struct device *dev, struct i3c_slave_setup *
+ 	return 0;
+ }
+ 
+-int i3c_aspeed_slave_send_sir(const struct device *dev, uint8_t mdb, uint8_t *data, int nbytes)
++int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_payload *data,
++				   struct i3c_ibi_payload *ibi_notify)
+ {
+ 	struct i3c_aspeed_config *config = DEV_CFG(dev);
+ 	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
+ 	struct i3c_register_s *i3c_register = config->base;
+ 	union i3c_intr_s events;
+-	uint8_t *buf = NULL;
+-	bool append_pec = false;
++	union i3c_device_cmd_queue_port_s cmd;
+ 
+-	if (i3c_register->slave_event_ctrl.fields.sir_allowed == 0) {
+-		LOG_ERR("SIR is not enabled by the main master\n");
+-		return -EACCES;
+-	}
++	__ASSERT_NO_MSG(data);
++	__ASSERT_NO_MSG(data->buf);
++	__ASSERT_NO_MSG(data->size);
+ 
+-	osEventFlagsClear(obj->event_id, ~osFlagsError);
+-	events.value = 0;
+-	events.fields.ibi_update = 1;
+-	events.fields.resp_q_ready = 1;
++	if (ibi_notify) {
++		if (i3c_register->slave_event_ctrl.fields.sir_allowed == 0) {
++			LOG_ERR("SIR is not enabled by the main master\n");
++			return -EACCES;
++		}
+ 
+-	i3c_register->device_ctrl.fields.slave_mdb = mdb;
++		osEventFlagsClear(obj->event_id, ~osFlagsError);
++		events.value = 0;
++		events.fields.ibi_update = 1;
+ 
+-	/*
+-	 * If no additional bytes are to be sent, the total IBI data length is 1 (MDB only).
+-	 * This will hit the bug of (4n + 1) IBI data length issue on AST2600 series and AST1030A0
+-	 * SOCs.  Append the PEC to make the total IBI data length be 2 for workaround.
+-	 */
+-	if (!data || !nbytes) {
+-		append_pec = true;
+-		goto wr_fifo_done;
++		i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
++		i3c_register->device_ctrl.fields.slave_mdb = ibi_notify->buf[0];
++		i3c_aspeed_wr_tx_fifo(obj, ibi_notify->buf, ibi_notify->size);
++
++		cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
++		cmd.slave_data_cmd.dl = ibi_notify->size;
++		i3c_register->cmd_queue_port.value = cmd.value;
++
++		if (config->ibi_append_pec) {
++			i3c_register->device_ctrl.fields.slave_pec_en = 1;
++		}
+ 	}
+ 
+-	if (obj->hw_feature.ibi_flexible_length) {
+-		/*
+-		 * Workaround for AST1030A1:
+-		 * reg 0xec[23:16] is wired to reg 0x00[23:16] by mistake.  This will cause the IBI
+-		 * transfer size varies with the MDB value.
+-		 *
+-		 * case 1: IBI size == MDB value: no issue
+-		 * case 2: IBI size < MDB value: the actual transfer size is rounded up by 4
+-		 *         ---> actual IBI transfer size = ((IBI size + 3) >> 2) << 2
+-		 * case 3: IBI size > MDB value: unable to handle this case
+-		 *
+-		 * Regarding to case 2, when the IBI FIFO is read done, a transfer error status will
+-		 * be set because the actual IBI size does not match the size set in 0xec[23:16]. So
+-		 * check xfr_error bit additionally.
+-		 */
+-		__ASSERT(nbytes <= mdb, "hw limitation: IBI size must be less than the MDB");
+-		if (mdb != nbytes) {
+-			events.fields.xfr_error = 1;
++	i3c_aspeed_wr_tx_fifo(obj, data->buf, data->size);
++	cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
++	cmd.slave_data_cmd.dl = data->size;
++	i3c_register->cmd_queue_port.value = cmd.value;
++
++	if (ibi_notify) {
++		i3c_register->i3c_slave_intr_req.fields.sir = 1;
++		osEventFlagsWait(obj->event_id, events.value, osFlagsWaitAll, osWaitForever);
++
++		if (config->ibi_append_pec) {
++			i3c_register->device_ctrl.fields.slave_pec_en = 0;
+ 		}
++	}
+ 
+-		i3c_aspeed_wr_tx_fifo(obj, data, nbytes);
+-		i3c_register->ibi_payload_config.fields.ibi_size = nbytes;
+-	} else {
+-		__ASSERT(nbytes < CONFIG_I3C_ASPEED_MAX_IBI_PAYLOAD - 1, "data size too large\n");
++	return 0;
++}
+ 
+-		buf = k_calloc(CONFIG_I3C_ASPEED_MAX_IBI_PAYLOAD - 1, sizeof(uint8_t));
+-		__ASSERT(buf, "failed to allocate sir data buffer\n");
++int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *payload)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	union i3c_intr_s events;
++	union i3c_device_cmd_queue_port_s cmd;
++
++	__ASSERT_NO_MSG(payload);
++	__ASSERT_NO_MSG(payload->buf);
++	__ASSERT_NO_MSG(payload->size);
+ 
+-		memcpy(buf, data, nbytes);
+-		i3c_aspeed_wr_tx_fifo(obj, buf, CONFIG_I3C_ASPEED_MAX_IBI_PAYLOAD - 1);
++	if (i3c_register->slave_event_ctrl.fields.sir_allowed == 0) {
++		LOG_ERR("SIR is not enabled by the main master\n");
++		return -EACCES;
+ 	}
+ 
+-wr_fifo_done:
+-	if (append_pec) {
++	osEventFlagsClear(obj->event_id, ~osFlagsError);
++	events.value = 0;
++	events.fields.ibi_update = 1;
++
++	i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
++	i3c_register->device_ctrl.fields.slave_mdb = payload->buf[0];
++	i3c_aspeed_wr_tx_fifo(obj, payload->buf, payload->size);
++
++	cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
++	cmd.slave_data_cmd.dl = payload->size;
++	i3c_register->cmd_queue_port.value = cmd.value;
++
++	if (config->ibi_append_pec) {
+ 		i3c_register->device_ctrl.fields.slave_pec_en = 1;
+ 	}
+ 
+@@ -1272,14 +1410,10 @@ wr_fifo_done:
+ 	i3c_register->i3c_slave_intr_req.fields.sir = 1;
+ 	osEventFlagsWait(obj->event_id, events.value, osFlagsWaitAll, osWaitForever);
+ 
+-	if (append_pec) {
++	if (config->ibi_append_pec) {
+ 		i3c_register->device_ctrl.fields.slave_pec_en = 0;
+ 	}
+ 
+-	if (buf) {
+-		k_free(buf);
+-	}
+-
+ 	return 0;
+ }
+ 
+@@ -1295,24 +1429,51 @@ int i3c_aspeed_slave_wait_data_consume(const struct device *dev)
+ 	return 0;
+ }
+ 
+-int i3c_aspeed_slave_prep_read_data(const struct device *dev, uint8_t *data, int nbytes, bool wait)
++int i3c_aspeed_slave_set_static_addr(const struct device *dev, uint8_t static_addr)
+ {
+-	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
+ 	struct i3c_aspeed_config *config = DEV_CFG(dev);
+ 	struct i3c_register_s *i3c_register = config->base;
+-	union i3c_device_cmd_queue_port_s cmd;
++	union i3c_device_addr_s device_addr;
+ 
+-	osEventFlagsClear(obj->event_id, ~osFlagsError);
++	config->assigned_addr = static_addr;
+ 
+-	i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
+-	i3c_aspeed_wr_tx_fifo(obj, data, nbytes);
++	device_addr.value = i3c_register->device_addr.value;
++	device_addr.fields.static_addr = static_addr;
++	i3c_register->device_addr.value = device_addr.value;
+ 
+-	cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
+-	cmd.slave_data_cmd.dl = nbytes;
+-	i3c_register->cmd_queue_port.value = cmd.value;
++	return 0;
++}
++
++int i3c_aspeed_slave_get_dynamic_addr(const struct device *dev, uint8_t *dynamic_addr)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++
++	if (!i3c_register->device_addr.fields.dynamic_addr_valid) {
++		return -1;
++	}
++
++	*dynamic_addr = i3c_register->device_addr.fields.dynamic_addr;
++
++	return 0;
++}
++
++int i3c_aspeed_slave_get_event_enabling(const struct device *dev, uint32_t *event_en)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++
++	*event_en = 0;
++	if (i3c_register->slave_event_ctrl.fields.sir_allowed) {
++		*event_en |= I3C_SLAVE_EVENT_SIR;
++	}
++
++	if (i3c_register->slave_event_ctrl.fields.mr_allowed) {
++		*event_en |= I3C_SLAVE_EVENT_MR;
++	}
+ 
+-	if (wait) {
+-		i3c_aspeed_slave_wait_data_consume(dev);
++	if (i3c_register->slave_event_ctrl.fields.hj_allowed) {
++		*event_en |= I3C_SLAVE_EVENT_HJ;
+ 	}
+ 
+ 	return 0;
+@@ -1421,8 +1582,6 @@ static int i3c_aspeed_init(const struct device *dev)
+ 	intr_reg.value = 0;
+ 	intr_reg.fields.xfr_error = 1;
+ 	intr_reg.fields.resp_q_ready = 1;
+-	/* for main master mode */
+-	//intr_reg.fields.ibi_thld = 1;
+ 
+ 	/* for slave mode */
+ 	intr_reg.fields.ibi_update = 1;
+@@ -1478,6 +1637,12 @@ static int i3c_aspeed_init(const struct device *dev)
+ 		.secondary = DT_INST_PROP_OR(n, secondary, 0),                                     \
+ 		.assigned_addr = DT_INST_PROP_OR(n, assigned_address, 0),                          \
+ 		.inst_id = DT_INST_PROP_OR(n, instance_id, 0),                                     \
++		.ibi_append_pec = DT_INST_PROP_OR(n, ibi_append_pec, 0),                           \
++		.sda_tx_hold_ns = DT_INST_PROP_OR(n, sda_tx_hold_ns, 0),                           \
++		.i3c_pp_scl_hi_period_ns = DT_INST_PROP_OR(n, i3c_pp_scl_hi_period_ns, 0),         \
++		.i3c_pp_scl_lo_period_ns = DT_INST_PROP_OR(n, i3c_pp_scl_lo_period_ns, 0),         \
++		.i3c_od_scl_hi_period_ns = DT_INST_PROP_OR(n, i3c_od_scl_hi_period_ns, 0),         \
++		.i3c_od_scl_lo_period_ns = DT_INST_PROP_OR(n, i3c_od_scl_lo_period_ns, 0),         \
+ 	};                                                                                         \
+ 												   \
+ 	static struct i3c_aspeed_obj i3c_aspeed_obj##n;                                            \
+diff --git a/drivers/i3c/i3c_common.c b/drivers/i3c/i3c_common.c
+index 052ac82cec..400a572f1e 100644
+--- a/drivers/i3c/i3c_common.c
++++ b/drivers/i3c/i3c_common.c
+@@ -10,13 +10,14 @@
+ #include <device.h>
+ #include <drivers/i3c/i3c.h>
+ 
+-int i3c_master_send_enec(const struct device *master, uint8_t addr, uint8_t evt)
++static int i3c_master_send_enec_disec(const struct device *master, uint8_t addr, bool enable,
++				      uint8_t evt)
+ {
+ 	struct i3c_ccc_cmd ccc;
+ 	uint8_t event = evt;
+ 
+ 	ccc.addr = addr;
+-	ccc.id = I3C_CCC_ENEC;
++	ccc.id = (enable == true) ? I3C_CCC_ENEC : I3C_CCC_DISEC;
+ 	if (addr != I3C_BROADCAST_ADDR) {
+ 		ccc.id |= I3C_CCC_DIRECT;
+ 	}
+@@ -28,6 +29,16 @@ int i3c_master_send_enec(const struct device *master, uint8_t addr, uint8_t evt)
+ 	return i3c_master_send_ccc(master, &ccc);
+ }
+ 
++int i3c_master_send_enec(const struct device *master, uint8_t addr, uint8_t evt)
++{
++	return i3c_master_send_enec_disec(master, addr, true, evt);
++}
++
++int i3c_master_send_disec(const struct device *master, uint8_t addr, uint8_t evt)
++{
++	return i3c_master_send_enec_disec(master, addr, false, evt);
++}
++
+ int i3c_master_send_rstdaa(const struct device *master)
+ {
+ 	struct i3c_ccc_cmd ccc;
+@@ -45,17 +56,17 @@ int i3c_master_send_rstdaa(const struct device *master)
+ 
+ int i3c_master_send_sethid(const struct device *master)
+ {
+-       struct i3c_ccc_cmd ccc;
+-       uint8_t hid = 0;
++	struct i3c_ccc_cmd ccc;
++	uint8_t hid = 0;
+ 
+-       ccc.addr = I3C_BROADCAST_ADDR;
+-       ccc.id = I3C_CCC_SETHID;
+-       ccc.payload.length = 1;
+-       ccc.payload.data = &hid;
+-       ccc.rnw = 0;
+-       ccc.ret = 0;
++	ccc.addr = I3C_BROADCAST_ADDR;
++	ccc.id = I3C_CCC_SETHID;
++	ccc.payload.length = 1;
++	ccc.payload.data = &hid;
++	ccc.rnw = 0;
++	ccc.ret = 0;
+ 
+-       return i3c_master_send_ccc(master, &ccc);
++	return i3c_master_send_ccc(master, &ccc);
+ }
+ 
+ int i3c_master_send_aasa(const struct device *master)
+@@ -123,6 +134,27 @@ int i3c_master_send_getpid(const struct device *master, uint8_t addr, uint64_t *
+ 	return 0;
+ }
+ 
++int i3c_master_send_getbcr(const struct device *master, uint8_t addr, uint8_t *bcr)
++{
++	struct i3c_ccc_cmd ccc;
++	int ret;
++
++	ccc.addr = addr;
++	ccc.payload.length = 1;
++	ccc.payload.data = bcr;
++
++	ccc.rnw = 1;
++	ccc.id = I3C_CCC_GETBCR;
++	ccc.ret = 0;
++
++	ret = i3c_master_send_ccc(master, &ccc);
++	if (ret) {
++		return ret;
++	}
++
++	return 0;
++}
++
+ /**
+  * @brief data read for the JESD compliant devices
+  * @param slave the JESD compliant device
+diff --git a/drivers/i3c/i3c_shell.c b/drivers/i3c/i3c_shell.c
+index 019a89020e..396963e86f 100644
+--- a/drivers/i3c/i3c_shell.c
++++ b/drivers/i3c/i3c_shell.c
+@@ -15,21 +15,8 @@
+ #define I3C_SHELL_MAX_DESC_NUM		8
+ 
+ static uint8_t data_buf[I3C_SHELL_MAX_XFER_NUM][I3C_SHELL_MAX_BUF_SIZE];
+-static int i3c_shell_num_of_descs=0;
++static int i3c_shell_num_of_descs;
+ static struct i3c_dev_desc i3c_shell_desc_tbl[I3C_SHELL_MAX_DESC_NUM];
+-void i3c_spd5118_reg_read(struct i3c_dev_desc *spd5118, uint8_t addr, uint8_t *data, int data_size);
+-
+-//Wiwynn add to read SPD5118
+-void i3c_spd5118_reg_read(struct i3c_dev_desc *spd5118, uint8_t addr, uint8_t *data, int data_size)
+-{
+-        uint8_t out[2] = { addr & GENMASK(5, 0), 0 };
+-        int ret;
+-
+-        ret = i3c_jesd403_read(spd5118, out, 2, data, data_size);
+-	if(ret < 0){
+-		printk("[Wiwynn] %s() line:%d -- Fail to read SPD (%d)\n", __func__, __LINE__,ret);
+-	}
+-}
+ 
+ static void device_name_get(size_t idx, struct shell_static_entry *entry)
+ {
+@@ -49,9 +36,7 @@ static struct i3c_dev_desc *find_matching_desc(const struct device *dev, uint8_t
+ 
+ 	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
+ 		desc = &i3c_shell_desc_tbl[i];
+-		printk("[Wiwynn] %s() line:%d -- dynamic_addr= %x\n", __func__, __LINE__, desc->info.dynamic_addr);
+ 		if (desc->master_dev == dev && desc->info.dynamic_addr == desc_addr) {
+-			printk("[Wiwynn] %s() line:%d -- Find matching desc\n", __func__, __LINE__);
+ 			break;
+ 		}
+ 	}
+@@ -98,9 +83,7 @@ static int cmd_priv_xfer(const struct shell *shell, size_t argc, char **argv)
+ 		state = shell_getopt_state_get(shell);
+ 		switch (c) {
+ 		case 'a':
+-			printk("[Wiwynn] %s() line:%d -- optarg= %s\n", __func__, __LINE__, state->optarg);
+ 			addr = strtoul(state->optarg, NULL, 0);
+-			printk("[Wiwynn] %s() line:%d -- addr= %d\n", __func__, __LINE__, addr);
+ 			break;
+ 		case 'w':
+ 			xfers[nxfers].rnw = 0;
+@@ -234,90 +217,6 @@ static int cmd_send_ccc(const struct shell *shell, size_t argc, char **argv)
+ 	return ret;
+ }
+ 
+-// Wiwynn add a test command to communicate with SPD5118
+-static const char ReadSPD5118_helper[] = "i3c readspd5118 <dev>";
+-static int cmd_ReadSPD5118(const struct shell *shell, size_t argc, char **argv)
+-{
+-	const struct device *master;
+-        struct i3c_dev_desc *desc;
+-	struct i3c_dev_desc slave[4];//DIMM A/B/C/D
+-        struct getopt_state *state;
+-	int ret, i;
+-	//uint8_t data[2];
+-
+-	// Bind I3C_3 device (We enable in DTS)
+-	master = device_get_binding(argv[1]);
+-	if (!master) {
+-                shell_error(shell, "I3C: Device driver %s not found.", argv[1]);
+-                return -ENODEV;
+-        }
+-
+-	printk("[Wiwynn] %s() line:%d\n", __func__, __LINE__);
+-
+-	// Broadcast to I3C device
+-	ret = i3c_master_send_aasa(master);
+-	if(ret != 0){
+-		printk("[Wiwynn] %s() line:%d -- SETAASA failed (%d)\n", __func__, __LINE__, ret);
+-		return ret;
+-	}
+-
+-	printk("[Wiwynn] %s() line:%d - Read SPD5118 from all attached I3C devices\n", __func__, __LINE__);
+-
+-	// Read SPD5118 register
+-	for (i = 0; i < i3c_shell_num_of_descs; i++) {
+-		uint8_t data[2] = {0 ,0};
+-		desc = &i3c_shell_desc_tbl[i];
+-		i3c_spd5118_reg_read(desc, 0, data, 2);
+-		printk("--->[Wiwynn] %s() [I3C3][I3C mode] device%d ID %02x %02x\n",__func__, i, data[0], data[1]);
+-	}
+-
+-	printk("[Wiwynn] %s() line:%d -- Read SPD Command Complete\n", __func__, __LINE__);
+-	return 0;
+-
+-}
+-
+-static const char list_helper[] = "i3c list <dev>";
+-static int cmd_list(const struct shell *shell, size_t argc, char **argv)
+-{
+-	struct i3c_dev_desc *desc = NULL;
+-	int i;
+-
+-	printk("[Wiwynn] %s() line:%d - List all attached I3C devices\n", __func__, __LINE__);
+-	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
+-		desc = &i3c_shell_desc_tbl[i];
+-		printk("[Wiwynn] static_addr= %x, assigned_dynamic_addr=%x, dynamic_addr=%x, i2c_mode=%x\n", desc->info.static_addr, desc->info.assigned_dynamic_addr, desc->info.dynamic_addr, desc->info.i2c_mode);
+-	}	
+-
+-}
+-
+-static const char deattachall_helper[] = "i3c deattachall <dev>";
+-static int cmd_deattachall(const struct shell *shell, size_t argc, char **argv)
+-{
+-	const struct device *dev;
+-	struct i3c_dev_desc *desc = NULL;
+-	int i;
+-
+-	dev = device_get_binding(argv[1]);
+-        if (!dev) {
+-                shell_error(shell, "I3C: Device driver %s not found.", argv[1]);
+-                return -ENODEV;
+-        }
+-
+-
+-	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
+-		// Deatach the device
+-                desc = &i3c_shell_desc_tbl[i];
+-		i3c_master_detach_device(dev, desc);
+-        }
+-
+-	// Clear the device information in the attached device table
+-	memset(i3c_shell_desc_tbl, 0, sizeof(i3c_shell_desc_tbl));
+-	i3c_shell_num_of_descs=0;
+-
+-	printk("[Wiwynn] %s() line:%d - Deattached I3C devices\n", __func__, __LINE__);
+-
+-}
+-
+ static const char attach_helper[] = "i3c attach <dev> -a <addr> -m <i2c mode>";
+ static int cmd_attach(const struct shell *shell, size_t argc, char **argv)
+ {
+@@ -370,7 +269,6 @@ static int cmd_attach(const struct shell *shell, size_t argc, char **argv)
+ 	if (ret) {
+ 		shell_print(shell, "Failed to attach device: %d\n", ret);
+ 	} else {
+-		printk("[Wiwynn] static_addr= %x, assigned_dynamic_addr=%x, dynamic_addr=%x, i2c_mode=%x\n", i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.static_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.assigned_dynamic_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.dynamic_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.i2c_mode);
+ 		i3c_shell_num_of_descs++;
+ 	}
+ 
+@@ -432,11 +330,8 @@ static int cmd_smq_xfer(const struct shell *shell, size_t argc, char **argv)
+ 
+ SHELL_STATIC_SUBCMD_SET_CREATE(sub_i3c_cmds,
+ 	SHELL_CMD(attach, &dsub_device_name, attach_helper, cmd_attach),
+-	SHELL_CMD(deattachall, &dsub_device_name, deattachall_helper, cmd_deattachall),
+ 	SHELL_CMD(ccc, &dsub_device_name, send_ccc_helper, cmd_send_ccc),
+ 	SHELL_CMD(xfer, &dsub_device_name, priv_xfer_helper, cmd_priv_xfer),
+-	SHELL_CMD(readspd5118, &dsub_device_name, ReadSPD5118_helper, cmd_ReadSPD5118),
+-	SHELL_CMD(list, &dsub_device_name, list_helper, cmd_list),
+ #ifdef CONFIG_I3C_SLAVE_MQUEUE
+ 	SHELL_CMD(smq, &dsub_device_name, smq_xfer_helper, cmd_smq_xfer),
+ #endif
+diff --git a/drivers/i3c/slave/i3c_slave_mqueue.c b/drivers/i3c/slave/i3c_slave_mqueue.c
+index 5f6e09eb0b..ad511d6740 100644
+--- a/drivers/i3c/slave/i3c_slave_mqueue.c
++++ b/drivers/i3c/slave/i3c_slave_mqueue.c
+@@ -98,17 +98,39 @@ int i3c_slave_mqueue_read(const struct device *dev, uint8_t *dest, int budget)
+ 	return ret;
+ }
+ 
+-
+ int i3c_slave_mqueue_write(const struct device *dev, uint8_t *src, int size)
+ {
+ 	struct i3c_slave_mqueue_config *config = DEV_CFG(dev);
+ 	struct i3c_slave_mqueue_obj *obj = DEV_DATA(dev);
++	struct i3c_ibi_payload ibi;
++	uint32_t event_en;
++	int ret;
++	uint8_t dynamic_addr;
++
++	ret = i3c_slave_get_dynamic_addr(obj->i3c_controller, &dynamic_addr);
++	if (ret) {
++		return -ENOTCONN;
++	}
++
++	ret = i3c_slave_get_event_enabling(obj->i3c_controller, &event_en);
++	if (ret || !(event_en & I3C_SLAVE_EVENT_SIR)) {
++		return -EACCES;
++	}
+ 
+ 	if (IS_MDB_PENDING_READ_NOTIFY(config->mdb)) {
+-		i3c_slave_send_sir(obj->i3c_controller, config->mdb, NULL, 0);
+-		return i3c_slave_prep_read_data(obj->i3c_controller, src, size, false);
++		struct i3c_slave_payload read_data;
++		uint32_t ibi_data = config->mdb;
++
++		ibi.buf = (uint8_t *)&ibi_data;
++		ibi.size = 1;
++		read_data.buf = src;
++		read_data.size = size;
++
++		return i3c_slave_put_read_data(obj->i3c_controller, &read_data, &ibi);
+ 	} else {
+-		return i3c_slave_send_sir(obj->i3c_controller, config->mdb, src, size);
++		ibi.buf = src;
++		ibi.size = size;
++		return i3c_slave_send_sir(obj->i3c_controller, &ibi);
+ 	}
+ }
+ 
+@@ -155,6 +177,9 @@ static void i3c_slave_mqueue_init(const struct device *dev)
+ 	i3c_slave_register(obj->i3c_controller, &slave_data);
+ }
+ 
++BUILD_ASSERT(CONFIG_I3C_SLAVE_INIT_PRIORITY > CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
++	     "I3C controller must be initialized prior to target device initialization");
++
+ #define I3C_SLAVE_MQUEUE_INIT(n)                                                                   \
+ 	static int i3c_slave_mqueue_config_func_##n(const struct device *dev);                     \
+ 	static const struct i3c_slave_mqueue_config i3c_slave_mqueue_config_##n = {                \
+diff --git a/include/drivers/i3c/i3c.h b/include/drivers/i3c/i3c.h
+index 36cbdbd6d2..d258439b5b 100644
+--- a/include/drivers/i3c/i3c.h
++++ b/include/drivers/i3c/i3c.h
+@@ -21,7 +21,7 @@
+ /* broadcast only commands */
+ #define I3C_CCC_ENTDAA          0x07
+ #define I3C_CCC_SETAASA         0x29
+-#define I3C_CCC_SETHID          0x61
++#define I3C_CCC_SETHID		0x61
+ 
+ /* unicast only commands */
+ #define I3C_CCC_SETDASA         (0x7 | I3C_CCC_DIRECT)
+@@ -85,6 +85,8 @@ struct i3c_device_info {
+ #define I3C_PID_VENDOR_ID(x)            ((x) >> 33)
+ #define I3C_PID_VENDOR_ID_ASPEED        0x03f6
+ 
++#define I3C_BCR_IBI_PAYLOAD		BIT(2)
++
+ /**
+  * @brief descriptor of the i3c device attached to the bus
+  * @param master_dev the master device which hosts the bus
+@@ -130,6 +132,11 @@ struct i3c_slave_payload {
+ 	void *buf;
+ };
+ 
++/* slave events */
++#define I3C_SLAVE_EVENT_SIR		BIT(0)
++#define I3C_SLAVE_EVENT_MR		BIT(1)
++#define I3C_SLAVE_EVENT_HJ		BIT(2)
++
+ /**
+  * @brief slave callback function structure
+  * @param write_requested callback function to return a memory block for receiving data sent from
+@@ -156,27 +163,59 @@ int i3c_aspeed_master_priv_xfer(struct i3c_dev_desc *i3cdev, struct i3c_priv_xfe
+ int i3c_aspeed_master_request_ibi(struct i3c_dev_desc *i3cdev, struct i3c_ibi_callbacks *cb);
+ int i3c_aspeed_master_enable_ibi(struct i3c_dev_desc *i3cdev);
+ int i3c_aspeed_slave_register(const struct device *dev, struct i3c_slave_setup *slave_data);
++
++/**
++ * @brief set the static address of the i3c controller in slave mode
++ * @param dev the I3C controller in slave mode
++ * @param static_addr the new static address
++ * @return 0 if the static address is set
++ */
++int i3c_aspeed_slave_set_static_addr(const struct device *dev, uint8_t static_addr);
++
++/**
++ * @brief get the assigned dynamic address of the i3c controller
++ * @param dev the I3C controller in slave mode
++ * @param dynamic_addr pointer to the dynamic address variable
++ * @return -1 if dynamic address is not assigned
++ * @return 0 if dynamic address is assigned.  The value is passed to `dynamic_addr`
++ */
++int i3c_aspeed_slave_get_dynamic_addr(const struct device *dev, uint8_t *dynamic_addr);
++
++/**
++ * @brief get the event enabling status
++ * @param dev the I3C controller in slave mode
++ * @param event_en pointer to the event enabling mask, see `I3C_SLAVE_EVENT_*`.
++ * @return 0 if success
++ *
++ * This function gets the status of the event enabling from the slave controller.
++ * The bits set in `event_en` means the corresponding slave events are enabled.
++ */
++int i3c_aspeed_slave_get_event_enabling(const struct device *dev, uint32_t *event_en);
++
+ /**
+  * @brief slave device sends SIR (IBI) with data
+  *
+- * @param dev the slave device
+- * @param mdb mandatory data byte
+- * @param data pointer to the additional IBI data
+- * @param nbytes number of bytes of the additional IBI data
++ * @param dev the I3C controller in slave mode
++ * @param payload pointer to IBI payload structure
+  * @return int 0 = success
+  */
+-int i3c_aspeed_slave_send_sir(const struct device *dev, uint8_t mdb, uint8_t *data, int nbytes);
++int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *payload);
+ 
+ /**
+- * @brief slave devices prepares the data for master private read transfer
++ * @brief slave device prepares the data for master private read transfer
+  *
+- * @param dev the slave device
+- * @param data the data to be read
+- * @param nbytes number of bytes of the data
+- * @param wait true if you want to wait for data consumed
++ * @param dev the I3C controller in slave mode
++ * @param data pointer to the data structure to be read
++ * @param ibi_notify pointer to the IBI notification structure (optional)
+  * @return int 0 = success
++ *
++ * This function puts the pending read data to the TX FIFO.  If @ibi_notify is
++ * specified, a slave interrupt with the IBI payload will be issued to notify
++ * the master device that there is a pending read data.  The master device shall
++ * issue a private read transfer to read the data back.
+  */
+-int i3c_aspeed_slave_prep_read_data(const struct device *dev, uint8_t *data, int nbytes, bool wait);
++int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_payload *data,
++				   struct i3c_ibi_payload *ibi_notify);
+ 
+ /**
+  * @brief slave device waits for the private read data be consumed
+@@ -188,12 +227,14 @@ int i3c_aspeed_slave_wait_data_consume(const struct device *dev);
+ 
+ /* common API */
+ int i3c_master_send_enec(const struct device *master, uint8_t addr, uint8_t evt);
++int i3c_master_send_disec(const struct device *master, uint8_t addr, uint8_t evt);
+ int i3c_master_send_rstdaa(const struct device *master);
+ int i3c_master_send_sethid(const struct device *master);
+ int i3c_master_send_aasa(const struct device *master);
+ int i3c_master_send_setmrl(const struct device *master, uint8_t addr, uint16_t mrl,
+ 			   uint8_t ibi_payload_size);
+ int i3c_master_send_getpid(const struct device *master, uint8_t addr, uint64_t *pid);
++int i3c_master_send_getbcr(const struct device *master, uint8_t addr, uint8_t *bcr);
+ 
+ #define i3c_master_attach_device	i3c_aspeed_master_attach_device
+ #define i3c_master_detach_device	i3c_aspeed_master_detach_device
+@@ -202,9 +243,12 @@ int i3c_master_send_getpid(const struct device *master, uint8_t addr, uint64_t *
+ #define i3c_master_request_ibi		i3c_aspeed_master_request_ibi
+ #define i3c_master_enable_ibi		i3c_aspeed_master_enable_ibi
+ #define i3c_slave_register		i3c_aspeed_slave_register
++#define i3c_slave_set_static_addr	i3c_aspeed_slave_set_static_addr
+ #define i3c_slave_send_sir		i3c_aspeed_slave_send_sir
+-#define i3c_slave_prep_read_data	i3c_aspeed_slave_prep_read_data
++#define i3c_slave_put_read_data		i3c_aspeed_slave_put_read_data
+ #define i3c_slave_wait_data_consume	i3c_aspeed_slave_wait_data_consume
++#define i3c_slave_get_dynamic_addr	i3c_aspeed_slave_get_dynamic_addr
++#define i3c_slave_get_event_enabling	i3c_aspeed_slave_get_event_enabling
+ 
+ int i3c_jesd403_read(struct i3c_dev_desc *slave, uint8_t *addr, int addr_size, uint8_t *data,
+ 		     int data_size);
+-- 
+2.25.1
+

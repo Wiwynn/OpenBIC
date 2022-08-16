@@ -1,0 +1,190 @@
+From a37cd03a93c016efdd3e0bd61013fe245cb014e5 Mon Sep 17 00:00:00 2001
+From: Bonnie Lo <bonnie_lo@wiwynn.com>
+Date: Thu, 26 May 2022 10:02:12 +0800
+Subject: [PATCH 1/6] Support DIMM SPD reading through i3c tool
+
+EE Test Pass
+    1.Read DIMM EFGH
+    gpio conf GPIO0_A_D 5 out
+    gpio set GPIO0_A_D 5 1
+    gpio conf GPIO0_M_P 9 out
+    gpio set GPIO0_M_P 9 1
+    i3c attach I3C_3 -a 0x50 -m 0
+    i3c attach I3C_3 -a 0x52 -m 0
+    i3c attach I3C_3 -a 0x54 -m 0
+    i3c attach I3C_3 -a 0x56 -m 0
+    i3c bonnie I3C_3
+
+    2. Read DIMM ABCD
+    gpio conf GPIO0_M_P 9 out
+    gpio set GPIO0_M_P 9 1
+    i3c attach I3C_3 -a 0x50 -m 0
+    i3c attach I3C_3 -a 0x52 -m 0
+    i3c attach I3C_3 -a 0x54 -m 0
+    i3c attach I3C_3 -a 0x56 -m 0
+    i3c bonnie I3C_3
+---
+ drivers/i3c/i3c_shell.c | 107 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 106 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i3c/i3c_shell.c b/drivers/i3c/i3c_shell.c
+index 396963e86f..019a89020e 100644
+--- a/drivers/i3c/i3c_shell.c
++++ b/drivers/i3c/i3c_shell.c
+@@ -15,8 +15,21 @@
+ #define I3C_SHELL_MAX_DESC_NUM		8
+ 
+ static uint8_t data_buf[I3C_SHELL_MAX_XFER_NUM][I3C_SHELL_MAX_BUF_SIZE];
+-static int i3c_shell_num_of_descs;
++static int i3c_shell_num_of_descs=0;
+ static struct i3c_dev_desc i3c_shell_desc_tbl[I3C_SHELL_MAX_DESC_NUM];
++void i3c_spd5118_reg_read(struct i3c_dev_desc *spd5118, uint8_t addr, uint8_t *data, int data_size);
++
++//Wiwynn add to read SPD5118
++void i3c_spd5118_reg_read(struct i3c_dev_desc *spd5118, uint8_t addr, uint8_t *data, int data_size)
++{
++        uint8_t out[2] = { addr & GENMASK(5, 0), 0 };
++        int ret;
++
++        ret = i3c_jesd403_read(spd5118, out, 2, data, data_size);
++	if(ret < 0){
++		printk("[Wiwynn] %s() line:%d -- Fail to read SPD (%d)\n", __func__, __LINE__,ret);
++	}
++}
+ 
+ static void device_name_get(size_t idx, struct shell_static_entry *entry)
+ {
+@@ -36,7 +49,9 @@ static struct i3c_dev_desc *find_matching_desc(const struct device *dev, uint8_t
+ 
+ 	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
+ 		desc = &i3c_shell_desc_tbl[i];
++		printk("[Wiwynn] %s() line:%d -- dynamic_addr= %x\n", __func__, __LINE__, desc->info.dynamic_addr);
+ 		if (desc->master_dev == dev && desc->info.dynamic_addr == desc_addr) {
++			printk("[Wiwynn] %s() line:%d -- Find matching desc\n", __func__, __LINE__);
+ 			break;
+ 		}
+ 	}
+@@ -83,7 +98,9 @@ static int cmd_priv_xfer(const struct shell *shell, size_t argc, char **argv)
+ 		state = shell_getopt_state_get(shell);
+ 		switch (c) {
+ 		case 'a':
++			printk("[Wiwynn] %s() line:%d -- optarg= %s\n", __func__, __LINE__, state->optarg);
+ 			addr = strtoul(state->optarg, NULL, 0);
++			printk("[Wiwynn] %s() line:%d -- addr= %d\n", __func__, __LINE__, addr);
+ 			break;
+ 		case 'w':
+ 			xfers[nxfers].rnw = 0;
+@@ -217,6 +234,90 @@ static int cmd_send_ccc(const struct shell *shell, size_t argc, char **argv)
+ 	return ret;
+ }
+ 
++// Wiwynn add a test command to communicate with SPD5118
++static const char ReadSPD5118_helper[] = "i3c readspd5118 <dev>";
++static int cmd_ReadSPD5118(const struct shell *shell, size_t argc, char **argv)
++{
++	const struct device *master;
++        struct i3c_dev_desc *desc;
++	struct i3c_dev_desc slave[4];//DIMM A/B/C/D
++        struct getopt_state *state;
++	int ret, i;
++	//uint8_t data[2];
++
++	// Bind I3C_3 device (We enable in DTS)
++	master = device_get_binding(argv[1]);
++	if (!master) {
++                shell_error(shell, "I3C: Device driver %s not found.", argv[1]);
++                return -ENODEV;
++        }
++
++	printk("[Wiwynn] %s() line:%d\n", __func__, __LINE__);
++
++	// Broadcast to I3C device
++	ret = i3c_master_send_aasa(master);
++	if(ret != 0){
++		printk("[Wiwynn] %s() line:%d -- SETAASA failed (%d)\n", __func__, __LINE__, ret);
++		return ret;
++	}
++
++	printk("[Wiwynn] %s() line:%d - Read SPD5118 from all attached I3C devices\n", __func__, __LINE__);
++
++	// Read SPD5118 register
++	for (i = 0; i < i3c_shell_num_of_descs; i++) {
++		uint8_t data[2] = {0 ,0};
++		desc = &i3c_shell_desc_tbl[i];
++		i3c_spd5118_reg_read(desc, 0, data, 2);
++		printk("--->[Wiwynn] %s() [I3C3][I3C mode] device%d ID %02x %02x\n",__func__, i, data[0], data[1]);
++	}
++
++	printk("[Wiwynn] %s() line:%d -- Read SPD Command Complete\n", __func__, __LINE__);
++	return 0;
++
++}
++
++static const char list_helper[] = "i3c list <dev>";
++static int cmd_list(const struct shell *shell, size_t argc, char **argv)
++{
++	struct i3c_dev_desc *desc = NULL;
++	int i;
++
++	printk("[Wiwynn] %s() line:%d - List all attached I3C devices\n", __func__, __LINE__);
++	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
++		desc = &i3c_shell_desc_tbl[i];
++		printk("[Wiwynn] static_addr= %x, assigned_dynamic_addr=%x, dynamic_addr=%x, i2c_mode=%x\n", desc->info.static_addr, desc->info.assigned_dynamic_addr, desc->info.dynamic_addr, desc->info.i2c_mode);
++	}	
++
++}
++
++static const char deattachall_helper[] = "i3c deattachall <dev>";
++static int cmd_deattachall(const struct shell *shell, size_t argc, char **argv)
++{
++	const struct device *dev;
++	struct i3c_dev_desc *desc = NULL;
++	int i;
++
++	dev = device_get_binding(argv[1]);
++        if (!dev) {
++                shell_error(shell, "I3C: Device driver %s not found.", argv[1]);
++                return -ENODEV;
++        }
++
++
++	for (i = 0; i < I3C_SHELL_MAX_DESC_NUM; i++) {
++		// Deatach the device
++                desc = &i3c_shell_desc_tbl[i];
++		i3c_master_detach_device(dev, desc);
++        }
++
++	// Clear the device information in the attached device table
++	memset(i3c_shell_desc_tbl, 0, sizeof(i3c_shell_desc_tbl));
++	i3c_shell_num_of_descs=0;
++
++	printk("[Wiwynn] %s() line:%d - Deattached I3C devices\n", __func__, __LINE__);
++
++}
++
+ static const char attach_helper[] = "i3c attach <dev> -a <addr> -m <i2c mode>";
+ static int cmd_attach(const struct shell *shell, size_t argc, char **argv)
+ {
+@@ -269,6 +370,7 @@ static int cmd_attach(const struct shell *shell, size_t argc, char **argv)
+ 	if (ret) {
+ 		shell_print(shell, "Failed to attach device: %d\n", ret);
+ 	} else {
++		printk("[Wiwynn] static_addr= %x, assigned_dynamic_addr=%x, dynamic_addr=%x, i2c_mode=%x\n", i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.static_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.assigned_dynamic_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.dynamic_addr, i3c_shell_desc_tbl[i3c_shell_num_of_descs].info.i2c_mode);
+ 		i3c_shell_num_of_descs++;
+ 	}
+ 
+@@ -330,8 +432,11 @@ static int cmd_smq_xfer(const struct shell *shell, size_t argc, char **argv)
+ 
+ SHELL_STATIC_SUBCMD_SET_CREATE(sub_i3c_cmds,
+ 	SHELL_CMD(attach, &dsub_device_name, attach_helper, cmd_attach),
++	SHELL_CMD(deattachall, &dsub_device_name, deattachall_helper, cmd_deattachall),
+ 	SHELL_CMD(ccc, &dsub_device_name, send_ccc_helper, cmd_send_ccc),
+ 	SHELL_CMD(xfer, &dsub_device_name, priv_xfer_helper, cmd_priv_xfer),
++	SHELL_CMD(readspd5118, &dsub_device_name, ReadSPD5118_helper, cmd_ReadSPD5118),
++	SHELL_CMD(list, &dsub_device_name, list_helper, cmd_list),
+ #ifdef CONFIG_I3C_SLAVE_MQUEUE
+ 	SHELL_CMD(smq, &dsub_device_name, smq_xfer_helper, cmd_smq_xfer),
+ #endif
+-- 
+2.25.1
+
