@@ -474,6 +474,8 @@ void add_sensor_config(sensor_cfg config)
 static inline bool init_drive_type(sensor_cfg *p, uint16_t current_drive)
 {
 	int ret = -1;
+	int init_reading = 0;
+
 	if (p->type != sensor_drive_tbl[current_drive].dev) {
 		return false;
 	}
@@ -491,7 +493,8 @@ static inline bool init_drive_type(sensor_cfg *p, uint16_t current_drive)
 	}
 
 	if (p->post_sensor_read_hook) {
-		if (p->post_sensor_read_hook(p->num, p->post_sensor_read_args, NULL) == false) {
+		if (p->post_sensor_read_hook(p->num, p->post_sensor_read_args, &init_reading) ==
+		    false) {
 			printf("[%s] sensor 0x%x post sensor read failed!\n", __func__, p->num);
 		}
 	}
