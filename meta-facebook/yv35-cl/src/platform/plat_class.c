@@ -10,6 +10,8 @@
 #include "plat_gpio.h"
 #include "plat_i2c.h"
 
+#include "drivers/i3c/i3c.h"
+
 #define CPLD_ADDR 0x21 // 7-bit address
 #define CPLD_CLASS_TYPE_REG 0x05
 #define CPLD_2OU_EXPANSION_CARD_REG 0x06
@@ -194,9 +196,16 @@ void init_hsc_module(uint8_t board_revision)
 		hsc_module = HSC_MODULE_ADM1278;
 	}
 }
-
+const struct device *slave_controller;
 void init_platform_config()
 {
+	const struct device *slave_controller;
+	uint8_t new_addr = 0x12;
+
+	slave_controller = device_get_binding(DT_BUS_LABEL(DT_NODELABEL(i3c1_smq)));
+
+	i3c_slave_set_static_addr(slave_controller, new_addr);
+
 	I2C_MSG i2c_msg;
 	uint8_t retry = 3;
 
