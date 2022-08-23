@@ -23,7 +23,7 @@
 #include <sys/printk.h>
 #include <zephyr.h>
 
-LOG_MODULE_REGISTER(mctp);
+LOG_MODULE_REGISTER(mctp, LOG_LEVEL_DBG);
 
 typedef struct __attribute__((packed)) {
 	uint8_t hdr_ver;
@@ -180,6 +180,7 @@ static uint8_t mctp_pkt_assembling(mctp *mctp_inst, uint8_t *buf, uint16_t len)
 /* mctp rx task */
 static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 {
+	printf("[%s] rx entering\n", __func__);
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);
 	if (!arg) {
@@ -265,7 +266,6 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 }
 
 /* mctp tx task */
-static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 {
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);

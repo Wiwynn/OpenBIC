@@ -90,13 +90,14 @@
 #define I3C_MAX_DESC_NUM 8
 #define I3C_MAX_BUFF_SIZE 256
 #define I3C_MAX_XFER_NUM 2
-#define DEBUG_I3C 0
+#define I3C_DEBUG 1
+#define I3C_SMQ_SUCCESS 0
 
 typedef struct _I3C_MSG_ {
 	uint8_t bus;
-	uint8_t target_addr;
 	uint8_t tx_len;
 	uint8_t rx_len;
+	uint8_t target_addr;
 	uint8_t data[I3C_MAX_BUFF_SIZE];
 	struct i3c_priv_xfer xfer[I3C_MAX_XFER_NUM];
 	struct i3c_dev_desc *desc;
