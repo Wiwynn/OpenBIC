@@ -1061,11 +1061,11 @@ static void register_target_device(void)
 	if (i2c_slave_driver_register(dev_ipmb[5]))
 		printf("IPMB5: Target Device driver not found.");
 #endif
-#ifdef DEV_IPMB_6
-	dev_ipmb[6] = device_get_binding("IPMB_6");
-	if (i2c_slave_driver_register(dev_ipmb[6]))
-		printf("IPMB6: Target Device driver not found.");
-#endif
+//#ifdef DEV_IPMB_6
+//	dev_ipmb[6] = device_get_binding("IPMB_6");
+//	if (i2c_slave_driver_register(dev_ipmb[6]))
+//		printf("IPMB6: Target Device driver not found.");
+//#endif
 #ifdef DEV_IPMB_7
 	dev_ipmb[7] = device_get_binding("IPMB_7");
 	if (i2c_slave_driver_register(dev_ipmb[7]))
