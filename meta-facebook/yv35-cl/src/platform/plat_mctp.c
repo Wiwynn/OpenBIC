@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "plat_mctp.h"
+
 #include <zephyr.h>
 #include <sys/printk.h>
 #include <logging/log.h>
@@ -14,7 +16,6 @@
 #include "mctp_ctrl.h"
 #include "pldm.h"
 #include "ipmi.h"
-#include "plat_mctp.h"
 #include "sensor.h"
 #include "plat_hook.h"
 
@@ -51,8 +52,8 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define I3C_BUS_BMC	0
 
 /* mctp endpoint */
-#define MCTP_EID_BMC 0x00
-#define MCTP_EID_SELF 0x00
+#define MCTP_EID_BMC 0x01
+#define MCTP_EID_SELF 0x02
 // #define MCTP_EID_NIC_0 0x10
 // #define MCTP_EID_NIC_1 0x11
 // #define MCTP_EID_NIC_2 0x12

@@ -23,18 +23,77 @@
 #include <logging/log.h>
 #include "libutil.h"
 #include "hal_i3c.h"
+#include "mctp_ctrl.h"
+#include "pldm.h"
 
 LOG_MODULE_REGISTER(mctp_i3c);
 
 #define MCTP_I3C_PEC_ENABLE 0
+#define MCTP_I3C_SOM_MASK 0x80
+#define MCTP_I3C_SOM_SHIFT 7
+#define MCTP_MSG_TYPE_MASK 0x7F
 
 static uint16_t mctp_i3c_read_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 				  mctp_ext_params *extra_data)
 {
 	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+	ARG_UNUSED(len);
 
-	return 0;
+	if (extra_data.type != MCTP_MEDIUM_TYPE_I3C) {
+		LOG_ERR("mctp medium type incorrect");
+		return 0;
+	}
+
+	int ret;
+	I3C_MSG i3c_msg;
+	mctp *mctp_inst = (mctp *)mctp_p;
+	i3c_msg.bus = mctp_inst->medium_conf.i3c_conf.bus;
+	ret = i3c_smq_read(i3c_msg);
+	if (ret < 0) {
+		LOG_ERR("i3c smq read failed");
+		return 0;
+	}
+	return ret;
+//	if (ret < 0) {
+//		LOG_DBG("message queue was empty or device not found");
+//		return MCTP_ERROR;
+//	}
+//	i3c_msg.rx_len = ret;
+//
+//	/** check som(start of msg) validity **/
+//	if (((i3c_msg.data[3] & MCTP_I3C_SOM_MASK) >> MCTP_I3C_SOM_SHIFT) && (count != 0)) {
+//		count = 0;
+//		LOG_DBG("mctp data was not valid, som flaged but count was not init");
+//		return MCTP_ERROR;
+//	}
+//
+//	/** check mctp message type **/
+//	switch(i3c_msg.data[4] & MCTP_MSG_TYPE_MASK) {
+//	case MCTP_MSG_TYPE_CTRL:
+//		mctp_ctrl_hdr *mctp_ctrl_header = (mctp_ctrl_hdr *)(i3c_msg.data + 4);
+//		break;
+//	case MCTP_MSG_TYPE_PLDM:
+//		pldm_hdr *pldm_hdr_msg = (pldm_hdr *)(i3c_msg.data + 4);
+//		switch(pldm_hdr_msg->pldm_type) {
+//		case PLDM_TYPE_OEM:
+//
+//			break;
+//		default:
+//			break;
+//		}
+//		break;
+//	case MCTP_MSG_TYPE_NCSI:
+//		break;
+//	default:
+//		LOG_ERR("invalid mctp messsage type");
+//		break;
+//	}
+//
+//	// send mctp_tx
+//
+//	count = 0;
+//	return MCTP_SUCCESS;
 }
 
 static uint16_t mctp_i3c_write_smq(void *mctp_p, uint8_t *buf, uint32_t len,

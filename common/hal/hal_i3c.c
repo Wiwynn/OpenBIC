@@ -115,7 +115,7 @@ int i3c_slave_mqueue_write(const struct device *dev, uint8_t *src, int size);
  * @brief api to read i3c message from target message queue
  * 
  * @param msg i3c message structure
- * @return 0: complete read data from target message
+ * @return ret: return the data size
  */
 int i3c_smq_read(I3C_MSG *msg)
 {
@@ -127,13 +127,15 @@ int i3c_smq_read(I3C_MSG *msg)
 		return -ENODEV;
 	}
 
-	ret = i3c_slave_mqueue_read(dev_i3c_smq[msg->bus], &msg->data[0], msg->rx_len);
+	ret = i3c_slave_mqueue_read(dev_i3c_smq[msg->bus], &msg->data[0], I3C_MAX_BUFF_SIZE);
+	//ret = i3c_slave_mqueue_read(dev_i3c_smq[msg->bus], &msg->data[0], msg->rx_len);
 	if (ret < 0) {
 		LOG_ERR("[%s] bus%u message queue was empty\n", __func__, msg->bus);
 		return -ENODATA;
 	}
 
-	return I3C_SMQ_SUCCESS;
+	return ret;
+	//return I3C_SMQ_SUCCESS;
 }
 
 /**
