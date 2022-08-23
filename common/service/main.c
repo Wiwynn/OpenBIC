@@ -24,6 +24,7 @@
 #include "timer.h"
 #include "usb.h"
 #include <logging/log.h>
+#include <stdio.h>	// Debug code
 
 __weak void pal_pre_init()
 {
@@ -67,4 +68,5 @@ void main(void)
 	pal_device_init();
 	pal_set_sys_status();
 	pal_post_init();
+	printf("[%s] complete bic boot sequence\n", __func__); // Debug code
 }

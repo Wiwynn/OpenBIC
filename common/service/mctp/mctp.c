@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/printk.h>
 #include <zephyr.h>
+#include "libutil.h"
 
 LOG_MODULE_REGISTER(mctp);
 
@@ -44,22 +45,42 @@ typedef struct __attribute__((packed)) {
 /* set thread name */
 static uint8_t set_thread_name(mctp *mctp_inst)
 {
+	printf("[%s] null check\n", __func__);
 	if (!mctp_inst)
 		return MCTP_ERROR;
 
+	printf("[%s] medium_type check\n", __func__);
 	if (mctp_inst->medium_type <= MCTP_MEDIUM_TYPE_UNKNOWN ||
 	    mctp_inst->medium_type >= MCTP_MEDIUM_TYPE_MAX)
 		return MCTP_ERROR;
 
-	if (mctp_inst->medium_type == MCTP_MEDIUM_TYPE_SMBUS) {
-		mctp_smbus_conf *smbus_conf = (mctp_smbus_conf *)&mctp_inst->medium_conf;
-		snprintf(mctp_inst->mctp_rx_task_name, sizeof(mctp_inst->mctp_rx_task_name),
-			 "mctprx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus,
-			 smbus_conf->addr);
-		snprintf(mctp_inst->mctp_tx_task_name, sizeof(mctp_inst->mctp_tx_task_name),
-			 "mctptx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus,
-			 smbus_conf->addr);
-	}
+	switch(mctp_inst->medium_type) {
+		case MCTP_MEDIUM_TYPE_SMBUS:
+			printf("[%s] medium_type = SMBUS\n", __func__);
+			mctp_smbus_conf *smbus_conf = (mctp_smbus_conf *)&mctp_inst->medium_conf;
+			snprintf(mctp_inst->mctp_rx_task_name, sizeof(mctp_inst->mctp_rx_task_name), "mctprx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus, smbus_conf->addr);
+			snprintf(mctp_inst->mctp_tx_task_name, sizeof(mctp_inst->mctp_tx_task_name), "mctptx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus, smbus_conf->addr);
+			break;
+		case MCTP_MEDIUM_TYPE_I3C:
+			printf("[%s] medium_type = I3C\n", __func__);
+			mctp_i3c_conf *i3c_conf = (mctp_i3c_conf *)&mctp_inst->medium_conf;
+			snprintf(mctp_inst->mctp_rx_task_name, sizeof(mctp_inst->mctp_rx_task_name), "mctprx_%02x_%02x_%02x", mctp_inst->medium_type, i3c_conf->bus, i3c_conf->addr);
+			snprintf(mctp_inst->mctp_tx_task_name, sizeof(mctp_inst->mctp_tx_task_name), "mctptx_%02x_%02x_%02x", mctp_inst->medium_type, i3c_conf->bus, i3c_conf->addr);
+			break;
+		default:
+			return MCTP_ERROR;
+			break;
+		}
+
+	//if (mctp_inst->medium_type == MCTP_MEDIUM_TYPE_SMBUS) {
+	//	mctp_smbus_conf *smbus_conf = (mctp_smbus_conf *)&mctp_inst->medium_conf;
+	//	snprintf(mctp_inst->mctp_rx_task_name, sizeof(mctp_inst->mctp_rx_task_name),
+	//		 "mctprx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus,
+	//		 smbus_conf->addr);
+	//	snprintf(mctp_inst->mctp_tx_task_name, sizeof(mctp_inst->mctp_tx_task_name),
+	//		 "mctptx_%02x_%02x_%02x", mctp_inst->medium_type, smbus_conf->bus,
+	//		 smbus_conf->addr);
+	//}
 
 	return MCTP_SUCCESS;
 }
@@ -74,6 +95,9 @@ static uint8_t mctp_medium_init(mctp *mctp_inst, mctp_medium_conf medium_conf)
 	switch (mctp_inst->medium_type) {
 	case MCTP_MEDIUM_TYPE_SMBUS:
 		ret = mctp_smbus_init(mctp_inst, medium_conf);
+		break;
+	case MCTP_MEDIUM_TYPE_I3C:
+		ret = mctp_i3c_init(mctp_inst, medium_conf);
 		break;
 	default:
 		break;
@@ -90,6 +114,9 @@ static uint8_t mctp_medium_deinit(mctp *mctp_inst)
 	switch (mctp_inst->medium_type) {
 	case MCTP_MEDIUM_TYPE_SMBUS:
 		mctp_smbus_deinit(mctp_inst);
+		break;
+	case MCTP_MEDIUM_TYPE_I3C:
+		mctp_i3c_deinit(mctp_inst);
 		break;
 	default:
 		break;
@@ -156,7 +183,7 @@ static uint8_t mctp_pkt_assembling(mctp *mctp_inst, uint8_t *buf, uint16_t len)
 }
 
 /* mctp rx task */
-static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
+void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 {
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);
@@ -243,7 +270,7 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 }
 
 /* mctp tx task */
-static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
+void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 {
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);
@@ -447,6 +474,7 @@ uint8_t mctp_start(mctp *mctp_inst)
 		return MCTP_ERROR;
 	}
 
+	printf("[%s] set_thread_name\n", __func__);
 	set_thread_name(mctp_inst);
 
 	uint8_t *msgq_buf = (uint8_t *)malloc(MCTP_TX_QUEUE_SIZE * sizeof(mctp_tx_msg));
@@ -455,9 +483,11 @@ uint8_t mctp_start(mctp *mctp_inst)
 		goto error;
 	}
 
+	printf("[%s] init k_msgq\n", __func__);
 	k_msgq_init(&mctp_inst->mctp_tx_queue, msgq_buf, sizeof(mctp_tx_msg), MCTP_TX_QUEUE_SIZE);
 
 	/* create rx service */
+	printf("[%s] create rx thread\n", __func__);
 	mctp_inst->mctp_rx_task_tid =
 		k_thread_create(&mctp_inst->rx_task_thread_data, mctp_inst->rx_task_stack_area,
 				K_KERNEL_STACK_SIZEOF(mctp_inst->rx_task_stack_area), mctp_rx_task,
@@ -465,9 +495,12 @@ uint8_t mctp_start(mctp *mctp_inst)
 	if (!mctp_inst->mctp_rx_task_tid)
 		goto error;
 
+	printf("[%s] set rx thread name\n", __func__);
+	printf("[%s] mctp_inst->mctp_rx_task_name: %s\n", __func__, mctp_inst->mctp_rx_task_name);
 	k_thread_name_set(mctp_inst->mctp_rx_task_tid, mctp_inst->mctp_rx_task_name);
 
 	/* create tx service */
+	printf("[%s] create tx thread\n", __func__);
 	mctp_inst->mctp_tx_task_tid =
 		k_thread_create(&mctp_inst->tx_task_thread_data, mctp_inst->tx_task_stack_area,
 				K_KERNEL_STACK_SIZEOF(mctp_inst->tx_task_stack_area), mctp_tx_task,
@@ -475,6 +508,9 @@ uint8_t mctp_start(mctp *mctp_inst)
 
 	if (!mctp_inst->mctp_tx_task_tid)
 		goto error;
+	
+	printf("[%s] set tx thread name\n", __func__);
+	printf("[%s] mctp_inst->mctp_tx_task_name: %s\n", __func__, mctp_inst->mctp_tx_task_name);
 	k_thread_name_set(mctp_inst->mctp_tx_task_tid, mctp_inst->mctp_tx_task_name);
 
 	mctp_inst->is_servcie_start = 1;
@@ -482,7 +518,7 @@ uint8_t mctp_start(mctp *mctp_inst)
 
 error:
 	LOG_ERR("mctp_start failed!!");
-	mctp_stop(mctp_inst);
+//	mctp_stop(mctp_inst);
 	return MCTP_ERROR;
 }
 
