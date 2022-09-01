@@ -306,7 +306,7 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sect
 	// Update fmc while collect 64k bytes data or BMC signal last image package with target | 0x80
 	if ((buf_offset == SECTOR_SZ_64K) || sector_end) {
 		flash_dev = device_get_binding(flash_device[flash_position]);
-		if (flash_position == DEVSPI_SPI1_CS0 && !isInitialized) {
+		if (flash_position == DEVSPI_SPI2_CS0 && !isInitialized) {
 			uint8_t rc = 0;
 			rc = spi_nor_re_init(flash_dev);
 			if (rc != 0) {

@@ -10,7 +10,7 @@
 
 int pal_get_bios_flash_position()
 {
-	return DEVSPI_SPI1_CS0;
+	return DEVSPI_SPI2_CS0;
 }
 
 bool pal_switch_bios_spi_mux(int gpio_status)
