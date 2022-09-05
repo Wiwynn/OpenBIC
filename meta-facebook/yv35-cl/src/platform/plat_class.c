@@ -200,7 +200,7 @@ const struct device *slave_controller;
 void init_platform_config()
 {
 	const struct device *slave_controller;
-	uint8_t new_addr = 0x12;
+	uint8_t new_addr = 0x13;
 
 	slave_controller = device_get_binding(DT_BUS_LABEL(DT_NODELABEL(i3c1_smq)));
 
