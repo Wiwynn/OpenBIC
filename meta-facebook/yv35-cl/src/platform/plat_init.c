@@ -44,6 +44,30 @@ void pal_device_init()
 	start_monitor_pmic_error_thread();
 }
 
+#include <zephyr.h>
+#include <logging/log.h>
+LOG_MODULE_REGISTER(TEST_plat_init);
+void pal_post_init()
+{
+	int ret = 0;
+	k_msleep(500);
+	LOG_ERR("Error");
+	LOG_WRN("Warning");
+	LOG_INF("Info");
+	LOG_DBG("Debug");
+	LOG_PRINTK(KERN_EMERG "ret: %d", ret);
+	printf("\n");
+
+	uint8_t arr[256];
+	for (int i = 0; i < 256; ++i) {
+		arr[i] = 256 - i;
+	}
+	LOG_HEXDUMP_ERR(&arr[0], "Error HexDump");
+	LOG_HEXDUMP_WRN(&arr[0], "Warning HexDump");
+	LOG_HEXDUMP_INF(&arr[0], "Info HexDump");
+	LOG_HEXDUMP_DBG(&arr[0], "Debug HexDump");
+}
+
 void pal_set_sys_status()
 {
 	set_DC_status(PWRGD_SYS_PWROK);
