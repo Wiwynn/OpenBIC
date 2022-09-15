@@ -59,6 +59,12 @@
 	clock-frequency = <I2C_BITRATE_FAST>;
 };
 
+&i2c10 {
+	pinctrl-0 = <&pinctrl_i2c10_default>;
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
+
 &udc {
 	status = "okay";
 };
