@@ -35,10 +35,10 @@
 #define PRODUCT_ID 0x0000
 #define AUXILIARY_FW_REVISION 0x00000000
 
-#define BIC_FW_YEAR_MSB 0xff
-#define BIC_FW_YEAR_LSB 0xff
-#define BIC_FW_WEEK 0xff
-#define BIC_FW_VER 0xff
+#define BIC_FW_YEAR_MSB 0x20
+#define BIC_FW_YEAR_LSB 0x22
+#define BIC_FW_WEEK 0x37
+#define BIC_FW_VER 0x91
 #define BIC_FW_platform_0 0x68 // char: h
 #define BIC_FW_platform_1 0x64 // char: d
 #define BIC_FW_platform_2 0x00 // char: '\0'

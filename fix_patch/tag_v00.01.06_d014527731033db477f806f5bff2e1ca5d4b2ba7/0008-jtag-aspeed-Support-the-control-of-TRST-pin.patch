@@ -1,0 +1,40 @@
+From b7271c2522fc9d45ee8f40b8e1b4c96b8a5f6cde Mon Sep 17 00:00:00 2001
+From: Billy Tsai <billy_tsai@aspeedtech.com>
+Date: Thu, 15 Sep 2022 10:59:58 +0800
+Subject: [PATCH] jtag: aspeed: Support the control of TRST pin.
+
+This patch allows the jtag_sw_xfer to support TRST pin.
+
+Signed-off-by: Billy Tsai <billy_tsai@aspeedtech.com>
+Change-Id: Ia819c05395ac1ca362934473a67df4311e242b88
+---
+ drivers/jtag/jtag_aspeed.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/jtag/jtag_aspeed.c b/drivers/jtag/jtag_aspeed.c
+index 0690045ea7..7f960f39ce 100644
+--- a/drivers/jtag/jtag_aspeed.c
++++ b/drivers/jtag/jtag_aspeed.c
+@@ -263,6 +263,11 @@ static int jtag_aspeed_sw_xfer(const struct device *dev, enum jtag_pin pin,
+ 	struct jtag_register_s *jtag_register = config->base;
+ 	union software_mode_and_status_s software_mode_and_status;
+ 
++	if (pin == JTAG_TRST) {
++		LOG_DBG("JTAG_TRST = %d\t", value);
++		jtag_register->engine_control_1.fields.control_of_trstn = value;
++		return 0;
++	}
+ 	software_mode_and_status.value =
+ 		jtag_register->software_mode_and_status.value;
+ 	software_mode_and_status.fields.software_mode_enable = 1;
+@@ -282,7 +287,6 @@ static int jtag_aspeed_sw_xfer(const struct device *dev, enum jtag_pin pin,
+ 		software_mode_and_status.fields.software_tms = value;
+ 		break;
+ 	case JTAG_ENABLE:
+-	case JTAG_TRST:
+ 	default:
+ 		return -EINVAL;
+ 	}
+-- 
+2.25.1
+
