@@ -200,11 +200,29 @@ const struct device *slave_controller;
 void init_platform_config()
 {
 	const struct device *slave_controller;
-	uint8_t new_addr = 0x13;
-
+	// uint8_t new_addr = 0x13;
 	slave_controller = device_get_binding(DT_BUS_LABEL(DT_NODELABEL(i3c1_smq)));
-
-	i3c_slave_set_static_addr(slave_controller, new_addr);
+	// i3c_slave_set_static_addr(slave_controller, new_addr);
+	uint16_t pid_extra_info = 0xF00;
+	float voltage;
+	bool success = get_adc_voltage(CHANNEL_6, &voltage);
+	if (success) {
+		printf("Wiwynn Debug - ADC channel-6(%fV)", voltage);
+		if (voltage < 0.3){
+			pid_extra_info = 0xF00;
+		}
+		else if ((voltage < (0.5 + (0.5 * 0.05))) && (voltage > (0.5 - (0.5 * 0.05)))){
+			pid_extra_info = 0xF05;
+		}
+		else{
+			pid_extra_info = 0xFFF;
+		}
+	}
+	else{
+		printf("Wiwynn Debug - Failed to get ADC channel-6 voltage\n");
+	}
+	i3c_set_pid_extra_info(slave_controller, pid_extra_info);
+	printf("Wiwynn Debug - PID extra info(0x%x)\n", pid_extra_info);
 
 	I2C_MSG i2c_msg;
 	uint8_t retry = 3;
