@@ -14,27 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_IPMI_H
-#define PLAT_IPMI_H
+#include "plat_lattice.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "lattice.h"
 
-#define VR_MFR_FW_COMMAND_DATA 0xFD
-#define VR_MFR_FW_COMMAND 0xFE
-#define VR_FW_VERSION_LEN 4
-#define VR_MFR_FW_COMMAND_DATA_LEN 4
-#define VR_GET_FIRMWARE_VERSION_CMD 0x01
-
-#define BIC_VERSION_COUNT 7
-
-enum CB_FIRMWARE_COMPONENT {
-	CB_COMPNT_BIC,
-	CB_COMPNT_CPLD,
-	CB_COMPNT_PEX0,
-	CB_COMPNT_PEX1,
-	CB_COMPNT_XDPE15284,
-	CB_COMPNT_MAX,
+lattice_dev_cfg cpld_cfg[2] = {
+	[0] = { .i2c_bus = CPLD_I2C_BUS, .address = CPLD_ADDRESS },
+	[1] = { .i2c_bus = CPLD_FW_UPDATE_I2C_BUS, .address = CPLD_FW_UPDATE_ADDRESS },
 };
 
-#endif
+lattice_dev_cfg *pal_lattice_get_dev_config()
+{
+	return &cpld_cfg[0];
+}
+
+lattice_dev_cfg *pal_lattice_get_fw_update_dev_config()
+{
+	return &cpld_cfg[1];
+}

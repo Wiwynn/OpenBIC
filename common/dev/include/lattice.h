@@ -14,27 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_IPMI_H
-#define PLAT_IPMI_H
+#ifndef LATTICE_H
+#define LATTICE_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#define VR_MFR_FW_COMMAND_DATA 0xFD
-#define VR_MFR_FW_COMMAND 0xFE
-#define VR_FW_VERSION_LEN 4
-#define VR_MFR_FW_COMMAND_DATA_LEN 4
-#define VR_GET_FIRMWARE_VERSION_CMD 0x01
+#define LATTICE_REG_GET_USERCODE 0x00000030
+#define LATTICE_RES_GET_USERCODE_LEN 4
 
-#define BIC_VERSION_COUNT 7
+typedef struct _lattice_dev_cfg {
+	uint8_t i2c_bus;
+	uint8_t address;
+} lattice_dev_cfg;
 
-enum CB_FIRMWARE_COMPONENT {
-	CB_COMPNT_BIC,
-	CB_COMPNT_CPLD,
-	CB_COMPNT_PEX0,
-	CB_COMPNT_PEX1,
-	CB_COMPNT_XDPE15284,
-	CB_COMPNT_MAX,
-};
+int lattice_read_usercode(lattice_dev_cfg dev_cfg, uint8_t *usercode);
+int lattice_write_register(lattice_dev_cfg dev_cfg, uint8_t *write_data, uint8_t write_len);
+int lattice_read_register(lattice_dev_cfg dev_cfg, uint8_t *write_data, uint8_t write_len,
+			  uint8_t *read_data, uint8_t read_len);
 
 #endif
