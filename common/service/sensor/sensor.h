@@ -114,6 +114,8 @@ enum SENSOR_DEV {
 	sensor_dev_xdpe19283b = 0x1A,
 	sensor_dev_g788p81u = 0x1B,
 	sensor_dev_mp2856gut = 0x1C,
+	sensor_dev_adm1272 = 0x1D,
+	sensor_dev_q50sn120a1 = 0x1E,
 	sensor_dev_max
 };
 
@@ -396,6 +398,30 @@ typedef struct _apml_mailbox_init_arg_ {
 	uint32_t data;
 	uint8_t retry;
 } apml_mailbox_init_arg;
+
+typedef struct _adm1272_init_arg {
+	union {
+		uint16_t value;
+		struct {
+			uint16_t IRANGE : 1;
+			uint16_t VOUT_EN : 1;
+			uint16_t VIN_EN : 1;
+			uint16_t TEMP1_EN : 1;
+			uint16_t PMON_MODE : 1;
+			uint16_t VRANGE : 1;
+			uint16_t RSV2 : 2;
+			uint16_t VI_AVG : 3;
+			uint16_t PWR_AVG : 3;
+			uint16_t SIMULTANEOUS : 1;
+			uint16_t TSFILT : 1;
+		} fields;
+	} pwr_monitor_cfg;
+
+	/* Initialize function will set following arguments, no need to give value */
+	bool is_init;
+	bool is_need_set_pwr_cfg;
+
+} adm1272_init_arg;
 
 extern bool enable_sensor_poll_thread;
 extern sensor_cfg *sensor_config;
