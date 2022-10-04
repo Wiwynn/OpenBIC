@@ -35,7 +35,7 @@
 #include "pldm.h"
 #include "plat_ipmb.h"
 
-LOG_MODULE_REGISTER(ipmi);
+LOG_MODULE_REGISTER(ipmi, LOG_LEVEL_DBG);
 
 #define IPMI_QUEUE_SIZE 5
 
@@ -219,13 +219,18 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 	while (1) {
 		uint32_t iana = 0;
 		memset(&msg_cfg, 0, sizeof(ipmi_msg_cfg));
+		LOG_DBG("before msfq_get");
 		k_msgq_get(&ipmi_msgq, &msg_cfg, K_FOREVER);
+		LOG_DBG("after  msfq_get");
+
+		LOG_HEXDUMP_DBG(&msg_cfg.buffer, sizeof(ipmi_msg), "buffer data");
 
 		LOG_DBG("IPMI_handler[%d]: netfn: %x", msg_cfg.buffer.data_len,
 			msg_cfg.buffer.netfn);
 		LOG_HEXDUMP_DBG(msg_cfg.buffer.data, msg_cfg.buffer.data_len, "");
 
 		msg_cfg.buffer.completion_code = CC_INVALID_CMD;
+		LOG_DBG("msg_cfg.buffer.netfn: 0x%02x", msg_cfg.buffer.netfn);
 		switch (msg_cfg.buffer.netfn) {
 		case NETFN_CHASSIS_REQ:
 			IPMI_CHASSIS_handler(&msg_cfg.buffer);
@@ -281,8 +286,11 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 		}
 
 		if (pal_is_not_return_cmd(msg_cfg.buffer.netfn, msg_cfg.buffer.cmd)) {
+			LOG_DBG("pal_is_not_retur_cmd: true");
 			continue;
 		}
+
+		LOG_DBG("pal_is_not_return_cmd: false");
 
 		if (msg_cfg.buffer.completion_code != CC_SUCCESS) {
 			msg_cfg.buffer.data_len = 0;
@@ -296,6 +304,7 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 			msg_cfg.buffer.data[2] = (iana >> 16) & 0xFF;
 		}
 
+		LOG_DBG("msg_cfg.buffer.InF_source: 0x%02x", msg_cfg.buffer.InF_source);
 		switch (msg_cfg.buffer.InF_source) {
 #ifdef CONFIG_USB
 		case BMC_USB:
@@ -337,6 +346,7 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 #endif
 		case PLDM:
 			/* the message should be passed to source by pldm format */
+			LOG_DBG("return PLDM format");
 			send_msg_by_pldm(&msg_cfg);
 			break;
 		case SELF:

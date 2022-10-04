@@ -117,7 +117,7 @@ static uint8_t mctp_medium_deinit(mctp *mctp_inst)
 		mctp_i3c_deinit(mctp_inst);
 		break;
 	default:
-		break;
+		return MCTP_ERROR;
 	}
 
 	return MCTP_SUCCESS;
@@ -198,11 +198,10 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		return;
 	}
 
-	printf("[%s] mctp_rx_task start %p \n", __func__, mctp_inst);
 	LOG_INF("mctp_rx_task start %p", mctp_inst);
 
 	while (1) {
-		printf("[%s] while start\n", __func__);
+		k_msleep(MCTP_POLL_TIME_MS);
 		uint8_t read_buf[256] = { 0 };
 		mctp_ext_params ext_params;
 		uint8_t ret = MCTP_ERROR;
@@ -211,10 +210,7 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		uint16_t read_len =
 			mctp_inst->read_data(mctp_inst, read_buf, sizeof(read_buf), &ext_params);
 
-		printf("[%s] read len: %u\n", __func__, read_len);
-
 		if (!read_len) {
-			k_msleep(5000); // debug code
 			continue;
 		}
 
@@ -280,6 +276,7 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 /* mctp tx task */
 void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 {
+	printf("[%s] tx entering\n", __func__);
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);
 	if (!arg) {
@@ -527,7 +524,7 @@ uint8_t mctp_start(mctp *mctp_inst)
 
 error:
 	LOG_ERR("mctp_start failed!!");
-//	mctp_stop(mctp_inst);
+	mctp_stop(mctp_inst);
 	return MCTP_ERROR;
 }
 
@@ -571,6 +568,14 @@ uint8_t mctp_send_msg(mctp *mctp_inst, uint8_t *buf, uint16_t len, mctp_ext_para
 		LOG_WRN("The mctp_inst isn't start service!");
 		return MCTP_ERROR;
 	}
+
+	printf("[%s] receive data\n", __func__);
+	for (int i = 0; i < len; ++i) {
+		printf("0x%02x ", buf[i]);
+		if (i % 16 == 15)
+			printf("\n");
+	}
+	printf("\n");
 
 	mctp_tx_msg mctp_msg = { 0 };
 	mctp_msg.len = len;

@@ -4,20 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "plat_mctp.h"
-
 #include <zephyr.h>
 #include <sys/printk.h>
 #include <logging/log.h>
 #include <logging/log_ctrl.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include "mctp.h"
 #include "mctp_ctrl.h"
 #include "pldm.h"
 #include "ipmi.h"
 #include "sensor.h"
 #include "plat_hook.h"
+#include "plat_mctp.h"
 
 #include "hal_i3c.h"
 
@@ -196,42 +194,7 @@ static void set_endpoint_resp_timeout(void *args)
 //	}
 //}
 
-static void set_dev_endpoint(void)
-{
-	for (uint8_t i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
-		mctp_route_entry *p = mctp_route_tbl + i;
 
-		/* skip BMC */
-		if (p->bus == I3C_BUS_BMC && p->addr == I3C_STATIC_ADDR_BMC)
-			continue;
-
-		for (uint8_t j = 0; j < ARRAY_SIZE(i3c_port); j++) {
-			if (p->bus != i3c_port[j].conf.i3c_conf.bus)
-				continue;
-
-			struct _set_eid_req req = { 0 };
-			req.op = SET_EID_REQ_OP_SET_EID;
-			req.eid = p->endpoint;
-
-			mctp_ctrl_msg msg;
-			memset(&msg, 0, sizeof(msg));
-			msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
-			msg.ext_params.smbus_ext_params.addr = p->addr;
-
-			msg.hdr.cmd = MCTP_CTRL_CMD_SET_ENDPOINT_ID;
-			msg.hdr.rq = 1;
-
-			msg.cmd_data = (uint8_t *)&req;
-			msg.cmd_data_len = sizeof(req);
-
-			msg.recv_resp_cb_fn = set_endpoint_resp_handler;
-			msg.timeout_cb_fn = set_endpoint_resp_timeout;
-			msg.timeout_cb_fn_args = p;
-
-			mctp_ctrl_send_msg(find_mctp_by_i3c(p->bus), &msg);
-		}
-	}
-}
 
 //static void get_dev_firmware_resp_timeout(void *args)
 //{
@@ -334,10 +297,12 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 
 	switch (msg_type) {
 	case MCTP_MSG_TYPE_CTRL:
+		LOG_DBG("mctp entering control handler");
 		mctp_ctrl_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
 	case MCTP_MSG_TYPE_PLDM:
+		LOG_DBG("mctp entering pldm handler");
 		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
@@ -362,7 +327,7 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 		mctp_route_entry *p = mctp_route_tbl + i;
 		if (p->endpoint == dest_endpoint) {
 			*mctp_inst = find_mctp_by_i3c(p->bus);
-			ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
+			ext_params->type = MCTP_MEDIUM_TYPE_I3C;
 			ext_params->smbus_ext_params.addr = p->addr;
 			rc = MCTP_SUCCESS;
 			break;
@@ -372,17 +337,54 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 	return rc;
 }
 
+static void set_dev_endpoint(void)
+{
+	for (uint8_t i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
+		mctp_route_entry *p = mctp_route_tbl + i;
+
+		/* skip BMC */
+		if (p->bus == I3C_BUS_BMC && p->addr == I3C_STATIC_ADDR_BMC)
+			continue;
+
+		for (uint8_t j = 0; j < ARRAY_SIZE(i3c_port); j++) {
+			if (p->bus != i3c_port[j].conf.i3c_conf.bus)
+				continue;
+
+			struct _set_eid_req req = { 0 };
+			req.op = SET_EID_REQ_OP_SET_EID;
+			req.eid = p->endpoint;
+
+			mctp_ctrl_msg msg;
+			memset(&msg, 0, sizeof(msg));
+			msg.ext_params.type = MCTP_MEDIUM_TYPE_I3C;
+			msg.ext_params.i3c_ext_params.addr = p->addr;
+
+			msg.hdr.cmd = MCTP_CTRL_CMD_SET_ENDPOINT_ID;
+			msg.hdr.rq = 1;
+
+			msg.cmd_data = (uint8_t *)&req;
+			msg.cmd_data_len = sizeof(req);
+
+			msg.recv_resp_cb_fn = set_endpoint_resp_handler;
+			msg.timeout_cb_fn = set_endpoint_resp_timeout;
+			msg.timeout_cb_fn_args = p;
+
+			mctp_ctrl_send_msg(find_mctp_by_i3c(p->bus), &msg);
+		}
+	}
+}
+
+void send_cmd_to_dev(struct k_timer *timer)
+{
+	k_work_submit(&send_cmd_work);
+}
+
 void send_cmd_to_dev_handler(struct k_work *work)
 {
 	/* init the device endpoint */
 	set_dev_endpoint();
 	/* get device parameters */
 	// get_dev_firmware_parameters();
-}
-
-void send_cmd_to_dev(struct k_timer *timer)
-{
-	k_work_submit(&send_cmd_work);
 }
 
 void plat_mctp_init(void)
@@ -428,7 +430,7 @@ void plat_mctp_init(void)
 
 	/* Only send command to device when DC on */
 	//if (is_mb_dc_on())
-	//	k_timer_start(&send_cmd_timer, K_MSEC(3000), K_NO_WAIT);
+	k_timer_start(&send_cmd_timer, K_MSEC(3000), K_NO_WAIT);
 	printf("[%s] complete mctp for loop \n", __func__);// Debug code
 }
 

@@ -25,7 +25,7 @@
 #include <logging/log.h>
 #include <libutil.h>
 
-LOG_MODULE_DECLARE(ipmi);
+LOG_MODULE_DECLARE(ipmi, LOG_LEVEL_DBG);
 
 __weak void APP_GET_DEVICE_ID(ipmi_msg *msg)
 {
@@ -89,6 +89,9 @@ __weak void APP_WARM_RESET(ipmi_msg *msg)
 
 __weak void APP_GET_SELFTEST_RESULTS(ipmi_msg *msg)
 {
+
+	LOG_DBG("entering SELFTEST result");
+
 	CHECK_NULL_ARG(msg);
 
 	if (msg->data_len != 0) {
@@ -222,6 +225,8 @@ void IPMI_APP_handler(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
 
+	LOG_DBG("entering IPMI_APP_handler");
+	LOG_DBG("msg->cmd: 0x%02x", msg->cmd);
 	switch (msg->cmd) {
 	case CMD_APP_GET_DEVICE_ID:
 		APP_GET_DEVICE_ID(msg);
