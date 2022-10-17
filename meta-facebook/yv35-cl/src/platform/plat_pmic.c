@@ -109,7 +109,7 @@ void monitor_pmic_error_handler()
 			if (get_post_status() == false) {
 				continue;
 			}
-			status = ipmb_read(&pmic_msg, IPMB_inf_index_map[pmic_msg.InF_target]);
+			status = 0;
 			if (status == IPMB_ERROR_SUCCESS) {
 				// Check completion code before compare error
 				if (pmic_msg.completion_code != CC_SUCCESS) {

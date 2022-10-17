@@ -196,7 +196,7 @@ bool check_dimm_present(uint8_t dimm_channel, uint8_t dimm_num, uint8_t *present
 	*dimm_msg = construct_ipmi_message(seq_source, NETFN_NM_REQ, CMD_GET_CPU_MEMORY_TEMP, SELF,
 					   ME_IPMB, CMD_GET_CPU_MEMORY_TEMP_DATA_LEN,
 					   (uint8_t *)get_dimm_temp_req);
-	ipmb_error ipmb_ret = ipmb_read(dimm_msg, IPMB_inf_index_map[dimm_msg->InF_target]);
+	ipmb_error ipmb_ret = 0;
 	if ((ipmb_ret != IPMB_ERROR_SUCCESS) || (dimm_msg->completion_code != CC_SUCCESS)) {
 		printf("[%s] fail to send get dimm temperature command ret: 0x%x CC: 0x%x\n",
 		       __func__, ipmb_ret, dimm_msg->completion_code);

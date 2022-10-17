@@ -149,7 +149,7 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 				memcpy(&bridge_msg.data[0], &ibuf[2], rc);
 			}
 
-			status = ipmb_send_request(&bridge_msg, IPMB_inf_index_map[BMC_IPMB]);
+			status = 0;
 			if (status != IPMB_ERROR_SUCCESS) {
 				printf("kcs_read_task send to BMC fail status: %x", status);
 			}

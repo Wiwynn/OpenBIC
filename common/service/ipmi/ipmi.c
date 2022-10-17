@@ -194,7 +194,7 @@ bool common_add_sel_evt_record(common_addsel_msg_t *sel_msg)
 	record_id++;
 
 	bool ipmb_flag = true;
-	status = ipmb_read(msg, IPMB_inf_index_map[msg->InF_target]);
+	status = 0;
 	switch (status) {
 	case IPMB_ERROR_FAILURE:
 		ipmb_flag = false;
@@ -219,18 +219,13 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 	while (1) {
 		uint32_t iana = 0;
 		memset(&msg_cfg, 0, sizeof(ipmi_msg_cfg));
-		LOG_DBG("before msfq_get");
 		k_msgq_get(&ipmi_msgq, &msg_cfg, K_FOREVER);
-		LOG_DBG("after  msfq_get");
-
-		LOG_HEXDUMP_DBG(&msg_cfg.buffer, sizeof(ipmi_msg), "buffer data");
 
 		LOG_DBG("IPMI_handler[%d]: netfn: %x", msg_cfg.buffer.data_len,
 			msg_cfg.buffer.netfn);
 		LOG_HEXDUMP_DBG(msg_cfg.buffer.data, msg_cfg.buffer.data_len, "");
 
 		msg_cfg.buffer.completion_code = CC_INVALID_CMD;
-		LOG_DBG("msg_cfg.buffer.netfn: 0x%02x", msg_cfg.buffer.netfn);
 		switch (msg_cfg.buffer.netfn) {
 		case NETFN_CHASSIS_REQ:
 			IPMI_CHASSIS_handler(&msg_cfg.buffer);
@@ -304,7 +299,6 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 			msg_cfg.buffer.data[2] = (iana >> 16) & 0xFF;
 		}
 
-		LOG_DBG("msg_cfg.buffer.InF_source: 0x%02x", msg_cfg.buffer.InF_source);
 		switch (msg_cfg.buffer.InF_source) {
 #ifdef CONFIG_USB
 		case BMC_USB:

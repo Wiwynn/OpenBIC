@@ -197,8 +197,7 @@ void send_post_code_to_BMC()
 					       send_postcode_msg->data[3],
 					       &send_postcode_msg->data[4], COPY_SPECIFIC_POSTCODE);
 
-			status = ipmb_read(send_postcode_msg,
-					   IPMB_inf_index_map[send_postcode_msg->InF_target]);
+			status = 0;
 			SAFE_FREE(send_postcode_msg);
 			if (status == IPMB_ERROR_FAILURE) {
 				printf("Fail to post msg to txqueue for send post code from %d to %d\n",

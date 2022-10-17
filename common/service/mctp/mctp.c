@@ -183,7 +183,6 @@ static uint8_t mctp_pkt_assembling(mctp *mctp_inst, uint8_t *buf, uint16_t len)
 /* mctp rx task */
 void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 {
-	printf("[%s] rx entering\n", __func__);
 	ARG_UNUSED(dummy0);
 	ARG_UNUSED(dummy1);
 	if (!arg) {
@@ -197,8 +196,6 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		LOG_WRN("mctp_rx_task without medium read function!");
 		return;
 	}
-
-	LOG_INF("mctp_rx_task start %p", mctp_inst);
 
 	while (1) {
 		k_msleep(MCTP_POLL_TIME_MS);
@@ -268,8 +265,6 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 			mctp_inst->temp_msg_buf[hdr->msg_tag].buf = NULL;
 			mctp_inst->temp_msg_buf[hdr->msg_tag].offset = 0;
 		}
-
-		printf("[%s] while end\n", __func__);
 	}
 }
 

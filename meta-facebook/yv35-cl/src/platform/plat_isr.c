@@ -62,7 +62,7 @@ void send_gpio_interrupt(uint8_t gpio_num)
 	msg.data[3] = gpio_num;
 	msg.data[4] = gpio_val;
 
-	status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
+	status = 0;
 	if (status != IPMB_ERROR_SUCCESS) {
 		printf("Failed to send GPIO interrupt event to BMC, gpio number(%d) status(%d)\n",
 		       gpio_num, status);
@@ -559,7 +559,7 @@ void ISR_CPU_VPP_INT()
 			msg.data[3] = _1ou_m2_mapping_table[device_id];
 			msg.data[4] = set_power_status;
 			for (i = 0; i < retry; i++) {
-				status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
+				status = 0;
 				if (status == IPMB_ERROR_SUCCESS) {
 					break;
 				}

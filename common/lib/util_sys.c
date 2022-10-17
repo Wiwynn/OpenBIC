@@ -156,7 +156,7 @@ int set_me_firmware_mode(uint8_t me_fw_mode)
 		*me_msg = construct_ipmi_message(seq_source, NETFN_NM_REQ,
 						 CMD_OEM_NM_FORCE_ME_RECOVERY, SELF, ME_IPMB,
 						 data_len, data);
-		ret = ipmb_read(me_msg, IPMB_inf_index_map[me_msg->InF_target]);
+		ret = 0;
 		if (ret != IPMB_ERROR_SUCCESS) {
 			printf("Failed to set ME firmware mode to 0x%x, ret: 0x%x\n", me_fw_mode,
 			       ret);
@@ -180,7 +180,7 @@ int set_me_firmware_mode(uint8_t me_fw_mode)
 		*me_msg = construct_ipmi_message(seq_source, NETFN_APP_REQ,
 						 CMD_APP_GET_SELFTEST_RESULTS, SELF, ME_IPMB,
 						 data_len, NULL);
-		ret = ipmb_read(me_msg, IPMB_inf_index_map[me_msg->InF_target]);
+		ret = 0;
 		if (ret == IPMB_ERROR_SUCCESS) {
 			switch (me_fw_mode) {
 			case ME_FW_RECOVERY:
@@ -227,7 +227,7 @@ void init_me_firmware()
 
 	me_msg = construct_ipmi_message(seq_source, NETFN_APP_REQ, CMD_APP_GET_SELFTEST_RESULTS,
 					SELF, ME_IPMB, data_len, NULL);
-	ret = ipmb_read(&me_msg, IPMB_inf_index_map[me_msg.InF_target]);
+	ret = 0;
 	if (ret == IPMB_ERROR_SUCCESS) {
 		if ((me_msg.data_len == 2) && (me_msg.data[0] == FIRMWARE_ENTERED_RECOVERY_MODE) &&
 		    (me_msg.data[1] == RECOVERY_MODE_CAUSE_IPMI_COMMAND)) {
