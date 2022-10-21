@@ -96,7 +96,7 @@
 		reg = <0x9>;
 		msg-size = <256>;
 		num-of-msgs = <4>;
-		mandatory-data-byte = <0x0f>;
+		mandatory-data-byte = <0xbf>;
 		label = "I3C_SMQ_0";
 		status = "okay";
 	};
