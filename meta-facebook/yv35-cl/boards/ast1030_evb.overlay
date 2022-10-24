@@ -116,7 +116,7 @@
 	ibi-append-pec;
 	i3c1_smq: i3c-slave-mqueue@9 {
 		compatible = "aspeed,i3c-slave-mqueue";
-		reg = <0x9>;
+		reg = <0x10>;
 		msg-size = <256>;
 		num-of-msgs = <4>;
 		mandatory-data-byte = <0x0f>;
