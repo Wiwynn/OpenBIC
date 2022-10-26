@@ -27,7 +27,7 @@
 #include "plat_class.h"
 #include "plat_ipmb.h"
 
-LOG_MODULE_REGISTER(plat_ipmi);
+LOG_MODULE_REGISTER(plat_ipmi, LOG_LEVEL_DBG);
 
 int pal_record_bios_fw_version(uint8_t *buf, uint8_t size)
 {
@@ -36,6 +36,10 @@ int pal_record_bios_fw_version(uint8_t *buf, uint8_t size)
 	int ret = -1;
 	EEPROM_ENTRY set_bios_ver = { 0 };
 	EEPROM_ENTRY get_bios_ver = { 0 };
+	uint8_t test_bios_fw[BIOS_FW_VERSION_MAX_SIZE] = { 0,  1,  2,  3,  4,  5,  6,  7,  8,
+							   9,  10, 11, 12, 13, 14, 15, 16, 17,
+							   18, 19, 20, 21, 22, 23, 24, 25, 26,
+							   27, 28, 29, 30, 31, 32, 33 };
 
 	ret = get_bios_version(&get_bios_ver);
 	if (ret == -1) {
@@ -44,7 +48,8 @@ int pal_record_bios_fw_version(uint8_t *buf, uint8_t size)
 	}
 
 	set_bios_ver.data_len = size - 3; // skip netfn, cmd and command code
-	memcpy(&set_bios_ver.data[0], &buf[3], set_bios_ver.data_len);
+	//memcpy(&set_bios_ver.data[0], &buf[3], set_bios_ver.data_len);
+	memcpy(&set_bios_ver.data[0], &test_bios_fw[0], BIOS_FW_VERSION_MAX_SIZE);
 
 	// Check the written BIOS version is the same with the stored
 	ret = memcmp(&get_bios_ver.data[0], &set_bios_ver.data[0],
