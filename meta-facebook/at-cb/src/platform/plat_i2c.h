@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_I2C_h
-#define PLAT_I2C_h
+#ifndef PLAT_I2C_H
+#define PLAT_I2C_H
 
 #include "hal_i2c.h"
 
@@ -32,7 +32,7 @@
 #define I2C_BUS9 8
 #define I2C_BUS10 9
 
-/** I3C regisit as I2C **/
+/** i3c register as i2c **/
 #define I2C_BUS13 12
 #define I2C_BUS14 13
 

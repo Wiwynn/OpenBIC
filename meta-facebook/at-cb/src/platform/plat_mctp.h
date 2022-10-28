@@ -14,41 +14,21 @@
  * limitations under the License.
  */
 
-#include "hal_gpio.h"
-#include "hal_peci.h"
-#include "power_status.h"
-#include "util_sys.h"
-#include "plat_def.h"
-#include "plat_gpio.h"
-#include "plat_mctp.h"
+/*
+ * Copyright (c) 2012-2014 Wind River Systems, Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-SCU_CFG scu_cfg[] = {
-	//register    value
-};
+#ifndef _PLAT_MCTP_h
+#define _PLAT_MCTP_h
 
-void pal_pre_init()
-{
-	return;
-}
+#include "plat_i2c.h"
 
-void pal_post_init()
-{
-    plat_mctp_init();
-    return;
-}
+#define I2C_BUS_BMC I2C_BUS9
+#define I3C_BUS_BMC I3C_BUS1
+#define I2C_ADDR_BIC 0x40
 
-void pal_device_init()
-{
-	return;
-}
+void plat_mctp_init(void);
 
-void pal_set_sys_status()
-{
-	gpio_set(ACB_BIC_READY_N, GPIO_LOW);
-	return;
-}
-
-#define DEF_PROJ_GPIO_PRIORITY 78
-
-DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,
-	      POST_KERNEL, DEF_PROJ_GPIO_PRIORITY, NULL);
+#endif
