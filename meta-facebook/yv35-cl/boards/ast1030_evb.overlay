@@ -59,6 +59,13 @@
 	pull-up-resistor-ohm = <2000>, <2000>, <2000>, <2000>, <2000>, <2000>;
 };
 
+&i3c0 {
+	status = "okay";
+	assigned-address = <0x10>;
+	i3c-scl-hz = <8000000>;
+	pinctrl-0 = <&pinctrl_hvi3c0_default>;
+};
+
 &i3c3 {
 	status = "okay";
 	assigned-address = <0x11>;
@@ -76,20 +83,6 @@
 	pinctrl-0 = <&pinctrl_i2c5_default>;
 	status = "okay";
   clock-frequency = <I2C_BITRATE_FAST>;
-};
-
-&i2c6 {
-	pinctrl-0 = <&pinctrl_i2c6_default>;
-  clock-frequency = <I2C_BITRATE_FAST>;
-	status = "okay";
-
-	ipmb6: ipmb@20 {
-		compatible = "aspeed,ipmb";
-		reg = <0x20>;
-		label = "IPMB_6";
-		size = <10>;
-		status = "okay";
-	};
 };
 
 &i2c7 {

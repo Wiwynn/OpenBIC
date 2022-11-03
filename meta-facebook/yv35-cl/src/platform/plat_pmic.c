@@ -336,7 +336,7 @@ void read_pmic_error_via_i3c()
 	bool is_pmic_fault[MAX_COUNT_DIMM] = { false, false, false, false, false, false };
 
 	// Attach PMIC I3C address
-	i3c_msg.bus = I3C_BUS3;
+	i3c_msg.bus = I3C_BUS4;
 	for (i = 0; i < (MAX_COUNT_DIMM / 2); i++) {
 		i3c_msg.target_addr = pmic_i3c_addr_list[i];
 		ret = i3c_attach(&i3c_msg);

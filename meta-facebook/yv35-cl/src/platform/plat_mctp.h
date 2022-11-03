@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_I3C_H
-#define PLAT_I3C_H
+/*
+ * Copyright (c) 2012-2014 Wind River Systems, Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#include "hal_i3c.h"
+#ifndef _PLAT_MCTP_h
+#define _PLAT_MCTP_h
 
-#define I3C_BUS1 0		// i2c-7 dts hv-i3c-1
-#define I3C_BUS4 3		// i3c-4
+#include "plat_i3c.h"
 
-enum I3C_PMIC_ADDR
-{
-	PMIC_A0_A4_ADDR = 0x48,
-	PMIC_A2_A6_ADDR = 0x4c,
-	PMIC_A3_A7_ADDR = 0x4e,
-};
+#define I3C_BUS_BMC I3C_BUS1
+
+void plat_mctp_init(void);
 
 #endif
