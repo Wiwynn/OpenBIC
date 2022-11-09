@@ -23,7 +23,7 @@
 #include <sys/util.h>
 #include <zephyr.h>
 
-LOG_MODULE_DECLARE(pldm, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(pldm);
 
 uint8_t check_iana(uint8_t *iana)
 {

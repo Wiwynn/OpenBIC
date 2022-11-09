@@ -133,6 +133,17 @@ int i3c_smq_read(I3C_MSG *msg)
 		return -ENODATA;
 	}
 
+	if (msg->rx_len > 0) {
+		printf("i3c receive data:\n");
+		for (uint16_t k = 0; k < msg->rx_len; ++k) {
+			printf("0x%02x ", msg->data[k]);
+			if (k % 16 == 15) {
+				printf("\n");
+			}
+		}
+		printf("\n");
+	}
+
 	return msg->rx_len;
 	//return I3C_SMQ_SUCCESS;
 }

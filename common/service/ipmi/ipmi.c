@@ -35,7 +35,7 @@
 #include "pldm.h"
 #include "plat_ipmb.h"
 
-LOG_MODULE_REGISTER(ipmi, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(ipmi);
 
 #define IPMI_QUEUE_SIZE 5
 

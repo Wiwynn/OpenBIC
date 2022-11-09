@@ -24,7 +24,7 @@
 #include <zephyr.h>
 #include "libutil.h"
 
-LOG_MODULE_REGISTER(mctp, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(mctp);
 
 typedef struct __attribute__((packed)) {
 	uint8_t hdr_ver;
@@ -212,6 +212,14 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		}
 
 		LOG_HEXDUMP_DBG(read_buf, read_len, "mctp receive data");
+		printf("mctp receive data:\n");
+		for (uint16_t k = 0; k < read_len; ++k) {
+			printf("0x%02x ", read_buf[k]);
+			if (k % 16 == 15) {
+				printf("\n");
+			}
+		}
+		printf("\n");
 
 		mctp_hdr *hdr = (mctp_hdr *)read_buf;
 		LOG_DBG("dest_ep = %x, src_ep = %x, flags = %x\n", hdr->dest_ep, hdr->src_ep,
