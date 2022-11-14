@@ -31,6 +31,9 @@
 #include "libutil.h"
 #include "ipmi.h"
 #include <crypto/hash.h>
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(util_spi);
 
 static char *flash_device[6] = { "fmc_cs0",  "fmc_cs1",	 "spi1_cs0",
 				 "spi1_cs1", "spi2_cs0", "spi2_cs1" };
@@ -333,7 +336,8 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sect
 		uint8_t sector = 16;
 		uint32_t txbuf_offset;
 		uint32_t update_offset;
-
+        
+        LOG_INF("Update start");
 		for (int i = 0; i < sector; i++) {
 			txbuf_offset = SECTOR_SZ_4K * i;
 			update_offset = (offset / SECTOR_SZ_64K) * SECTOR_SZ_64K + txbuf_offset;
@@ -345,7 +349,7 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sect
 			}
 		}
 		if (!ret) {
-			printf("Update success\n");
+			LOG_INF("Update success");
 		}
 		SAFE_FREE(txbuf);
 		k_msleep(10);

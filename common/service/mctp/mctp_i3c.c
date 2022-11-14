@@ -26,7 +26,7 @@
 #include "mctp_ctrl.h"
 #include "pldm.h"
 
-LOG_MODULE_REGISTER(mctp_i3c, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(mctp_i3c);
 
 #define MCTP_I3C_PEC_ENABLE 0
 // #define MCTP_I3C_SOM_MASK 0x80

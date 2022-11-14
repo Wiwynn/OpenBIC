@@ -24,7 +24,7 @@
 #include <sys/slist.h>
 #include <zephyr.h>
 
-LOG_MODULE_REGISTER(pldm, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(pldm);
 
 #define PLDM_HDR_INST_ID_MASK 0x1F
 #define PLDM_MSG_CHECK_PER_MS 1000

@@ -25,7 +25,7 @@
 #include <logging/log.h>
 #include <libutil.h>
 
-LOG_MODULE_DECLARE(ipmi, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(ipmi);
 
 __weak void APP_GET_DEVICE_ID(ipmi_msg *msg)
 {

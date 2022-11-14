@@ -212,14 +212,6 @@ void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		}
 
 		LOG_HEXDUMP_DBG(read_buf, read_len, "mctp receive data");
-		printf("mctp receive data:\n");
-		for (uint16_t k = 0; k < read_len; ++k) {
-			printf("0x%02x ", read_buf[k]);
-			if (k % 16 == 15) {
-				printf("\n");
-			}
-		}
-		printf("\n");
 
 		mctp_hdr *hdr = (mctp_hdr *)read_buf;
 		LOG_DBG("dest_ep = %x, src_ep = %x, flags = %x\n", hdr->dest_ep, hdr->src_ep,
@@ -317,7 +309,6 @@ void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 * The bridge meesage already has the mctp transport header, and the bridge
      * message also doesn't need to split packet.
 */
-		printf("[%s] mctp_msg.is_bridge_packet: %u\n", __func__, mctp_msg.is_bridge_packet);
 		if (mctp_msg.is_bridge_packet) {
 			mctp_inst->write_data(mctp_inst, mctp_msg.buf, mctp_msg.len,
 					      mctp_msg.ext_params);
@@ -571,14 +562,6 @@ uint8_t mctp_send_msg(mctp *mctp_inst, uint8_t *buf, uint16_t len, mctp_ext_para
 		LOG_WRN("The mctp_inst isn't start service!");
 		return MCTP_ERROR;
 	}
-
-	printf("[%s] receive data\n", __func__);
-	for (int i = 0; i < len; ++i) {
-		printf("0x%02x ", buf[i]);
-		if (i % 16 == 15)
-			printf("\n");
-	}
-	printf("\n");
 
 	mctp_tx_msg mctp_msg = { 0 };
 	mctp_msg.len = len;

@@ -24,7 +24,7 @@
 #include <sys/printk.h>
 #include <zephyr.h>
 
-LOG_MODULE_DECLARE(mctp, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(mctp);
 
 #define MCTP_SMBUS_PEC_SIZE 1
 
