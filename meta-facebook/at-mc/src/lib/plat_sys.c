@@ -14,41 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef FRU_H
-#define FRU_H
+#include "plat_sys.h"
 
-#include "eeprom.h"
-#define FRU_CFG_NUM 5
+#include <stdio.h>
+#include <stdlib.h>
+#include <logging/log.h>
+#include "hal_gpio.h"
+#include "plat_gpio.h"
+#include "libutil.h"
 
-enum {
-	NV_ATMEL_24C02,
-	NV_ATMEL_24C64,
-	NV_ATMEL_24C128,
-	PUYA_P24C128F,
-	ST_M24C64_W,
-	ST_M24128_BW,
-};
+LOG_MODULE_REGISTER(plat_sys);
 
-enum {
-	FRU_WRITE_SUCCESS,
-	FRU_READ_SUCCESS,
-	FRU_INVALID_ID,
-	FRU_OUT_OF_RANGE,
-	FRU_FAIL_TO_ACCESS,
-};
+/* BMC reset */
+void BMC_reset_handler()
+{
+	LOG_WRN("[%s] BMC reset not supported from here\n", __func__);
+}
 
-enum {
-	FRU_DEV_ACCESS_BYTE,
-	FRU_DEV_ACCESS_WORD,
-};
-
-extern EEPROM_CFG fru_config[];
-
-uint8_t get_FRU_access(uint8_t FRUID);
-uint16_t find_FRU_size(uint8_t FRUID);
-uint8_t FRU_read(EEPROM_ENTRY *entry);
-uint8_t FRU_write(EEPROM_ENTRY *entry);
-void pal_load_fru_config(void);
-void FRU_init(void);
-
-#endif
+K_WORK_DELAYABLE_DEFINE(BMC_reset_work, BMC_reset_handler);
+int pal_submit_bmc_cold_reset()
+{
+	k_work_schedule(&BMC_reset_work, K_MSEC(1000));
+	return 0;
+}
