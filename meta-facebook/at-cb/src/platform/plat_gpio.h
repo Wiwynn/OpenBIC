@@ -36,8 +36,8 @@
 	gpio_name_to_num(FIO_PWRBTN_N_R)
 
 #define name_gpioB \
-	gpio_name_to_num(Reserve_GPIOB0) \
-	gpio_name_to_num(Reserve_GPIOB1) \
+	gpio_name_to_num(ASD_MUX2_SEL) \
+	gpio_name_to_num(ASD_MUX2_EN_R3_N) \
 	gpio_name_to_num(Reserve_GPIOB2) \
 	gpio_name_to_num(Reserve_GPIOB3) \
 	gpio_name_to_num(TYPE_C_PLUG_DETECT1_R) \
