@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_IPMI_H
-#define PLAT_IPMI_H
+/*
+ * Copyright (c) 2012-2014 Wind River Systems, Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#include <stdbool.h>
-#include <stdint.h>
+#ifndef _PLAT_MCTP_H
+#define _PLAT_MCTP_H
 
-#define IS_SECTOR_END_MASK 0x80
-#define WITHOUT_SENCTOR_END_MASK 0x7F
-#define BIC_UPDATE_MAX_OFFSET 0x50000
+#include "plat_i2c.h"
 
-/** enum number follow GT for now since bmc hasn't ready **/
-enum GT_FIRMWARE_COMPONENT {
-    CB_COMPNT_BIC = 2,
-    CB_COMPNT_PEX0,
-    CB_COMPNT_PEX1,
-    CB_COMPNT_CPLD = 7,
-    CB_COMPNT_MAX,
-};
+#define I2C_BUS_BMC I2C_BUS9
+#define I3C_BUS_BMC I3C_BUS1
+#define I2C_ADDR_BIC 0x40
+
+void plat_mctp_init(void);
 
 #endif

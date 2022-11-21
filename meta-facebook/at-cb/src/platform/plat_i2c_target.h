@@ -14,23 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_IPMI_H
-#define PLAT_IPMI_H
+#ifndef PLAT_I2C_SLAVE_H
+#define PLAT_I2C_SLAVE_H
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <drivers/i2c.h>
+#include "hal_i2c_target.h"
 
-#define IS_SECTOR_END_MASK 0x80
-#define WITHOUT_SENCTOR_END_MASK 0x7F
-#define BIC_UPDATE_MAX_OFFSET 0x50000
-
-/** enum number follow GT for now since bmc hasn't ready **/
-enum GT_FIRMWARE_COMPONENT {
-    CB_COMPNT_BIC = 2,
-    CB_COMPNT_PEX0,
-    CB_COMPNT_PEX1,
-    CB_COMPNT_CPLD = 7,
-    CB_COMPNT_MAX,
-};
+#define TARGET_ENABLE 1
+#define TARGET_DISABLE 0
 
 #endif
