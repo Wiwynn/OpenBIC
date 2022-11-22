@@ -18,6 +18,8 @@
 #define PLAT_IPMI_H
 
 #define BIC_FW_DATA_LENGTH 7
+#define FPGA_USER_CODE 0xC0
+#define MAX_PEX_NUMBER 2
 
 /** enum number follow GT for now since bmc hasn't ready **/
 enum CB_FIRMWARE_COMPONENT {

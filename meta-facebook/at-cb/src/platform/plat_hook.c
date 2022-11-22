@@ -115,6 +115,8 @@ bool pre_pex89000_read(uint8_t sensor_num, void *args)
 {
 	CHECK_NULL_ARG_WITH_RETURN(args, false);
 
+	printf("[%s] pre pex read\n", __func__);
+
 	bool ret = true;
 	int mutex_status = 0;
 	mux_config *pre_args = (mux_config *)args;
@@ -135,6 +137,8 @@ bool post_pex89000_read(uint8_t sensor_num, void *args, int *reading)
 {
 	ARG_UNUSED(reading);
 	ARG_UNUSED(args);
+
+	printf("[%s] post pex read\n", __func__);
 
 	int unlock_status = 0;
 	uint8_t bus = sensor_config[sensor_config_index_map[sensor_num]].port;

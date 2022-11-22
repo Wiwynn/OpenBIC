@@ -167,8 +167,8 @@ void change_sensor_mbr(uint8_t sensor_num, uint8_t mbr_type, uint16_t change_val
 
 	int sdr_index = get_sdr_index(sensor_num);
 	if ((sdr_index == SENSOR_NUM_MAX) || (sdr_index == -1)) {
-		printf("[%s] Failed to find sensor index, sensor number(0x%02x), sdr index(%d)\n",
-		       __func__, sensor_num, sdr_index);
+//		printf("[%s] Failed to find sensor index, sensor number(0x%02x), sdr index(%d)\n",
+//		       __func__, sensor_num, sdr_index);
 		return;
 	}
 	switch (mbr_type) {
