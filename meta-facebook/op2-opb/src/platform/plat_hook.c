@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_SDR_TABLE_H
-#define PLAT_SDR_TABLE_H
+#include <stdio.h>
+#include <string.h>
+#include "ast_adc.h"
+#include "sensor.h"
+#include "plat_hook.h"
 
-#include <stdint.h>
+/**************************************************************************************************
+ * INIT ARGS
+**************************************************************************************************/
+adc_asd_init_arg adc_asd_init_args[] = { [0] = { .is_init = false } };
 
-void load_sdr_table(void);
-
-#endif
+ina233_init_arg ina233_init_args[] = {
+	[0] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005 },
+};
