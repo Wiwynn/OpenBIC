@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,38 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef FRU_H
-#define FRU_H
+#ifndef I2C_MUX_PCA9548A_H
+#define I2C_MUX_PCA9548A_H
 
-#include "eeprom.h"
-
-enum FRU_DEV_TYPE {
-	NV_ATMEL_24C02,
-	NV_ATMEL_24C64,
-	NV_ATMEL_24C128,
-	PUYA_P24C128F,
+enum PCA9548A_CHANNEL {
+	PCA9548A_CHANNEL_0 = BIT(0),
+	PCA9548A_CHANNEL_1 = BIT(1),
+	PCA9548A_CHANNEL_2 = BIT(2),
+	PCA9548A_CHANNEL_3 = BIT(3),
+	PCA9548A_CHANNEL_4 = BIT(4),
+	PCA9548A_CHANNEL_5 = BIT(5),
+	PCA9548A_CHANNEL_6 = BIT(6),
+	PCA9548A_CHANNEL_7 = BIT(7),
 };
 
-enum {
-	FRU_WRITE_SUCCESS,
-	FRU_READ_SUCCESS,
-	FRU_INVALID_ID,
-	FRU_OUT_OF_RANGE,
-	FRU_FAIL_TO_ACCESS,
+enum PCA9546A_CHANNEL {
+	PCA9546A_CHANNEL_0 = BIT(0),
+	PCA9546A_CHANNEL_1 = BIT(1),
+	PCA9546A_CHANNEL_2 = BIT(2),
+	PCA9546A_CHANNEL_3 = BIT(3),
 };
-
-enum {
-	FRU_DEV_ACCESS_BYTE,
-	FRU_DEV_ACCESS_WORD,
-};
-
-extern EEPROM_CFG fru_config[];
-
-uint8_t get_FRU_access(uint8_t FRUID);
-uint16_t find_FRU_size(uint8_t FRUID);
-uint8_t FRU_read(EEPROM_ENTRY *entry);
-uint8_t FRU_write(EEPROM_ENTRY *entry);
-void pal_load_fru_config(void);
-void FRU_init(void);
 
 #endif
