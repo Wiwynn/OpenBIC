@@ -22,6 +22,7 @@
 #include "libutil.h"
 #include "ipmi.h"
 #include "util_spi.h"
+#include "plat_class.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -65,5 +66,39 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		break;
 	}
+	return;
+}
+
+void OEM_1S_GET_ASIC_CARD_STATUS(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 1) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t asic_card_id = msg->data[0];
+	switch (asic_card_id) {
+	case ASIC_CARD_1:
+	case ASIC_CARD_2:
+	case ASIC_CARD_3:
+	case ASIC_CARD_4:
+	case ASIC_CARD_5:
+	case ASIC_CARD_6:
+	case ASIC_CARD_7:
+	case ASIC_CARD_8:
+	case ASIC_CARD_9:
+	case ASIC_CARD_10:
+	case ASIC_CARD_11:
+	case ASIC_CARD_12:
+		msg->data[0] = asic_card_info[asic_card_id].card_status;
+		msg->completion_code = CC_SUCCESS;
+		break;
+	default:
+		msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+		break;
+	}
+
 	return;
 }
