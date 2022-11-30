@@ -18,7 +18,7 @@
 #define PLAT_FRU_H
 
 #include "plat_i2c.h"
-#include "i2c-mux-pca9548a.h"
+#include "i2c-mux-pca954x.h"
 
 enum {
 	CB_FRU_ID,
