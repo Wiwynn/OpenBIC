@@ -31,6 +31,16 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_START,
 		FRU_SIZE,
 	},
+    // ACB FIO fru
+    {
+        ST_M24C64,
+        FIO_FRU_ID,
+        FIO_FRU_PORT,
+        FIO_FRU_ADDR,
+        FRU_DEV_ACCESS_BYTE,
+        FRU_START,
+        FRU_SIZE,
+    },
 	// ACCL_1 fru
 	{
 		PUYA_P24C128F,

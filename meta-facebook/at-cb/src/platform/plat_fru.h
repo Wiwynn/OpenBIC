@@ -18,10 +18,11 @@
 #define PLAT_FRU_H
 
 #include "plat_i2c.h"
-#include "i2c-mux-pca9548a.h"
+#include "i2c-mux-pca954x.h"
 
 enum {
 	CB_FRU_ID,
+	FIO_FRU_ID,
 	ACCL_1_FRU_ID,
 	ACCL_2_FRU_ID,
 	ACCL_3_FRU_ID,
@@ -42,6 +43,8 @@ enum {
 
 #define CB_FRU_PORT I2C_BUS2
 #define CB_FRU_ADDR (0xAC >> 1)
+#define FIO_FRU_PORT I2C_BUS10
+#define FIO_FRU_ADDR (0xA2 >> 1)
 #define ACCL_1_6_FRU_PORT I2C_BUS7
 #define ACCL_7_12_FRU_PORT I2C_BUS8
 #define ACCL_FRU_ADDR (0xAC >> 1)

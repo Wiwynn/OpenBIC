@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "plat_i2c.h"
-#include "i2c-mux-pca9548a.h"
+#include "i2c-mux-pca954x.h"
 
 #define ASIC_CARD_COUNT 12
 #define ASIC_CARD_FRU_ADDR 0xAC
