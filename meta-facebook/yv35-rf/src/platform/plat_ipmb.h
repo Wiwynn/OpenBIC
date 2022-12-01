@@ -24,10 +24,10 @@
 #define SELF_I2C_ADDRESS 0x20
 #define CL_BIC_I2C_ADDRESS 0x20
 
-#define MAX_IPMB_IDX 2
+#define MAX_IPMB_IDX 1
 
 enum {
-	CL_BIC_IPMB_IDX,
+	//CL_BIC_IPMB_IDX,
 	RESERVE_IPMB_IDX,
 };
 

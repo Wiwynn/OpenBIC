@@ -38,25 +38,36 @@
 
 &i2c8 {
 	pinctrl-0 = <&pinctrl_i2c8_default>;
-	status = "okay";
+	status = "disabled";
 	clock-frequency = <I2C_BITRATE_FAST_PLUS>;
-
-	ipmb8: ipmb@20 {
-		compatible = "aspeed,ipmb";
-		reg = <0x20>;
-		label = "IPMB_8";
-		size = <10>;
-#ifdef CONFIG_I2C_IPMB_SLAVE
-		status = "okay";
-#endif
-	};
-
 };
 
 &i2c9 {
 	pinctrl-0 = <&pinctrl_i2c9_default>;
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&i3c_gr {
+	status = "okay";
+	pull-up-resistor-ohm = <2000>, <2000>, <2000>, <2000>, <2000>, <2000>;
+};
+
+&i3c2 {
+	pinctrl-0 = <&pinctrl_hvi3c2_default>;
+	status = "okay";
+	assigned-address = <0x9>;
+	secondary;
+	ibi-append-pec;
+	i3c2_smq: i3c-slave-mqueue@9 {
+		compatible = "aspeed,i3c-slave-mqueue";
+		reg = <0x9>;
+		msg-size = <256>;
+		num-of-msgs = <4>;
+		mandatory-data-byte = <0xbf>;
+		label = "I3C_SMQ_2";
+		status = "okay";
+	};
 };
 
 &udc {
