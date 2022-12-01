@@ -22,6 +22,12 @@
 #include "plat_gpio.h"
 #include "plat_pmic.h"
 #include "util_worker.h"
+#include "plat_mctp.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "hal_i3c.h"
+#include "libutil.h"
+#include "mctp_ctrl.h"
 
 SCU_CFG scu_cfg[] = {
 	//register    value
@@ -37,6 +43,11 @@ void pal_pre_init()
 	disable_PRDY_interrupt();
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+}
+
+void pal_post_init()
+{
+	plat_mctp_init();
 }
 
 void pal_device_init()
