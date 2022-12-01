@@ -21,6 +21,13 @@
 #include "plat_class.h"
 #include "plat_gpio.h"
 #include "plat_pmic.h"
+#include "plat_mctp.h"
+#include <stdio.h>
+
+#include <stdlib.h>
+#include "hal_i3c.h"
+#include "libutil.h"
+#include "mctp_ctrl.h"
 
 SCU_CFG scu_cfg[] = {
 	//register    value
@@ -35,6 +42,13 @@ void pal_pre_init()
 	init_platform_config();
 	disable_PRDY_interrupt();
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
+}
+
+void pal_post_init()
+{
+	plat_mctp_init();
+	printf("[%s] Complete post init \n", __func__);// Debug code
+	plat_mctp_test();
 }
 
 void pal_device_init()
