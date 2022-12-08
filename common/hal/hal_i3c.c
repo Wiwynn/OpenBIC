@@ -89,7 +89,7 @@ int i3c_smq_write(I3C_MSG *msg)
 		return -ENODEV;
 	}
 
-	ret = i3c_slave_mqueue_write(dev_i3c[msg->bus], &msg->data[0], msg->tx_len);
+	ret = i3c_slave_mqueue_write(dev_i3c_smq[msg->bus], &msg->data[0], msg->tx_len);
 	return ret;
 }
 

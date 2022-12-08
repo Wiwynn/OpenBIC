@@ -89,7 +89,6 @@ static uint16_t mctp_i3c_write_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 		/** pec byte use 7-degree polynomial with 0 init value and false reverse **/
 		i3c_msg.data[len + 1] = crc8(&i3c_msg.data[0], len, 0x07, 0x00, false);
 	} else {
-		LOG_ERR("len: %d",len);
 		i3c_msg.tx_len = len;
 	}
 
