@@ -108,7 +108,8 @@ void snoop_read()
 	}
 
 	while (1) {
-		rc = snoop_aspeed_read(snoop_dev, 0, snoop_data, true);
+		//rc = snoop_aspeed_read(snoop_dev, 0, snoop_data, true);
+		rc = -1;
 		if (rc == 0) {
 			proc_postcode_ok = true;
 			if (!k_mutex_lock(&snoop_mutex, K_MSEC(1000))) {
