@@ -115,6 +115,7 @@ enum Channel_Target {
 	BMC_USB = 0x20,
 	/* 21h-39h reserved. */
 	PLDM = 0x40,
+	MCTP = 0x41,
 	RESERVED,
 };
 
