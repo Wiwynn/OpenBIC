@@ -31,6 +31,7 @@
 #include "hal_gpio.h"
 #include "hal_i2c.h"
 #include "util_sys.h"
+#include "plat_mctp.h"
 
 LOG_MODULE_REGISTER(plat_isr);
 
@@ -74,14 +75,14 @@ static void SLP3_handler()
 {
 	common_addsel_msg_t sel_msg;
 	if ((gpio_get(FM_SLPS3_PLD_N) == GPIO_HIGH) && (gpio_get(PWRGD_SYS_PWROK) == GPIO_LOW)) {
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_VRWATCHDOG;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("VR watchdog timeout addsel fail\n");
 		}
 	}
@@ -139,14 +140,14 @@ void ISR_DC_ON()
 		if ((gpio_get(FM_SLPS3_PLD_N) == GPIO_HIGH) &&
 		    (gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH)) {
 			common_addsel_msg_t sel_msg;
-			sel_msg.InF_target = BMC_IPMB;
+			sel_msg.InF_target = MCTP;
 			sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_OEM_C3;
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 			sel_msg.sensor_number = SENSOR_NUM_POWER_ERROR;
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_PWROK_FAIL;
 			sel_msg.event_data2 = 0xFF;
 			sel_msg.event_data3 = 0xFF;
-			if (!common_add_sel_evt_record(&sel_msg)) {
+			if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 				printf("System PWROK failure addsel fail\n");
 			}
 		}
@@ -166,14 +167,14 @@ static void PROC_FAIL_handler(struct k_work *work)
 		bool ret = false;
 
 		memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.sensor_number = SENSOR_NUM_PROC_FAIL;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.event_data1 = IPMI_EVENT_OFFSET_PROCESSOR_FRB3;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		ret = common_add_sel_evt_record(&sel_msg);
+		ret = mctp_add_sel_to_ipmi(&sel_msg);
 		if (!ret) {
 			printf("Fail to assert FRE3 event log.\n");
 		}
@@ -209,7 +210,7 @@ static void CAT_ERR_handler(struct k_work *work)
 		bool ret = false;
 
 		memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.sensor_number = SENSOR_NUM_CATERR;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
@@ -221,7 +222,7 @@ static void CAT_ERR_handler(struct k_work *work)
 		}
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		ret = common_add_sel_evt_record(&sel_msg);
+		ret = mctp_add_sel_to_ipmi(&sel_msg);
 		if (!ret) {
 			printf("Fail to assert CatErr event log.\n");
 		}
@@ -261,13 +262,13 @@ void ISR_FM_THROTTLE()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_FMTHROTTLE;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("FM Throttle addsel fail\n");
 		}
 	}
@@ -293,13 +294,13 @@ void ISR_HSC_THROTTLE()
 				return;
 			}
 
-			sel_msg.InF_target = BMC_IPMB;
+			sel_msg.InF_target = MCTP;
 			sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 			sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_PMBUSALERT;
 			sel_msg.event_data2 = 0xFF;
 			sel_msg.event_data3 = 0xFF;
-			if (!common_add_sel_evt_record(&sel_msg)) {
+			if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 				printf("HSC Throttle addsel fail\n");
 			}
 		}
@@ -322,13 +323,13 @@ static void mb_throttle_handler(struct k_work *work)
 			is_mb_throttle_assert = true;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_FIRMWAREASSERT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("MB Throttle addsel fail");
 		}
 	}
@@ -359,13 +360,13 @@ void ISR_SOC_THMALTRIP()
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_MEMORY_THERMALTRIP;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			if (sel_msg.event_data1 == IPMI_OEM_EVENT_OFFSET_SYS_THERMAL_TRIP) {
 				printf("SOC Thermal trip addsel fail\n");
 			} else {
@@ -385,13 +386,13 @@ void ISR_SYS_THROTTLE()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_THROTTLE;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("System Throttle addsel fail\n");
 		}
 	}
@@ -414,13 +415,13 @@ void ISR_PCH_THMALTRIP()
 		return;
 	}
 
-	sel_msg.InF_target = BMC_IPMB;
+	sel_msg.InF_target = MCTP;
 	sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 	sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 	sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_PCHHOT;
 	sel_msg.event_data2 = 0xFF;
 	sel_msg.event_data3 = 0xFF;
-	if (!common_add_sel_evt_record(&sel_msg)) {
+	if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 		printf("PCH Thermal trip addsel fail\n");
 	}
 }
@@ -435,13 +436,13 @@ void ISR_HSC_OC()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_HSCTIMER;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("HSC OC addsel fail\n");
 		}
 	}
@@ -457,13 +458,13 @@ void ISR_CPU_MEMHOT()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_CPU_DIMM_HOT;
 		sel_msg.sensor_number = SENSOR_NUM_CPUDIMM_HOT;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_DIMM_HOT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("CPU MEM HOT addsel fail\n");
 		}
 	}
@@ -479,13 +480,13 @@ void ISR_CPUVR_HOT()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_CPU_DIMM_VR_HOT;
 		sel_msg.sensor_number = SENSOR_NUM_VR_HOT;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_CPU_VR_HOT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("CPU VR HOT addsel fail\n");
 		}
 	}
@@ -495,14 +496,14 @@ void ISR_PCH_PWRGD()
 {
 	common_addsel_msg_t sel_msg;
 	if (gpio_get(FM_SLPS3_PLD_N) == GPIO_HIGH) {
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_OEM_C3;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_number = SENSOR_NUM_POWER_ERROR;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_PCH_PWROK_FAIL;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("PCH PWROK failure addsel fail\n");
 		}
 	}
@@ -512,14 +513,14 @@ void ISR_RMCA()
 {
 	if ((gpio_get(RST_PLTRST_BUF_N) == GPIO_HIGH) || (gpio_get(PWRGD_CPU_LVC3) == GPIO_HIGH)) {
 		common_addsel_msg_t sel_msg;
-		sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_number = SENSOR_NUM_CATERR;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_MEM_RMCA;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			printf("RMCA addsel fail\n");
 		}
 	}
@@ -621,14 +622,14 @@ void ISR_CPU_VPP_INT()
 			// Add SEL about VPP power event
 			if (gpio_get(FM_SLPS3_PLD_N) == LOW_INACTIVE) {
 				memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
-				sel_msg.InF_target = BMC_IPMB;
+				sel_msg.InF_target = MCTP;
 				sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 				sel_msg.event_type = IPMI_OEM_EVENT_TYPE_NOTIFY;
 				sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 				sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_VPP_EVENT;
 				sel_msg.event_data2 = IPMI_OEM_EVENT_OFFSET_1OU;
 				sel_msg.event_data3 = _1ou_m2_name_mapping_table[device_id];
-				if (!common_add_sel_evt_record(&sel_msg)) {
+				if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 					LOG_ERR("%s addsel fail\n", __func__);
 				}
 			}
