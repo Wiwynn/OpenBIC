@@ -84,6 +84,7 @@ CARD_STATUS get_1ou_status();
 CARD_STATUS get_2ou_status();
 uint8_t get_board_revision();
 uint8_t get_hsc_module();
+bool get_prot_present();
 bool get_adc_voltage(int channel, float *voltage);
 void init_platform_config();
 

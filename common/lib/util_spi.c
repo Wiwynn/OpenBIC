@@ -200,7 +200,7 @@ uint8_t get_fw_sha256(uint8_t *msg_buf, uint32_t offset, uint32_t length, uint8_
 
 	flash_dev = device_get_binding(flash_device_list[flash_position].name);
 	if (!flash_device_list[flash_position].isinit) {
-		ret = spi_nor_re_init(flash_dev);
+		ret = pal_spi_initialization(flash_dev);
 		if (ret != 0) {
 			LOG_ERR("Failed to re-init flash, ret %d.", ret);
 			ret = CC_UNSPECIFIED_ERROR;
@@ -318,9 +318,9 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sect
 		flash_dev = device_get_binding(flash_device_list[flash_position].name);
 		if (!flash_device_list[flash_position].isinit) {
 			uint8_t rc = 0;
-			rc = spi_nor_re_init(flash_dev);
+			rc = pal_spi_initialization(flash_dev);
 			if (rc != 0) {
-				return rc;
+				return FWUPDATE_SPI_INIT_FAIL;
 			}
 			flash_device_list[flash_position].isinit = true;
 		}
@@ -335,6 +335,7 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sect
 					SECTOR_SZ_4K);
 			if (ret) {
 				LOG_ERR("Failed to update SPI, status %d", ret);
+				ret = FWUPDATE_UPDATE_FAIL;
 				break;
 			}
 		}
@@ -368,7 +369,7 @@ int read_fw_image(uint32_t offset, uint8_t msg_len, uint8_t *msg_buf, uint8_t fl
 
 	if (!flash_device_list[flash_position].isinit) {
 		int rc = 0;
-		rc = spi_nor_re_init(flash_dev);
+		rc = pal_spi_initialization(flash_dev);
 		if (rc != 0) {
 			LOG_ERR("Failed to re-init flash, ret %d.", rc);
 			return rc;
@@ -402,4 +403,9 @@ __weak int pal_get_prot_flash_position()
 __weak bool pal_switch_bios_spi_mux(int gpio_status)
 {
 	return true;
+}
+
+__weak int pal_spi_initialization(const struct device *dev)
+{
+	return spi_nor_re_init(dev);
 }

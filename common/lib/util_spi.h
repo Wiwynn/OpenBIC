@@ -50,6 +50,7 @@ int pal_get_bios_flash_position();
 int pal_get_prot_flash_position();
 bool pal_switch_bios_spi_mux(int gpio_status);
 int pal_get_cxl_flash_position();
+int pal_spi_initialization(const struct device *dev);
 
 enum FIRMWARE_UPDATE_RETURN_CODE {
 	FWUPDATE_SUCCESS,
@@ -59,6 +60,7 @@ enum FIRMWARE_UPDATE_RETURN_CODE {
 	FWUPDATE_UPDATE_FAIL,
 	FWUPDATE_ERROR_OFFSET,
 	FWUPDATE_NOT_SUPPORT,
+	FWUPDATE_SPI_INIT_FAIL,
 };
 
 #if DT_NODE_HAS_STATUS(DT_PATH(soc, spi_7e620000), okay)

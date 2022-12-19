@@ -33,6 +33,7 @@
 #define NUMBER_OF_ADC_CHANNEL 16
 #define AST1030_ADC_BASE_ADDR 0x7e6e9000
 
+static bool prot_present = false;
 static uint8_t system_class = SYS_CLASS_1;
 static uint8_t board_revision = 0x3F;
 static uint8_t hsc_module = HSC_MODULE_UNKNOWN;
@@ -110,6 +111,11 @@ uint8_t get_board_revision()
 uint8_t get_hsc_module()
 {
 	return hsc_module;
+}
+
+bool get_prot_present()
+{
+	return prot_present;
 }
 
 bool get_adc_voltage(int channel, float *voltage)
@@ -322,6 +328,8 @@ void init_platform_config()
 			}
 		}
 	}
+
+	prot_present = (gpio_get(AUTH_PRSNT_BIC_N) == GPIO_HIGH) ? false : true;
 
 	SAFE_FREE(data);
 }
