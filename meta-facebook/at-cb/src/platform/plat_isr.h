@@ -19,4 +19,6 @@
 
 #include <stdint.h>
 
+void isr_acb_btn();
+
 #endif
