@@ -27,6 +27,16 @@
 #define KCS_BUFF_SIZE 256
 
 #define CMD_SYS_INFO_FW_VERSION 0x01
+#define KCS_TASK_NAME_LEN 32
+
+typedef struct _kcs {
+    char *port;
+    k_tid_t kcs_task_tid;
+    K_KERNEL_STACK_MEMBER(ksc_task_stack_area, KCS_POLL_STACK_SIZE);
+    uint8_t kcs_task_name[KCS_TASK_NAME_LEN];
+    struct k_thread kcs_task_thread;
+    const struct device *kcs_dev;
+} kcs;
 
 struct kcs_request {
 	uint8_t netfn;

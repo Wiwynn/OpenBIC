@@ -312,7 +312,8 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 			break;
 #endif
 #ifdef CONFIG_IPMI_KCS_ASPEED
-		case HOST_KCS: {
+		case HOST_KCS_POST:
+		case HOST_KCS_SMM:
 			uint8_t *kcs_buff;
 			kcs_buff = malloc(KCS_BUFF_SIZE * sizeof(uint8_t));
 			if (kcs_buff == NULL) { // allocate fail, retry allocate
@@ -339,10 +340,9 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 			LOG_DBG("kcs from ipmi netfn %x, cmd %x, length %d, cc %x", kcs_buff[0],
 				kcs_buff[1], msg_cfg.buffer.data_len, kcs_buff[2]);
 
-			kcs_write(kcs_buff, msg_cfg.buffer.data_len + 3);
+			kcs_write(msg_cfg.buffer.InF_source, kcs_buff, msg_cfg.buffer.data_len + 3);
 			SAFE_FREE(kcs_buff);
 			break;
-		}
 #endif
 		case PLDM:
 			/* the message should be passed to source by pldm format */

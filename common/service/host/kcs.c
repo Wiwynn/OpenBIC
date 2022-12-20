@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <device.h>
+#include <drivers/ipmi/kcs_aspeed.h>
 #include <stdlib.h>
 #include <logging/log.h>
 #include "ipmi.h"
@@ -30,20 +31,15 @@
 LOG_MODULE_REGISTER(kcs);
 
 struct k_thread kcs_polling;
-K_KERNEL_STACK_MEMBER(KCS_POLL_stack, KCS_POLL_STACK_SIZE);
 
-static const struct device *kcs_dev;
+// static const struct device *kcs_dev;
 static bool proc_kcs_ok = false;
 
-int kcs_aspeed_read(const struct device *dev, uint8_t *buf, uint32_t buf_sz);
-
-int kcs_aspeed_write(const struct device *dev, uint8_t *buf, uint32_t buf_sz);
-
-void kcs_write(uint8_t *buf, uint32_t buf_sz)
+void kcs_write(uint8_t kcs_source, uint8_t *buf, uint32_t buf_sz)
 {
 	int rc;
 
-	rc = kcs_aspeed_write(kcs_dev, buf, buf_sz);
+	rc = kcs_aspeed_write(kcs_inst->kcs_dev, buf, buf_sz);
 	if (rc < 0) {
 		LOG_ERR("Failed to write KCS data, rc = %d", rc);
 	}
@@ -59,7 +55,7 @@ void reset_kcs_ok()
 	proc_kcs_ok = false;
 }
 
-void kcs_read(void *arvg0, void *arvg1, void *arvg2)
+void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 {
 	int rc = 0;
 	uint8_t ibuf[KCS_BUFF_SIZE];
@@ -67,12 +63,20 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 	ipmi_msg_cfg current_msg;
 	ipmb_error status;
 
+	ARG_UNUSED(arvg1);
+	ARG_UNUSED(arvg2);
+	if (!arvg0) {
+		LOG_WRN("%s without kcs_inst!", kcs_read_task);
+		return;
+	}
+	kcs *kcs_inst = (kcs *)arvg0;
+
 	struct kcs_request *req;
 
 	while (1) {
 		k_msleep(KCS_POLLING_INTERVAL);
 
-		rc = kcs_aspeed_read(kcs_dev, ibuf, sizeof(ibuf));
+		rc = kcs_aspeed_read(kcs_inst->kcs_dev, ibuf, sizeof(ibuf));
 		if (rc < 0) {
 			if (rc != -ENODATA)
 				LOG_ERR("Failed to read KCS data, rc = %d", rc);
@@ -122,9 +126,11 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 					     (req->cmd == CMD_STORAGE_ADD_SEL))) {
 						kcs_buff[3] = 0x00;
 						kcs_buff[4] = 0x00;
-						kcs_write(kcs_buff, 5);
+						// kcs_write(kcs_inst, kcs_buff, 5);
+						rc = kcs_aspeed_write(kcs_inst->kcs_dev, kcs_buff, 5);
 					} else {
-						kcs_write(kcs_buff, 3);
+						// kcs_write(kcs_inst, kcs_buff, 3);
+						rc = kcs_aspeed_write(kcs_inst->kcs_dev, kcs_buff, 3);
 					}
 					SAFE_FREE(kcs_buff);
 				} while (0);
@@ -157,17 +163,20 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 	}
 }
 
-void kcs_init(void)
+void kcs_start(kcs *kcs_inst)
 {
-	kcs_dev = device_get_binding(DT_LABEL(DT_NODELABEL(HOST_KCS_PORT)));
-	if (!kcs_dev) {
-		LOG_ERR("No KCS device found");
+	kcs_inst->kcs_dev = device_get_binding(kcs_inst->port);
+	if (!kcs_inst->kcs_dev) {
+		LOG_ERR("failed to find kcs device");
 		return;
 	}
 
-	k_thread_create(&kcs_polling, KCS_POLL_stack, K_THREAD_STACK_SIZEOF(KCS_POLL_stack),
-			kcs_read, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
-	k_thread_name_set(&kcs_polling, "kcs_polling");
+	snprintf(kcs_inst->kcs_task_name, sizeof(kcs_inst->mctp_rx_task_name),
+				 "%s_polling", kcs_inst->port);
+
+	kcs_inst->kcs_task_tid = k_thread_create(kcs_inst->kcs_task_thread, kcs_inst->ksc_task_stack_area, K_THREAD_STACK_SIZEOF(kcs_inst->ksc_task_stack_area),
+			kcs_read_task, kcs_inst, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+	k_thread_name_set(kcs_inst->kcs_task_tid, kcs_inst->kcs_task_name);
 }
 
 #endif

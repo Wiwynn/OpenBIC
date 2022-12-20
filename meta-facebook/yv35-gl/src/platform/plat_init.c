@@ -25,6 +25,11 @@
  *
  */
 
+void pal_post_init()
+{
+    plat_kcs_init();
+}
+
 void pal_set_sys_status()
 {
 /*
