@@ -72,6 +72,7 @@ void plat_mctp_init(void)
 	mctp_set_medium_configure(mctp_instance, MCTP_MEDIUM_TYPE_SMBUS,
 				  mctp_instance->medium_conf);
 	mctp_reg_msg_rx_func(mctp_instance, mctp_msg_recv);
+	mctp_instance->endpoint = MCTP_SELF_EID;
 	mctp_instance->medium_conf.smbus_conf.bus = I2C_BUS_BMC;
 	mctp_instance->medium_conf.smbus_conf.addr = I2C_ADDR_BIC;
 

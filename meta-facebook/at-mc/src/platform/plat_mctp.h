@@ -28,6 +28,8 @@
 #define I2C_BUS_BMC I2C_BUS5
 #define I2C_ADDR_BIC 0x40
 
+#define MCTP_SELF_EID 0x0B
+
 void plat_mctp_init(void);
 
 #endif
