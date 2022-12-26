@@ -23,6 +23,7 @@
 #include "pcc.h"
 #include "plat_pmic.h"
 #include "plat_apml.h"
+#include "plat_kcs.h"
 #include "util_worker.h"
 
 SCU_CFG scu_cfg[] = {
@@ -45,6 +46,11 @@ void pal_pre_init()
 	pcc_init();
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+}
+
+void pal_post_init()
+{
+	kcs_init();
 }
 
 void pal_set_sys_status()
