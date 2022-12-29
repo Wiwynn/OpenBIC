@@ -26,6 +26,8 @@
 #include "plat_gpio.h"
 #include "plat_i2c.h"
 
+#include <drivers/espi.h>
+
 static uint8_t system_class = SYS_CLASS_1;
 static uint8_t board_revision = 0x0F;
 static uint8_t hsc_module = HSC_MODULE_UNKNOWN;
@@ -208,6 +210,24 @@ void init_hsc_module(uint8_t board_revision)
 	}
 }
 
+static const struct device *espi_dev;
+static struct espi_callback vw_cb;
+
+/* Handler for virtual GPIO from eSPI virtual wire channel */
+static void vw_gpio_handler(const struct device *dev, struct espi_callback *cb,
+			    struct espi_event event)
+{
+	if (event.evt_type == ESPI_BUS_EVENT_VWIRE_RECEIVED) {
+		printk("%s Wiwynn Debug [%d] event data 0x%x\n",
+			__func__, __LINE__, event.evt_data);
+		/* TODO:
+		 * 1. Check if the bit-9 of event data is high
+		 * 2. Check if the ESPIC0(vw gpio direction) is input
+		 * 3. Get the vw gpio status from ESPI9C
+		 */
+	}
+}
+
 void init_platform_config()
 {
 	I2C_MSG i2c_msg;
@@ -374,4 +394,15 @@ void init_platform_config()
 		}
 	}
 	SAFE_FREE(data);
+
+	espi_dev = device_get_binding("ESPI");
+	if (!espi_dev) {
+		printk("failed to get espi device\n");
+		return ;
+	}
+	espi_init_callback(&vw_cb, vw_gpio_handler,
+			   ESPI_BUS_EVENT_VWIRE_RECEIVED);
+	if (espi_add_callback(espi_dev, &vw_cb) < 0) {
+		printk("failed to add espi callback function\n");
+	}
 }
