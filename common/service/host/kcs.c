@@ -16,6 +16,7 @@
 
 #ifdef CONFIG_IPMI_KCS_ASPEED
 
+k_thread_name_set
 #include <zephyr.h>
 #include <string.h>
 #include <stdio.h>
