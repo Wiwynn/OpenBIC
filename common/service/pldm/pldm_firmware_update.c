@@ -404,8 +404,8 @@ exit:
 	return;
 }
 
-static uint8_t request_update(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
-			      uint16_t *resp_len, void *ext_params)
+static uint8_t request_update(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
+			      uint8_t *resp, uint16_t *resp_len, void *ext_params)
 {
 	if (!mctp_inst || !buf || !resp || !resp_len || !ext_params) {
 		LOG_ERR("Pass argument is NULL");
@@ -459,8 +459,9 @@ exit:
 	return PLDM_SUCCESS;
 }
 
-static uint8_t pass_component_table(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
-				    uint16_t *resp_len, void *ext_params)
+static uint8_t pass_component_table(void *mctp_inst, uint8_t *buf, uint16_t len,
+				    uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
+				    void *ext_params)
 {
 	if (!mctp_inst || !buf || !resp || !resp_len || !ext_params) {
 		LOG_ERR("Pass argument is NULL");
@@ -534,8 +535,8 @@ exit:
 	return PLDM_SUCCESS;
 }
 
-static uint8_t update_component(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
-				uint16_t *resp_len, void *ext_params)
+static uint8_t update_component(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
+				uint8_t *resp, uint16_t *resp_len, void *ext_params)
 {
 	if (!mctp_inst || !buf || !resp || !resp_len || !ext_params) {
 		LOG_ERR("Pass argument is NULL");
@@ -633,8 +634,8 @@ exit:
 	return PLDM_SUCCESS;
 }
 
-static uint8_t activate_firmware(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
-				 uint16_t *resp_len, void *ext_params)
+static uint8_t activate_firmware(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
+				 uint8_t *resp, uint16_t *resp_len, void *ext_params)
 {
 	if (!mctp_inst || !buf || !resp || !resp_len || !ext_params) {
 		LOG_ERR("Pass argument is NULL");
