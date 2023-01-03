@@ -28,6 +28,9 @@
 #include "plat_ipmb.h"
 #include "plat_dimm.h"
 
+#include "pldm.h"
+#include "plat_mctp.h"
+
 LOG_MODULE_REGISTER(plat_ipmi);
 
 int pal_record_bios_fw_version(uint8_t *buf, uint8_t size)
@@ -96,6 +99,7 @@ void OEM_1S_GET_BIOS_VERSION(ipmi_msg *msg)
 	}
 
 	msg->completion_code = CC_SUCCESS;
+
 	return;
 }
 
