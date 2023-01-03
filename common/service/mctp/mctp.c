@@ -211,7 +211,7 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		LOG_HEXDUMP_DBG(read_buf, read_len, "mctp receive data");
 
 		mctp_hdr *hdr = (mctp_hdr *)read_buf;
-		LOG_DBG("dest_ep = %x, src_ep = %x, flags = %x\n", hdr->dest_ep, hdr->src_ep,
+		LOG_DBG("dest_ep = %x, src_ep = %x, flags = %x", hdr->dest_ep, hdr->src_ep,
 			hdr->flags_seq_to_tag);
 
 		/* Set the tranport layer extra parameters */
@@ -347,7 +347,7 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
        * If the message is response, keep the original msg_tag of ext_params
 */
 			hdr->msg_tag = (hdr->to) ? (msg_tag & MCTP_HDR_TAG_MASK) :
-							 mctp_msg.ext_params.msg_tag;
+						   mctp_msg.ext_params.msg_tag;
 
 			hdr->dest_ep = mctp_msg.ext_params.ep;
 			hdr->src_ep = mctp_inst->endpoint;
@@ -588,4 +588,19 @@ uint8_t mctp_reg_msg_rx_func(mctp *mctp_inst, mctp_fn_cb rx_cb)
 
 	mctp_inst->rx_cb = rx_cb;
 	return MCTP_SUCCESS;
+}
+
+__weak mctp *pal_get_mctp(uint8_t mctp_medium_type, uint8_t bus)
+{
+	return NULL;
+}
+
+__weak int pal_get_target(uint8_t interface)
+{
+	return -1;
+}
+
+__weak int pal_get_medium_type(uint8_t interface)
+{
+	return -1;
 }

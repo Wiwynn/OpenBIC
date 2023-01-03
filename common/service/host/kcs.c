@@ -24,6 +24,7 @@
 #include <logging/log.h>
 #include "ipmi.h"
 #include "kcs.h"
+#include "pldm.h"
 #include "plat_def.h"
 #include "libutil.h"
 
@@ -149,9 +150,39 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 				memcpy(&bridge_msg.data[0], &ibuf[2], rc);
 			}
 
-			status = ipmb_send_request(&bridge_msg, IPMB_inf_index_map[BMC_IPMB]);
-			if (status != IPMB_ERROR_SUCCESS) {
-				LOG_ERR("kcs_read_task send to BMC fail status: 0x%x", status);
+			if (pal_is_interface_no_use_ipmb(IPMB_inf_index_map[BMC_IPMB])) {
+				int ret = 0;
+
+				LOG_INF("netfn:%x cmd: %x", bridge_msg.netfn, bridge_msg.cmd);
+
+				ret = pldm_send_ipmi_request(&bridge_msg);
+				if (ret < 0) {
+					LOG_ERR("kcs_read_task send to BMC fail");
+				}
+
+				uint8_t *kcs_buff;
+				kcs_buff = malloc(KCS_BUFF_SIZE * sizeof(uint8_t));
+
+				kcs_buff[0] = (bridge_msg.netfn | BIT(0)) << 2;
+				kcs_buff[1] = bridge_msg.cmd;
+				kcs_buff[2] = bridge_msg.completion_code;
+
+				if (bridge_msg.data_len > 0) {
+					memcpy(&kcs_buff[3], &bridge_msg.data, bridge_msg.data_len);
+					kcs_write(kcs_buff, 3 + bridge_msg.data_len);
+				} else {
+					kcs_write(kcs_buff, 3);
+				}
+
+				SAFE_FREE(kcs_buff);
+
+			} else {
+				status = ipmb_send_request(&bridge_msg,
+							   IPMB_inf_index_map[BMC_IPMB]);
+				if (status != IPMB_ERROR_SUCCESS) {
+					LOG_ERR("kcs_read_task send to BMC fail status: 0x%x",
+						status);
+				}
 			}
 		}
 	}

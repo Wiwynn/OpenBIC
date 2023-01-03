@@ -179,6 +179,7 @@ typedef struct ipmi_msg_cfg {
 } __packed __aligned(4) ipmi_msg_cfg;
 
 bool pal_load_ipmb_config(void);
+bool pal_is_interface_no_use_ipmb(uint8_t interface_index);
 void ipmb_init(void);
 ipmb_error ipmb_send_request(ipmi_msg *req, uint8_t index);
 ipmb_error ipmb_send_response(ipmi_msg *resp, uint8_t index);
