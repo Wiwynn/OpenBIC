@@ -153,9 +153,9 @@ void send_post_code_to_BMC()
 	while (1) {
 		k_msleep(100); // send post code to BMC once 100 ms
 		send_postcode_end_position = snoop_read_num;
-		if (get_DC_status() == 0) {
-			return;
-		}
+		// if (get_DC_status() == 0) {
+		// 	return;
+		// }
 		if (send_postcode_start_position != send_postcode_end_position) {
 			send_postcode_msg = (ipmi_msg *)malloc(sizeof(ipmi_msg));
 			static uint8_t alloc_sendmsg_retry = 0;
@@ -209,11 +209,11 @@ void send_post_code_to_BMC()
 				continue;
 			}
 			send_postcode_start_position = send_postcode_end_position;
-		} else {
+		}/* else {
 			if (CPU_power_good() == false) {
 				return;
 			}
-		}
+		}*/
 	}
 }
 

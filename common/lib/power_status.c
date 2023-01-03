@@ -86,12 +86,12 @@ bool CPU_power_good()
 
 void set_post_thread()
 {
-	if (CPU_power_good() == true) {
+	// if (CPU_power_good() == true) {
 #ifdef CONFIG_SNOOP_ASPEED
 		init_snoop_thread();
 		init_send_postcode_thread();
 #endif
-	}
+	// }
 }
 
 void set_vr_monitor_status(bool value)
