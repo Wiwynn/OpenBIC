@@ -93,10 +93,11 @@ static uint16_t mctp_i3c_write_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 	}
 
 	LOG_HEXDUMP_DBG(&i3c_msg.data[0], i3c_msg.tx_len, "mctp_i3c_write_smq msg dump");
+	//LOG_HEXDUMP_INF(&i3c_msg.data[0], i3c_msg.tx_len, "mctp_i3c_write_smq msg dump");
 
 	ret = i3c_smq_write(&i3c_msg);
 	if (ret < 0) {
-		LOG_ERR("mctp_i3c_write_smq write failed");
+		LOG_ERR("mctp_i3c_write_smq write failed, %d", ret);
 		return MCTP_ERROR;
 	}
 	return MCTP_SUCCESS;
