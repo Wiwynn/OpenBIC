@@ -35,7 +35,7 @@ SCU_CFG scu_cfg[] = {
 
 void pal_device_init()
 {
-	start_monitor_pmic_error_thread();
+	//start_monitor_pmic_error_thread();
 }
 
 void pal_pre_init()
