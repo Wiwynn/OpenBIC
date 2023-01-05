@@ -354,7 +354,6 @@ void IPMB_TXTask(void *pvParameters, void *arvg0, void *arvg1)
 			ipmb_encode(&ipmb_buffer_tx[0], &current_msg_tx->buffer);
 			uint8_t resp_tx_size =
 				current_msg_tx->buffer.data_len + IPMB_RESP_HEADER_LENGTH;
-
 			if (ipmb_cfg.interface == I2C_IF) {
 				int retry = 0;
 				do {
@@ -376,6 +375,7 @@ void IPMB_TXTask(void *pvParameters, void *arvg0, void *arvg1)
 				i2c_msg->target_addr = ipmb_cfg.channel_target_address;
 				i2c_msg->tx_len = resp_tx_size;
 				memcpy(&i2c_msg->data[0], &ipmb_buffer_tx[1], resp_tx_size);
+
 				ret = i2c_master_write(i2c_msg, I2C_RETRY_TIME);
 				SAFE_FREE(i2c_msg);
 			} else {
@@ -832,14 +832,13 @@ void IPMB_RXTask(void *pvParameters, void *arvg0, void *arvg1)
 					}
 
 					if (pal_is_interface_no_use_ipmb(IPMB_inf_index_map[BMC_IPMB])) {
-
-						LOG_INF("netfn%x cmd%x", bridge_msg->netfn, bridge_msg->cmd);
 						pldm_send_ipmi_request(bridge_msg);
-
+						bridge_msg->netfn = current_msg_rx->buffer.netfn;
+						bridge_msg->seq = current_msg_rx->buffer.seq;
 						if (ipmb_send_response(
 							    bridge_msg,
 							    IPMB_inf_index_map
-								    [bridge_msg->InF_source]) !=
+								    [ME_IPMB]) !=
 						    IPMB_ERROR_SUCCESS) {
 							LOG_ERR("[%d] Failed to send IPMB response message",
 							        __LINE__);

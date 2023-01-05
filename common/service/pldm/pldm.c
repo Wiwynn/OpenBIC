@@ -455,8 +455,6 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 
 	struct _pldm_ipmi_cmd_resp *resp = (struct _pldm_ipmi_cmd_resp *)rbuf;
 
-	LOG_HEXDUMP_INF(rbuf, res_len, "ipmi_res");
-
 	if ((resp->completion_code != MCTP_SUCCESS)) {
 		resp->ipmi_comp_code = CC_UNSPECIFIED_ERROR;
 	}
@@ -464,7 +462,6 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	msg->completion_code = resp->ipmi_comp_code;
 	msg->netfn = resp->netfn_lun >> 2;
 	msg->cmd = resp->cmd;
-
 	// MCTP CC, Netfn, cmd, ipmi CC
 	if (res_len > 4) {
 		msg->data_len = res_len - 4;
