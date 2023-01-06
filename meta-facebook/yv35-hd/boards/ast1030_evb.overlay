@@ -106,20 +106,22 @@
 	pull-up-resistor-ohm = <2000>, <2000>, <2000>, <2000>;
 };
 
-&i3c1 {
+&i3c0 {
 	status = "okay";
-	assigned-address = <0x20>;
-	pinctrl-0 = <&pinctrl_i3c1_default>;
-	i3c-pp-scl-hi-period-ns = <63>;
-	i3c-pp-scl-lo-period-ns = <63>;
+	assigned-address = <0x11>;
+	pinctrl-0 = <&pinctrl_i3c0_default>;
+	i3c-scl-hz = <5000000>;
+	i3c-pp-scl-hi-period-ns = <100>;
+	i3c-pp-scl-lo-period-ns = <100>;
 };
 
-&i3c2 {
+&i3c1 {
 	status = "okay";
-	assigned-address = <0x20>;
-	pinctrl-0 = <&pinctrl_i3c2_default>;
-	i3c-pp-scl-hi-period-ns = <63>;
-	i3c-pp-scl-lo-period-ns = <63>;
+	assigned-address = <0x11>;
+	pinctrl-0 = <&pinctrl_i3c1_default>;
+	i3c-scl-hz = <5000000>;
+	i3c-pp-scl-hi-period-ns = <100>;
+	i3c-pp-scl-lo-period-ns = <100>;
 };
 
 &espi {
