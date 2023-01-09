@@ -47,6 +47,8 @@
 #endif
 #include "pcc.h"
 #include "hal_wdt.h"
+#include "plat_dimm.h"
+#include "plat_class.h"
 
 #define BIOS_UPDATE_MAX_OFFSET 0x4000000
 #define BIC_UPDATE_MAX_OFFSET 0x50000
@@ -2021,10 +2023,42 @@ __weak void OEM_1S_WRITE_READ_DIMM(ipmi_msg *msg)
 }
 #endif
 
-void IPMI_OEM_1S_handler(ipmi_msg *msg)
+void OEM_1S_GET_DIMM_I3C_MUX_SELECTION(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
 
+	I2C_MSG i2c_msg = { 0 };
+	int ret = 0, retry = 3;
+
+	i2c_msg.bus = I2C_BUS1;
+	i2c_msg.target_addr = CPLD_ADDR;
+	i2c_msg.tx_len = 1;
+	i2c_msg.rx_len = 1;
+	i2c_msg.data[0] = DIMM_I3C_MUX_CONTROL_OFFSET;
+
+	ret = i2c_master_read(&i2c_msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Failed to read I3C MUX status, ret=%d", ret);
+		return;
+	}
+
+	if (GETBIT(i2c_msg.data[0], 0) == I3C_MUX_TO_CPU) {
+		msg->data[0] = I3C_MUX_TO_CPU;
+	} else if (GETBIT(i2c_msg.data[0], 0) == I3C_MUX_TO_BIC) {
+		msg->data[0] = I3C_MUX_TO_BIC;
+	} else {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	msg->completion_code = CC_SUCCESS;
+	msg->data_len = 1;
+	return;
+}
+
+void IPMI_OEM_1S_handler(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
 	switch (msg->cmd) {
 	case CMD_OEM_1S_MSG_IN:
 		LOG_DBG("Received 1S Message In command");
@@ -2262,6 +2296,10 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		OEM_1S_WRITE_READ_DIMM(msg);
 		break;
 #endif
+	case CMD_OEM_1S_GET_DIMM_I3C_MUX_SELECTION:
+		LOG_DBG("Received 1S Get DIMM I3C MUX selection command");
+		OEM_1S_GET_DIMM_I3C_MUX_SELECTION(msg);
+		break;
 	default:
 		LOG_ERR("Invalid OEM message, netfn(0x%x) cmd(0x%x)", msg->netfn, msg->cmd);
 		msg->data_len = 0;
