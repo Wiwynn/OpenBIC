@@ -118,22 +118,23 @@ static void set_dev_endpoint(void)
 			req.op = SET_EID_REQ_OP_SET_EID;
 			req.eid = p->endpoint;
 
-			mctp_ctrl_msg msg;
-			memset(&msg, 0, sizeof(msg));
-			msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
-			msg.ext_params.smbus_ext_params.addr = p->addr;
+			mctp_ctrl_msg *msg = (mctp_ctrl_msg *)malloc(sizeof(mctp_ctrl_msg));
+			memset(msg, 0, sizeof(msg));
+			msg->ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+			msg->ext_params.smbus_ext_params.addr = p->addr;
 
-			msg.hdr.cmd = MCTP_CTRL_CMD_SET_ENDPOINT_ID;
-			msg.hdr.rq = 1;
+			msg->hdr.cmd = MCTP_CTRL_CMD_SET_ENDPOINT_ID;
+			msg->hdr.rq = 1;
 
-			msg.cmd_data = (uint8_t *)&req;
-			msg.cmd_data_len = sizeof(req);
+			msg->cmd_data = (uint8_t *)&req;
+			msg->cmd_data_len = sizeof(req);
 
-			msg.recv_resp_cb_fn = set_endpoint_resp_handler;
-			msg.timeout_cb_fn = set_endpoint_resp_timeout;
-			msg.timeout_cb_fn_args = p;
+			msg->recv_resp_cb_fn = set_endpoint_resp_handler;
+			msg->timeout_cb_fn = set_endpoint_resp_timeout;
+			msg->timeout_cb_fn_args = p;
 
-			mctp_ctrl_send_msg(find_mctp_by_i3c(p->bus), &msg);
+			mctp_ctrl_send_msg(find_mctp_by_i3c(p->bus), msg);
+			SAFE_FREE(msg);
 		}
 	}
 }
