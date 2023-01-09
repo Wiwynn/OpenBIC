@@ -1,0 +1,733 @@
+From bce894f8366eb0fa7ad839a99956417826a7aeb2 Mon Sep 17 00:00:00 2001
+From: Andy Chung <Andy_Chung@wiwynn.com>
+Date: Mon, 9 Jan 2023 22:36:31 +0800
+Subject: [PATCH] i3c: aspeed: Support I3C driver
+
+Summary:
+   - This commit include the change as follow:
+     - Add sem to lock the put_read_data function
+     - Remove the usage of hw pec.
+     - Make slave_put_read_data be a blocking function
+     - Reject hot-join by default
+     - Automatically hj when i3c as slave mode.
+     - Fix uninitialized value of ccc.id
+     - Reset the IBI queue if unregistered IBI source
+     - Check the value of pid extra info.
+     - Change the meaning of the PID[11:0]
+     - Read rx fifo when tid == 0x8 in slave mode
+     - Add the option to enable the pec for priv-xfer.
+     - Wait resp_q_ready when slave send ibi_notify.
+     - Wait resp_q_ready when slave send sir.
+     - Add API to set the static address in slave mode
+     - Use OD SCL as PP SCL when sending SETHID CCC
+     - Add SETHID CCC support
+     - Add build assertion for init priority in slave mqueue
+     - Transfer error interrupt has the response data
+     - Separates the event of ibi and data consume.
+     - Organize the interrupt register setting
+---
+ drivers/i3c/i3c_aspeed.c             | 258 ++++++++++++++++++++-------
+ drivers/i3c/i3c_common.c             |  15 ++
+ drivers/i3c/i3c_shell.c              |   6 +
+ drivers/i3c/slave/i3c_slave_mqueue.c |   3 +
+ dts/bindings/i3c/aspeed,i3c.yaml     |  15 +-
+ include/drivers/i3c/i3c.h            |  31 +++-
+ 6 files changed, 251 insertions(+), 77 deletions(-)
+
+diff --git a/drivers/i3c/i3c_aspeed.c b/drivers/i3c/i3c_aspeed.c
+index ecf8dece96..13f38c007a 100644
+--- a/drivers/i3c/i3c_aspeed.c
++++ b/drivers/i3c/i3c_aspeed.c
+@@ -15,6 +15,7 @@
+ #include <init.h>
+ #include <sys/sys_io.h>
+ #include <logging/log.h>
++#include <sys/crc.h>
+ #define LOG_LEVEL CONFIG_I3C_LOG_LEVEL
+ LOG_MODULE_REGISTER(i3c);
+ 
+@@ -143,6 +144,8 @@ union i3c_device_resp_queue_port_s {
+ 		volatile uint32_t err_status : 4;		/* bit[31:28] */
+ 	} fields;
+ }; /* offset 0x10 */
++#define SLAVE_TID_MASTER_WRITE_DATA 0x8
++#define SLAVE_TID_DEFSLV_WRITE_DATA 0xF
+ 
+ union i3c_ibi_queue_status_s {
+ 	volatile uint32_t value;
+@@ -302,7 +305,7 @@ union i3c_slave_pid_hi_s {
+ union i3c_slave_pid_lo_s {
+ 	volatile uint32_t value;
+ 	struct {
+-		volatile uint32_t dcr : 12;			/* bit[11:0] */
++		volatile uint32_t extra_info : 12;		/* bit[11:0] */
+ 		volatile uint32_t inst_id : 4;			/* bit[15:12] */
+ 		volatile uint32_t part_id : 16;			/* bit[31:16] */
+ 	} fields;
+@@ -476,10 +479,12 @@ struct i3c_aspeed_config {
+ 	const clock_control_subsys_t clock_id;
+ 	uint32_t i3c_scl_hz;
+ 	uint32_t i2c_scl_hz;
++	uint16_t pid_extra_info;
+ 	int secondary;
+ 	int assigned_addr;
+ 	int inst_id;
+ 	int ibi_append_pec;
++	int priv_xfer_pec;
+ 	int sda_tx_hold_ns;
+ 	int i3c_pp_scl_hi_period_ns;
+ 	int i3c_pp_scl_lo_period_ns;
+@@ -534,13 +539,52 @@ struct i3c_aspeed_obj {
+ 
+ 	/* slave mode data */
+ 	struct i3c_slave_setup slave_data;
+-	osEventFlagsId_t event_id;
++	osEventFlagsId_t ibi_event;
++	osEventFlagsId_t data_event;
+ };
+ 
+ #define DEV_CFG(dev)			((struct i3c_aspeed_config *)(dev)->config)
+ #define DEV_DATA(dev)			((struct i3c_aspeed_obj *)(dev)->data)
+ #define DESC_PRIV(desc)			((struct i3c_aspeed_dev_priv *)(desc)->priv_data)
+ 
++static uint8_t *pec_append(const struct device *dev, uint8_t *ptr, uint8_t len)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	uint8_t *xfer_buf;
++	uint8_t pec_v;
++	uint8_t addr_rnw;
++
++	addr_rnw = i3c_register->device_addr.fields.dynamic_addr << 1 | 0x1;
++	xfer_buf = k_malloc(len + 1);
++	memcpy(xfer_buf, ptr, len);
++
++	pec_v = crc8_ccitt(0, &addr_rnw, 1);
++	pec_v = crc8_ccitt(pec_v, xfer_buf, len);
++	LOG_DBG("pec = %x", pec_v);
++	xfer_buf[len] = pec_v;
++
++	return xfer_buf;
++}
++
++static int pec_valid(const struct device *dev, uint8_t *ptr, uint8_t len)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	uint8_t pec_v;
++	uint8_t addr_rnw;
++
++	if (len == 0 || ptr == NULL)
++		return -EINVAL;
++
++	addr_rnw = i3c_register->device_addr.fields.dynamic_addr << 1;
++
++	pec_v = crc8_ccitt(0, &addr_rnw, 1);
++	pec_v = crc8_ccitt(pec_v, ptr, len - 1);
++	LOG_DBG("pec = %x %x", pec_v, ptr[len - 1]);
++	return (pec_v == ptr[len - 1]) ? 0 : -EIO;
++}
++
+ static int i3c_aspeed_get_pos(struct i3c_aspeed_obj *obj, uint8_t addr)
+ {
+ 	int pos;
+@@ -560,6 +604,7 @@ static void i3c_aspeed_rd_rx_fifo(struct i3c_aspeed_obj *obj, uint8_t *bytes, in
+ 	struct i3c_register_s *i3c_register = obj->config->base;
+ 	uint32_t *dst = (uint32_t *)bytes;
+ 	int nwords = nbytes >> 2;
++	int ret;
+ 	int i;
+ 
+ 	for (i = 0; i < nwords; i++) {
+@@ -572,6 +617,13 @@ static void i3c_aspeed_rd_rx_fifo(struct i3c_aspeed_obj *obj, uint8_t *bytes, in
+ 		tmp = i3c_register->rx_tx_data_port;
+ 		memcpy(bytes + (nbytes & ~0x3), &tmp, nbytes & 3);
+ 	}
++	if (obj->config->priv_xfer_pec) {
++		ret = pec_valid(obj->dev, bytes, nbytes);
++		if (ret) {
++			LOG_ERR("PEC error\n");
++			memset(bytes, 0, nbytes);
++		}
++	}
+ }
+ 
+ static void i3c_aspeed_end_xfer(struct i3c_aspeed_obj *obj)
+@@ -621,24 +673,29 @@ static void i3c_aspeed_end_xfer(struct i3c_aspeed_obj *obj)
+ 	k_sem_give(&obj->curr_xfer->sem);
+ }
+ 
+-static void i3c_aspeed_slave_rx_data(struct i3c_aspeed_obj *obj)
++static void i3c_aspeed_slave_resp_handler(struct i3c_aspeed_obj *obj, union i3c_intr_s status)
+ {
+ 	struct i3c_register_s *i3c_register = obj->config->base;
+ 	const struct i3c_slave_callbacks *cb;
+ 	uint32_t nresp, i;
+ 
+ 	cb = obj->slave_data.callbacks;
+-	if (!cb) {
+-		goto flush;
+-	}
+-
+ 	nresp = i3c_register->queue_status_level.fields.resp_buf_blr;
+ 	for (i = 0; i < nresp; i++) {
+ 		union i3c_device_resp_queue_port_s resp;
+ 		struct i3c_slave_payload *payload;
+ 
+ 		resp.value = i3c_register->resp_queue_port.value;
+-		if (resp.fields.data_length && !resp.fields.err_status) {
++		if (resp.fields.err_status) {
++			LOG_ERR("Respons Error: 0x%x\n", resp.fields.err_status);
++		}
++
++		if (resp.fields.data_length && !resp.fields.err_status &&
++		    resp.fields.tid == SLAVE_TID_MASTER_WRITE_DATA) {
++			if (!cb) {
++				__ASSERT(0, "flush rx fifo is TBD\n");
++				continue;
++			}
+ 			if (cb->write_requested) {
+ 				payload = cb->write_requested(obj->slave_data.dev);
+ 				payload->size = resp.fields.data_length;
+@@ -648,11 +705,13 @@ static void i3c_aspeed_slave_rx_data(struct i3c_aspeed_obj *obj)
+ 			if (cb->write_done) {
+ 				cb->write_done(obj->slave_data.dev);
+ 			}
++		} else {
++			if (status.fields.ibi_update)
++				osEventFlagsSet(obj->ibi_event, status.value);
++			else
++				osEventFlagsSet(obj->data_event, status.value);
+ 		}
+ 	}
+-	return;
+-flush:
+-	__ASSERT(0, "flush rx fifo is TBD\n");
+ }
+ 
+ static int i3c_aspeed_parse_ibi_status(uint32_t value, struct i3c_ibi_status *result)
+@@ -711,6 +770,11 @@ static void i3c_aspeed_master_rx_ibi(struct i3c_aspeed_obj *obj)
+ 		}
+ 
+ 		pos = i3c_aspeed_get_pos(obj, ibi_status.id >> 1);
++		if (pos < 0) {
++			LOG_ERR("unregistered IBI source: 0x%x\n", ibi_status.id >> 1);
++			i3c_register->reset_ctrl.fields.ibi_queue_reset = 1;
++			continue;
++		}
+ 
+ 		i3cdev = obj->dev_descs[pos];
+ 		priv = DESC_PRIV(i3cdev);
+@@ -784,16 +848,16 @@ static void i3c_aspeed_isr(const struct device *dev)
+ 
+ 	status.value = i3c_register->intr_status.value;
+ 	if (config->secondary) {
++		if (status.fields.read_q_recv)
++			LOG_WRN("Master read when CMDQ is empty\n");
++
+ 		if (status.fields.resp_q_ready) {
+-			i3c_aspeed_slave_rx_data(obj);
++			i3c_aspeed_slave_resp_handler(obj, status);
+ 		}
+ 
+ 		i3c_aspeed_slave_event(dev, status);
+-
+-		osEventFlagsSet(obj->event_id, status.value);
+-
+ 	} else {
+-		if (status.fields.resp_q_ready) {
++		if (status.fields.resp_q_ready || status.fields.xfr_error) {
+ 			i3c_aspeed_end_xfer(obj);
+ 		}
+ 
+@@ -802,7 +866,6 @@ static void i3c_aspeed_isr(const struct device *dev)
+ 		}
+ 	}
+ 
+-
+ 	if (status.fields.xfr_error) {
+ 		i3c_register->device_ctrl.fields.resume = 1;
+ 	}
+@@ -963,6 +1026,7 @@ static void i3c_aspeed_init_pid(struct i3c_aspeed_obj *obj)
+ 	i3c_register->slave_pid_hi.value = slave_pid_hi.value;
+ 
+ 	slave_pid_lo.value = 0;
++	slave_pid_lo.fields.extra_info = config->pid_extra_info;
+ 	slave_pid_lo.fields.part_id = rev_id;
+ 	slave_pid_lo.fields.inst_id = config->inst_id;
+ 	i3c_register->slave_pid_lo.value = slave_pid_lo.value;
+@@ -1019,14 +1083,10 @@ static void i3c_aspeed_enable(struct i3c_aspeed_obj *obj)
+ 
+ 	reg.value = i3c_register->device_ctrl.value;
+ 	reg.fields.enable = 1;
++	reg.fields.hj_ack_ctrl = 1;
+ 	reg.fields.slave_ibi_payload_en = 1;
+ 	if (config->secondary) {
+-		/*
+-		 * We don't support hot-join on master mode, so disable auto-mode-adaption for
+-		 * slave mode accordingly.  Since the only master device we may connect with is
+-		 * our ourself.
+-		 */
+-		reg.fields.slave_auto_mode_adapt = 1;
++		reg.fields.slave_auto_mode_adapt = 0;
+ 	}
+ 	i3c_register->device_ctrl.value = reg.value;
+ }
+@@ -1320,6 +1380,19 @@ int i3c_aspeed_slave_register(const struct device *dev, struct i3c_slave_setup *
+ 	return 0;
+ }
+ 
++static int i3c_aspeed_slave_wait_data_consume(const struct device *dev)
++{
++	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
++	union i3c_intr_s events;
++
++	osEventFlagsClear(obj->data_event, ~osFlagsError);
++	events.value = 0;
++	events.fields.resp_q_ready = 1;
++	osEventFlagsWait(obj->data_event, events.value, osFlagsWaitAny, osWaitForever);
++
++	return 0;
++}
++
+ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_payload *data,
+ 				   struct i3c_ibi_payload *ibi_notify)
+ {
+@@ -1328,6 +1401,7 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 	struct i3c_register_s *i3c_register = config->base;
+ 	union i3c_intr_s events;
+ 	union i3c_device_cmd_queue_port_s cmd;
++	uint8_t *xfer_buf;
+ 
+ 	__ASSERT_NO_MSG(data);
+ 	__ASSERT_NO_MSG(data->buf);
+@@ -1339,37 +1413,45 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 			return -EACCES;
+ 		}
+ 
+-		osEventFlagsClear(obj->event_id, ~osFlagsError);
++		osEventFlagsClear(obj->ibi_event, ~osFlagsError);
+ 		events.value = 0;
+ 		events.fields.ibi_update = 1;
++		events.fields.resp_q_ready = 1;
+ 
+ 		i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
+ 		i3c_register->device_ctrl.fields.slave_mdb = ibi_notify->buf[0];
+-		i3c_aspeed_wr_tx_fifo(obj, ibi_notify->buf, ibi_notify->size);
+-
+-		cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
+-		cmd.slave_data_cmd.dl = ibi_notify->size;
+-		i3c_register->cmd_queue_port.value = cmd.value;
+-
+ 		if (config->ibi_append_pec) {
+-			i3c_register->device_ctrl.fields.slave_pec_en = 1;
++			xfer_buf = pec_append(dev, ibi_notify->buf, ibi_notify->size);
++			i3c_aspeed_wr_tx_fifo(obj, xfer_buf, ibi_notify->size + 1);
++			cmd.slave_data_cmd.dl = ibi_notify->size + 1;
++			k_free(xfer_buf);
++		} else {
++			i3c_aspeed_wr_tx_fifo(obj, ibi_notify->buf, ibi_notify->size);
++			cmd.slave_data_cmd.dl = ibi_notify->size;
+ 		}
++		cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
++		i3c_register->cmd_queue_port.value = cmd.value;
+ 	}
+ 
+-	i3c_aspeed_wr_tx_fifo(obj, data->buf, data->size);
++	if (config->priv_xfer_pec) {
++		xfer_buf = pec_append(dev, data->buf, data->size);
++		i3c_aspeed_wr_tx_fifo(obj, xfer_buf, data->size + 1);
++		cmd.slave_data_cmd.dl = data->size + 1;
++		k_free(xfer_buf);
++	} else {
++		i3c_aspeed_wr_tx_fifo(obj, data->buf, data->size);
++		cmd.slave_data_cmd.dl = data->size;
++	}
+ 	cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
+-	cmd.slave_data_cmd.dl = data->size;
+ 	i3c_register->cmd_queue_port.value = cmd.value;
+ 
+ 	if (ibi_notify) {
+ 		i3c_register->i3c_slave_intr_req.fields.sir = 1;
+-		osEventFlagsWait(obj->event_id, events.value, osFlagsWaitAll, osWaitForever);
+-
+-		if (config->ibi_append_pec) {
+-			i3c_register->device_ctrl.fields.slave_pec_en = 0;
+-		}
++		osEventFlagsWait(obj->ibi_event, events.value, osFlagsWaitAll, osWaitForever);
+ 	}
+ 
++	i3c_aspeed_slave_wait_data_consume(dev);
++
+ 	return 0;
+ }
+ 
+@@ -1380,6 +1462,7 @@ int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *
+ 	struct i3c_register_s *i3c_register = config->base;
+ 	union i3c_intr_s events;
+ 	union i3c_device_cmd_queue_port_s cmd;
++	uint8_t *xfer_buf;
+ 
+ 	__ASSERT_NO_MSG(payload);
+ 	__ASSERT_NO_MSG(payload->buf);
+@@ -1390,41 +1473,60 @@ int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *
+ 		return -EACCES;
+ 	}
+ 
+-	osEventFlagsClear(obj->event_id, ~osFlagsError);
++	osEventFlagsClear(obj->ibi_event, ~osFlagsError);
+ 	events.value = 0;
+ 	events.fields.ibi_update = 1;
++	events.fields.resp_q_ready = 1;
+ 
+ 	i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
+ 	i3c_register->device_ctrl.fields.slave_mdb = payload->buf[0];
+-	i3c_aspeed_wr_tx_fifo(obj, payload->buf, payload->size);
++	if (config->ibi_append_pec) {
++		xfer_buf = pec_append(dev, payload->buf, payload->size);
++		i3c_aspeed_wr_tx_fifo(obj, xfer_buf, payload->size + 1);
++		cmd.slave_data_cmd.dl = payload->size + 1;
++		k_free(xfer_buf);
++	} else {
++		i3c_aspeed_wr_tx_fifo(obj, payload->buf, payload->size);
++		cmd.slave_data_cmd.dl = payload->size;
++	}
+ 
+ 	cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
+-	cmd.slave_data_cmd.dl = payload->size;
+ 	i3c_register->cmd_queue_port.value = cmd.value;
+ 
+-	if (config->ibi_append_pec) {
+-		i3c_register->device_ctrl.fields.slave_pec_en = 1;
+-	}
+-
+ 	/* trigger the hw and wait done */
+ 	i3c_register->i3c_slave_intr_req.fields.sir = 1;
+-	osEventFlagsWait(obj->event_id, events.value, osFlagsWaitAll, osWaitForever);
++	osEventFlagsWait(obj->ibi_event, events.value, osFlagsWaitAll, osWaitForever);
+ 
+-	if (config->ibi_append_pec) {
+-		i3c_register->device_ctrl.fields.slave_pec_en = 0;
+-	}
++	return 0;
++}
++
++int i3c_aspeed_slave_set_static_addr(const struct device *dev, uint8_t static_addr)
++{
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	union i3c_device_addr_s device_addr;
++
++	config->assigned_addr = static_addr;
++
++	device_addr.value = i3c_register->device_addr.value;
++	device_addr.fields.static_addr = static_addr;
++	i3c_register->device_addr.value = device_addr.value;
+ 
+ 	return 0;
+ }
+ 
+-int i3c_aspeed_slave_wait_data_consume(const struct device *dev)
++int i3c_aspeed_set_pid_extra_info(const struct device *dev, uint16_t extra_info)
+ {
+-	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
+-	union i3c_intr_s events;
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
++	union i3c_slave_pid_lo_s slave_pid_lo;
+ 
+-	events.value = 0;
+-	events.fields.resp_q_ready = 1;
+-	osEventFlagsWait(obj->event_id, events.value, osFlagsWaitAny, osWaitForever);
++	if (extra_info > GENMASK(11, 0))
++		return -EINVAL;
++
++	slave_pid_lo.value = i3c_register->slave_pid_lo.value;
++	slave_pid_lo.fields.extra_info = extra_info;
++	i3c_register->slave_pid_lo.value = slave_pid_lo.value;
+ 
+ 	return 0;
+ }
+@@ -1467,9 +1569,13 @@ int i3c_aspeed_slave_get_event_enabling(const struct device *dev, uint32_t *even
+ int i3c_aspeed_master_send_ccc(const struct device *dev, struct i3c_ccc_cmd *ccc)
+ {
+ 	struct i3c_aspeed_obj *obj = DEV_DATA(dev);
++	struct i3c_aspeed_config *config = DEV_CFG(dev);
++	struct i3c_register_s *i3c_register = config->base;
+ 	struct i3c_aspeed_xfer xfer;
+ 	struct i3c_aspeed_cmd cmd;
+ 	union i3c_device_cmd_queue_port_s cmd_hi, cmd_lo;
++	uint32_t pp_timing = i3c_register->pp_timing.value;
++	uint32_t od_timing = i3c_register->od_timing.value;
+ 	int pos = 0;
+ 	int ret;
+ 
+@@ -1480,6 +1586,10 @@ int i3c_aspeed_master_send_ccc(const struct device *dev, struct i3c_ccc_cmd *ccc
+ 		}
+ 	}
+ 
++	if (ccc->id == I3C_CCC_SETHID) {
++		i3c_register->pp_timing.value = od_timing;
++	}
++
+ 	xfer.ncmds = 1;
+ 	xfer.cmds = &cmd;
+ 	xfer.ret = 0;
+@@ -1519,6 +1629,10 @@ int i3c_aspeed_master_send_ccc(const struct device *dev, struct i3c_ccc_cmd *ccc
+ 
+ 	ret = xfer.ret;
+ 
++	if (ccc->id == I3C_CCC_SETHID) {
++		i3c_register->pp_timing.value = pp_timing;
++	}
++
+ 	return ret;
+ }
+ 
+@@ -1556,21 +1670,23 @@ static int i3c_aspeed_init(const struct device *dev)
+ 	intr_reg.fields.xfr_error = 1;
+ 	intr_reg.fields.resp_q_ready = 1;
+ 
+-	/* for slave mode */
+-	intr_reg.fields.ibi_update = 1;
+-	intr_reg.fields.ccc_update = 1;
+-	intr_reg.fields.dyn_addr_assign = 1;
+-	i3c_register->intr_status_en.value = intr_reg.value;
+-	i3c_register->intr_signal_en.value = intr_reg.value;
+-
+-	i3c_aspeed_init_hw_feature(obj);
+-	i3c_aspeed_set_role(obj, config->secondary);
+-	i3c_aspeed_init_clock(obj);
+-
+ 	if (config->secondary) {
+ 		/* setup static address so that we can support SETAASA and SETDASA */
+ 		i3c_register->device_addr.fields.static_addr = config->assigned_addr;
+ 		i3c_register->device_addr.fields.static_addr_valid = 1;
++
++		/* for slave mode */
++		intr_reg.fields.ccc_update = 1;
++		intr_reg.fields.dyn_addr_assign = 1;
++		intr_reg.fields.read_q_recv = 1;
++		i3c_register->intr_signal_en.value = intr_reg.value;
++		/*
++		 * No need for INTR_IBI_UPDATED_STAT signal, check this bit
++		 * when INTR_RESP_READY_STAT signal is up.  This can guarantee
++		 * the SIR payload is ACKed by the master.
++		 */
++		intr_reg.fields.ibi_update = 1;
++		i3c_register->intr_status_en.value = intr_reg.value;
+ 	} else {
+ 		union i3c_device_addr_s reg;
+ 
+@@ -1578,7 +1694,12 @@ static int i3c_aspeed_init(const struct device *dev)
+ 		reg.fields.dynamic_addr = config->assigned_addr;
+ 		reg.fields.dynamic_addr_valid = 1;
+ 		i3c_register->device_addr.value = reg.value;
++		i3c_register->intr_signal_en.value = intr_reg.value;
++		i3c_register->intr_status_en.value = intr_reg.value;
+ 	}
++	i3c_aspeed_init_hw_feature(obj);
++	i3c_aspeed_set_role(obj, config->secondary);
++	i3c_aspeed_init_clock(obj);
+ 
+ 	i3c_aspeed_init_queues(obj);
+ 	i3c_aspeed_init_pid(obj);
+@@ -1593,7 +1714,8 @@ static int i3c_aspeed_init(const struct device *dev)
+ 
+ 	i3c_aspeed_enable(obj);
+ 
+-	obj->event_id = osEventFlagsNew(NULL);
++	obj->ibi_event = osEventFlagsNew(NULL);
++	obj->data_event = osEventFlagsNew(NULL);
+ 
+ 	return 0;
+ }
+@@ -1611,7 +1733,9 @@ static int i3c_aspeed_init(const struct device *dev)
+ 		.assigned_addr = DT_INST_PROP_OR(n, assigned_address, 0),                          \
+ 		.inst_id = DT_INST_PROP_OR(n, instance_id, 0),                                     \
+ 		.ibi_append_pec = DT_INST_PROP_OR(n, ibi_append_pec, 0),                           \
++		.priv_xfer_pec = DT_INST_PROP_OR(n, priv_xfer_pec, 0),                             \
+ 		.sda_tx_hold_ns = DT_INST_PROP_OR(n, sda_tx_hold_ns, 0),                           \
++		.pid_extra_info = DT_INST_PROP_OR(n, pid_extra_info, 0),                           \
+ 		.i3c_pp_scl_hi_period_ns = DT_INST_PROP_OR(n, i3c_pp_scl_hi_period_ns, 0),         \
+ 		.i3c_pp_scl_lo_period_ns = DT_INST_PROP_OR(n, i3c_pp_scl_lo_period_ns, 0),         \
+ 		.i3c_od_scl_hi_period_ns = DT_INST_PROP_OR(n, i3c_od_scl_hi_period_ns, 0),         \
+diff --git a/drivers/i3c/i3c_common.c b/drivers/i3c/i3c_common.c
+index 261c4de5ea..400a572f1e 100644
+--- a/drivers/i3c/i3c_common.c
++++ b/drivers/i3c/i3c_common.c
+@@ -54,6 +54,21 @@ int i3c_master_send_rstdaa(const struct device *master)
+ 	return i3c_master_send_ccc(master, &ccc);
+ }
+ 
++int i3c_master_send_sethid(const struct device *master)
++{
++	struct i3c_ccc_cmd ccc;
++	uint8_t hid = 0;
++
++	ccc.addr = I3C_BROADCAST_ADDR;
++	ccc.id = I3C_CCC_SETHID;
++	ccc.payload.length = 1;
++	ccc.payload.data = &hid;
++	ccc.rnw = 0;
++	ccc.ret = 0;
++
++	return i3c_master_send_ccc(master, &ccc);
++}
++
+ int i3c_master_send_aasa(const struct device *master)
+ {
+ 	struct i3c_ccc_cmd ccc;
+diff --git a/drivers/i3c/i3c_shell.c b/drivers/i3c/i3c_shell.c
+index 396963e86f..d689af0d3d 100644
+--- a/drivers/i3c/i3c_shell.c
++++ b/drivers/i3c/i3c_shell.c
+@@ -158,6 +158,7 @@ static int cmd_send_ccc(const struct shell *shell, size_t argc, char **argv)
+ 	}
+ 
+ 	ccc.rnw = 0;
++	ccc.id = 0;
+ 
+ 	while ((c = shell_getopt(shell, argc - 1, &argv[1], "ha:i:w:r:")) != -1) {
+ 		state = shell_getopt_state_get(shell);
+@@ -198,6 +199,11 @@ static int cmd_send_ccc(const struct shell *shell, size_t argc, char **argv)
+ 		}
+ 	}
+ 
++	if (ccc.id == 0) {
++		shell_print(shell, "CCC ID not assigned\n");
++		return SHELL_CMD_HELP_PRINTED;
++	}
++
+ 	ccc.ret = 0;
+ 	if (ccc.addr != I3C_BROADCAST_ADDR) {
+ 		ccc.id |= I3C_CCC_DIRECT;
+diff --git a/drivers/i3c/slave/i3c_slave_mqueue.c b/drivers/i3c/slave/i3c_slave_mqueue.c
+index a6908c0b60..ad511d6740 100644
+--- a/drivers/i3c/slave/i3c_slave_mqueue.c
++++ b/drivers/i3c/slave/i3c_slave_mqueue.c
+@@ -177,6 +177,9 @@ static void i3c_slave_mqueue_init(const struct device *dev)
+ 	i3c_slave_register(obj->i3c_controller, &slave_data);
+ }
+ 
++BUILD_ASSERT(CONFIG_I3C_SLAVE_INIT_PRIORITY > CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
++	     "I3C controller must be initialized prior to target device initialization");
++
+ #define I3C_SLAVE_MQUEUE_INIT(n)                                                                   \
+ 	static int i3c_slave_mqueue_config_func_##n(const struct device *dev);                     \
+ 	static const struct i3c_slave_mqueue_config i3c_slave_mqueue_config_##n = {                \
+diff --git a/dts/bindings/i3c/aspeed,i3c.yaml b/dts/bindings/i3c/aspeed,i3c.yaml
+index 225c87f2c6..de9054e88b 100644
+--- a/dts/bindings/i3c/aspeed,i3c.yaml
++++ b/dts/bindings/i3c/aspeed,i3c.yaml
+@@ -16,7 +16,7 @@ properties:
+   assigned-address:
+     required: true
+     type: int
+-    description: Dynamic address when playing the role as the main master
++    description: Dynamic address when playing the role as the main master. Static address when playing the role as the slave.
+ 
+   instance-id:
+     required: true
+@@ -28,6 +28,19 @@ properties:
+     type: boolean
+     description: Append PEC byte to the IBI data.  Enable this option in slave mode if the master device is AST2600 or AST1030A0.
+ 
++  priv-xfer-pec:
++    required: false
++    type: boolean
++    description: |
++      Enable this option in slave mode if the i3c want to communicate with data that have PEC.
++      The PEC will auto append to the tail of the data when doing private transfer and verify
++      the PEC when receiving the data from master.
++
++  pid-extra-info:
++    required: false
++    type: int
++    description: Extra information of the PID Bits[11:0]. Use to identify the different BIC.
++
+   i3c-pp-scl-hi-period-ns:
+     required: false
+     type: int
+diff --git a/include/drivers/i3c/i3c.h b/include/drivers/i3c/i3c.h
+index 084a69f695..69e25add28 100644
+--- a/include/drivers/i3c/i3c.h
++++ b/include/drivers/i3c/i3c.h
+@@ -21,6 +21,7 @@
+ /* broadcast only commands */
+ #define I3C_CCC_ENTDAA          0x07
+ #define I3C_CCC_SETAASA         0x29
++#define I3C_CCC_SETHID		0x61
+ 
+ /* unicast only commands */
+ #define I3C_CCC_SETDASA         (0x7 | I3C_CCC_DIRECT)
+@@ -163,6 +164,14 @@ int i3c_aspeed_master_request_ibi(struct i3c_dev_desc *i3cdev, struct i3c_ibi_ca
+ int i3c_aspeed_master_enable_ibi(struct i3c_dev_desc *i3cdev);
+ int i3c_aspeed_slave_register(const struct device *dev, struct i3c_slave_setup *slave_data);
+ 
++/**
++ * @brief set the static address of the i3c controller in slave mode
++ * @param dev the I3C controller in slave mode
++ * @param static_addr the new static address
++ * @return 0 if the static address is set
++ */
++int i3c_aspeed_slave_set_static_addr(const struct device *dev, uint8_t static_addr);
++
+ /**
+  * @brief get the assigned dynamic address of the i3c controller
+  * @param dev the I3C controller in slave mode
+@@ -200,26 +209,29 @@ int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *
+  * @param ibi_notify pointer to the IBI notification structure (optional)
+  * @return int 0 = success
+  *
+- * This function puts the pending read data to the TX FIFO.  If @ibi_notify is
+- * specified, a slave interrupt with the IBI payload will be issued to notify
+- * the master device that there is a pending read data.  The master device shall
+- * issue a private read transfer to read the data back.
++ * This function puts the pending read data to the TX FIFO and waits until the
++ * pending read data is consumed.  The API uses osEventFlagsWait and will make
++ * the caller thread sleep so do not call it in the ISR.
++ * If @ibi_notify is specified, a slave interrupt with the IBI payload will be
++ * issued to notify the master device that there is a pending read data.  The
++ * master device shall issue a private read transfer to read the data back.
+  */
+ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_payload *data,
+ 				   struct i3c_ibi_payload *ibi_notify);
+ 
+ /**
+- * @brief slave device waits for the private read data be consumed
+- *
+- * @param dev the slave device
++ * @brief set the pid extra info of the i3c controller
++ * @param dev the I3C controller
++ * @param extra_info the extra info of the pid bits[11:0]
+  * @return int 0 = success
+  */
+-int i3c_aspeed_slave_wait_data_consume(const struct device *dev);
++int i3c_aspeed_set_pid_extra_info(const struct device *dev, uint16_t extra_info);
+ 
+ /* common API */
+ int i3c_master_send_enec(const struct device *master, uint8_t addr, uint8_t evt);
+ int i3c_master_send_disec(const struct device *master, uint8_t addr, uint8_t evt);
+ int i3c_master_send_rstdaa(const struct device *master);
++int i3c_master_send_sethid(const struct device *master);
+ int i3c_master_send_aasa(const struct device *master);
+ int i3c_master_send_setmrl(const struct device *master, uint8_t addr, uint16_t mrl,
+ 			   uint8_t ibi_payload_size);
+@@ -233,11 +245,12 @@ int i3c_master_send_getbcr(const struct device *master, uint8_t addr, uint8_t *b
+ #define i3c_master_request_ibi		i3c_aspeed_master_request_ibi
+ #define i3c_master_enable_ibi		i3c_aspeed_master_enable_ibi
+ #define i3c_slave_register		i3c_aspeed_slave_register
++#define i3c_slave_set_static_addr	i3c_aspeed_slave_set_static_addr
+ #define i3c_slave_send_sir		i3c_aspeed_slave_send_sir
+ #define i3c_slave_put_read_data		i3c_aspeed_slave_put_read_data
+-#define i3c_slave_wait_data_consume	i3c_aspeed_slave_wait_data_consume
+ #define i3c_slave_get_dynamic_addr	i3c_aspeed_slave_get_dynamic_addr
+ #define i3c_slave_get_event_enabling	i3c_aspeed_slave_get_event_enabling
++#define i3c_set_pid_extra_info		i3c_aspeed_set_pid_extra_info
+ 
+ int i3c_jesd403_read(struct i3c_dev_desc *slave, uint8_t *addr, int addr_size, uint8_t *data,
+ 		     int data_size);
+-- 
+2.24.1
+

@@ -1,0 +1,120 @@
+From 43aef424bab1e9a86e778e6c1e49ab93dd269751 Mon Sep 17 00:00:00 2001
+From: Andy Chung <Andy_Chung@wiwynn.com>
+Date: Mon, 9 Jan 2023 22:45:24 +0800
+Subject: [PATCH] i3c: aspeed: Revert to use the hw pec
+
+Summary:
+Revert to use the hw pec.
+---
+ drivers/i3c/i3c_aspeed.c | 37 ++++++++++++++++++++++++++-----------
+ 1 file changed, 26 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/i3c/i3c_aspeed.c b/drivers/i3c/i3c_aspeed.c
+index 13f38c007a..ac56d67b99 100644
+--- a/drivers/i3c/i3c_aspeed.c
++++ b/drivers/i3c/i3c_aspeed.c
+@@ -541,6 +541,7 @@ struct i3c_aspeed_obj {
+ 	struct i3c_slave_setup slave_data;
+ 	osEventFlagsId_t ibi_event;
+ 	osEventFlagsId_t data_event;
++	struct k_sem xfer_sem;
+ };
+ 
+ #define DEV_CFG(dev)			((struct i3c_aspeed_config *)(dev)->config)
+@@ -706,8 +707,12 @@ static void i3c_aspeed_slave_resp_handler(struct i3c_aspeed_obj *obj, union i3c_
+ 				cb->write_done(obj->slave_data.dev);
+ 			}
+ 		} else {
+-			if (status.fields.ibi_update)
++			if (status.fields.ibi_update) {
+ 				osEventFlagsSet(obj->ibi_event, status.value);
++				if (obj->config->ibi_append_pec) {
++					i3c_register->device_ctrl.fields.slave_pec_en = 0;
++				}
++			}
+ 			else
+ 				osEventFlagsSet(obj->data_event, status.value);
+ 		}
+@@ -1402,11 +1407,19 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 	union i3c_intr_s events;
+ 	union i3c_device_cmd_queue_port_s cmd;
+ 	uint8_t *xfer_buf;
++	union i3c_reset_ctrl_s reset_ctrl;
+ 
+ 	__ASSERT_NO_MSG(data);
+ 	__ASSERT_NO_MSG(data->buf);
+ 	__ASSERT_NO_MSG(data->size);
+ 
++	k_sem_take(&obj->xfer_sem, K_FOREVER);
++	reset_ctrl.value = 0;
++	reset_ctrl.fields.tx_queue_reset = 1;
++	reset_ctrl.fields.cmd_queue_reset = 1;
++	i3c_register->reset_ctrl.value = reset_ctrl.value;
++	while(i3c_register->reset_ctrl.value)
++		;
+ 	if (ibi_notify) {
+ 		if (i3c_register->slave_event_ctrl.fields.sir_allowed == 0) {
+ 			LOG_ERR("SIR is not enabled by the main master\n");
+@@ -1420,17 +1433,13 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 
+ 		i3c_register->queue_thld_ctrl.fields.resp_q_thld = 1 - 1;
+ 		i3c_register->device_ctrl.fields.slave_mdb = ibi_notify->buf[0];
+-		if (config->ibi_append_pec) {
+-			xfer_buf = pec_append(dev, ibi_notify->buf, ibi_notify->size);
+-			i3c_aspeed_wr_tx_fifo(obj, xfer_buf, ibi_notify->size + 1);
+-			cmd.slave_data_cmd.dl = ibi_notify->size + 1;
+-			k_free(xfer_buf);
+-		} else {
+-			i3c_aspeed_wr_tx_fifo(obj, ibi_notify->buf, ibi_notify->size);
+-			cmd.slave_data_cmd.dl = ibi_notify->size;
+-		}
++		i3c_aspeed_wr_tx_fifo(obj, ibi_notify->buf, ibi_notify->size);
++		cmd.slave_data_cmd.dl = ibi_notify->size;
+ 		cmd.slave_data_cmd.cmd_attr = COMMAND_PORT_SLAVE_DATA_CMD;
+ 		i3c_register->cmd_queue_port.value = cmd.value;
++		if (config->ibi_append_pec) {
++			i3c_register->device_ctrl.fields.slave_pec_en = 1;
++		}
+ 	}
+ 
+ 	if (config->priv_xfer_pec) {
+@@ -1449,8 +1458,10 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 		i3c_register->i3c_slave_intr_req.fields.sir = 1;
+ 		osEventFlagsWait(obj->ibi_event, events.value, osFlagsWaitAll, osWaitForever);
+ 	}
+-
+ 	i3c_aspeed_slave_wait_data_consume(dev);
++	k_busy_wait(100);
++
++	k_sem_give(&obj->xfer_sem);
+ 
+ 	return 0;
+ }
+@@ -1467,6 +1478,7 @@ int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *
+ 	__ASSERT_NO_MSG(payload);
+ 	__ASSERT_NO_MSG(payload->buf);
+ 	__ASSERT_NO_MSG(payload->size);
++	k_sem_take(&obj->xfer_sem, K_FOREVER);
+ 
+ 	if (i3c_register->slave_event_ctrl.fields.sir_allowed == 0) {
+ 		LOG_ERR("SIR is not enabled by the main master\n");
+@@ -1497,6 +1509,7 @@ int i3c_aspeed_slave_send_sir(const struct device *dev, struct i3c_ibi_payload *
+ 	i3c_register->i3c_slave_intr_req.fields.sir = 1;
+ 	osEventFlagsWait(obj->ibi_event, events.value, osFlagsWaitAll, osWaitForever);
+ 
++	k_sem_give(&obj->xfer_sem);
+ 	return 0;
+ }
+ 
+@@ -1651,6 +1664,8 @@ static int i3c_aspeed_init(const struct device *dev)
+ 	clock_control_on(config->clock_dev, config->clock_id);
+ 	reset_control_deassert(reset_dev, config->reset_id);
+ 
++	k_sem_init(&obj->xfer_sem, 1, 1);
++
+ 	reset_ctrl.value = 0;
+ 	reset_ctrl.fields.core_reset = 1;
+ 	reset_ctrl.fields.tx_queue_reset = 1;
+-- 
+2.24.1
+
