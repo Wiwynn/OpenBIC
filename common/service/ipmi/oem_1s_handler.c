@@ -118,12 +118,14 @@ __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 			bridge_msg->InF_source = msg->InF_source;
 			bridge_msg->netfn = msg->data[1] >> 2;
 			bridge_msg->cmd = msg->data[2];
+			bridge_msg->pldm_inst_id = msg->pldm_inst_id;
 
 			if (bridge_msg->data_len != 0) {
 				memcpy(&bridge_msg->data[0], &msg->data[3],
 				       bridge_msg->data_len * sizeof(msg->data[0]));
 			}
 
+			printk("%s Wiwynn Debug %d - send 0x%x\n", __func__, __LINE__, bridge_msg->pldm_inst_id);
 			status = ipmb_send_request(bridge_msg, IPMB_inf_index_map[target_IF]);
 
 			if (status != IPMB_ERROR_SUCCESS) {

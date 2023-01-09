@@ -215,7 +215,10 @@ void insert_req_ipmi_msg(ipmi_msg_cfg *pnode, ipmi_msg *msg, uint8_t index)
 		msg->timestamp = osKernelGetSysTimerCount();
 		memcpy(&pnode->buffer, msg, sizeof(ipmi_msg));
 		register_seq(index, pnode->buffer.seq_target);
-
+		printk("%s Wiwynn Debug %d: add seq 0x%x netFn 0x%x cmd 0x%x inst 0x%x\n",
+					__func__, __LINE__,
+					pnode->buffer.seq_target, pnode->buffer.netfn,
+					pnode->buffer.cmd, pnode->buffer.pldm_inst_id);
 		pnode->next = ptr_start;
 		seq_current_count[index]++;
 		k_mutex_unlock(&mutex_id[index]);
@@ -273,8 +276,12 @@ bool find_req_ipmi_msg(ipmi_msg_cfg *pnode, ipmi_msg *msg, uint8_t index)
 
 	// find source sequence for responding
 	msg->seq_source = temp->buffer.seq_source;
+	printk("%s Wiwynn Debug %d: seq 0x%x 0x%x netFn 0x%x cmd 0x%x inst 0x%x\n",
+		__func__, __LINE__,
+		temp->buffer.seq_target, msg->seq_target, temp->buffer.netfn,
+		temp->buffer.cmd, temp->buffer.pldm_inst_id);
 	unregister_seq(index, temp->buffer.seq_target);
-
+	msg->pldm_inst_id = temp->buffer.pldm_inst_id;
 	msg->InF_source = temp->buffer.InF_source;
 	msg->InF_target = temp->buffer.InF_target;
 	/*temp points to the node which has to be removed*/
@@ -790,6 +797,8 @@ void IPMB_RXTask(void *pvParameters, void *arvg0, void *arvg1)
 
 						// Bridge command need to check interface and decide transfer MCTP or IPMB
 						if ((current_msg_rx->buffer.InF_source == PLDM) || (current_msg_rx->buffer.InF_source == MCTP)) {
+							bridge_msg->pldm_inst_id = current_msg_rx->buffer.pldm_inst_id;
+							printk("%s Wiwynn Debug %d - receive 0x%x\n", __func__, __LINE__, current_msg_rx->buffer.pldm_inst_id);
 							pldm_send_ipmi_response(current_msg_rx->buffer.InF_source, bridge_msg);
 
 						} else {
@@ -920,6 +929,7 @@ ipmb_error ipmb_send_request(ipmi_msg *req, uint8_t index)
 	req_cfg.buffer.seq = get_free_seq(index);
 	req_cfg.buffer.seq_source = req->seq_source;
 	req_cfg.buffer.src_LUN = 0;
+	req_cfg.buffer.pldm_inst_id = req->pldm_inst_id;
 	req_cfg.retries = 0;
 
 	LOG_DBG("Send req message, index(%d) cc(0x%x) data[%d]:", index,
