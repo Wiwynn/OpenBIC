@@ -65,6 +65,7 @@ void send_gpio_interrupt(uint8_t gpio_num)
 	msg.data[4] = gpio_val;
 
 	status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
+	printf("Jeff : status value : %d\n",status);
 	if (status != IPMB_ERROR_SUCCESS) {
 		printf("Failed to send GPIO interrupt event to BMC, gpio number(%d) status(%d)\n",
 		       gpio_num, status);
