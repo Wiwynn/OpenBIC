@@ -158,6 +158,7 @@ typedef struct ipmi_msg {
 	uint8_t seq_source; /**< Source sequence Number */
 	uint8_t seq_target; /**< Target sequence Number */
 	uint8_t seq; /**< Sequence Number */
+	uint8_t pldm_inst_id; /**< Sequence Number */
 	uint8_t InF_source; /**< Source bridge interface */
 	uint8_t InF_target; /**< Target bridge interface */
 	uint8_t src_LUN; /**< Source LUN (Logical Unit Number) */

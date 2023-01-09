@@ -295,8 +295,8 @@ uint8_t mctp_pldm_cmd_handler(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext
 	}
 
 	/* invoke the cmd handler to process */
-	rc = handler(mctp_inst, buf + sizeof(*hdr), len - sizeof(*hdr), resp_buf + sizeof(*hdr),
-		     &resp_len, &ext_params);
+	rc = handler(mctp_inst, buf + sizeof(*hdr), len - sizeof(*hdr), (hdr->req_d_id) & 0x1F,
+		     resp_buf + sizeof(*hdr), &resp_len, &ext_params);
 	if (rc == PLDM_LATER_RESP)
 		return PLDM_SUCCESS;
 
@@ -387,6 +387,7 @@ int pldm_send_ipmi_response(uint8_t interface, ipmi_msg *msg)
 	pmsg.hdr.pldm_type = PLDM_TYPE_OEM;
 	pmsg.hdr.cmd = PLDM_OEM_IPMI_BRIDGE;
 	pmsg.hdr.rq = PLDM_RESPONSE;
+	pmsg.hdr.inst_id = msg->pldm_inst_id;
 
 	pmsg.buf = resp_buf;
 
