@@ -28,7 +28,7 @@
 #include "plat_def.h"
 #include "libutil.h"
 
-LOG_MODULE_REGISTER(kcs);
+LOG_MODULE_REGISTER(kcs, LOG_LEVEL_DBG);
 
 struct k_thread kcs_polling;
 K_KERNEL_STACK_MEMBER(KCS_POLL_stack, KCS_POLL_STACK_SIZE);
@@ -44,9 +44,17 @@ void kcs_write(uint8_t *buf, uint32_t buf_sz)
 {
 	int rc;
 
+	int i;
+	printk("%s Wiwynn Debug %d: ", __func__, __LINE__);
+	for (i = 0; i < buf_sz; i++)
+	{
+		printk("0x%x ", buf[i]);
+	}
+	printk("\n");
 	rc = kcs_aspeed_write(kcs_dev, buf, buf_sz);
 	if (rc < 0) {
-		LOG_ERR("Failed to write KCS data, rc = %d", rc);
+		//LOG_ERR("Failed to write KCS data, rc = %d", rc);
+		printk("failed to write KCS data, rc = %d\n", rc);
 	}
 }
 
@@ -80,7 +88,14 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 			continue;
 		}
 
-		LOG_HEXDUMP_DBG(&ibuf[0], rc, "host KCS read dump data:");
+		// LOG_HEXDUMP_DBG(&ibuf[0], rc, "host KCS read dump data:");
+		int i = 0;
+		printk("\n%s Wiwynn Debug %d: ", __func__, __LINE__);
+		for (i = 0; i < rc; i++)
+		{
+			printk("0x%x ", ibuf[i]);
+		}
+		printk("\n");
 
 		proc_kcs_ok = true;
 		req = (struct kcs_request *)ibuf;
@@ -123,8 +138,10 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 					     (req->cmd == CMD_STORAGE_ADD_SEL))) {
 						kcs_buff[3] = 0x00;
 						kcs_buff[4] = 0x00;
+						printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 						kcs_write(kcs_buff, 5);
 					} else {
+						printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 						kcs_write(kcs_buff, 3);
 					}
 					SAFE_FREE(kcs_buff);
@@ -139,6 +156,7 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 					LOG_ERR("Record bios fw version fail");
 				}
 			}
+			memset(&bridge_msg.data[0], 0, sizeof(ipmi_msg));
 			bridge_msg.data_len = rc - 2; // exclude netfn, cmd
 			bridge_msg.seq_source = 0xff; // No seq for KCS
 			bridge_msg.InF_source = HOST_KCS;
@@ -147,7 +165,7 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 			bridge_msg.netfn = req->netfn;
 			bridge_msg.cmd = req->cmd;
 			if (bridge_msg.data_len != 0) {
-				memcpy(&bridge_msg.data[0], &ibuf[2], rc);
+				memcpy(&bridge_msg.data[0], &ibuf[2], bridge_msg.data_len);
 			}
 
 			if (pal_is_interface_no_use_ipmb(IPMB_inf_index_map[BMC_IPMB])) {
@@ -155,20 +173,25 @@ void kcs_read(void *arvg0, void *arvg1, void *arvg2)
 
 				ret = pldm_send_ipmi_request(&bridge_msg);
 				if (ret < 0) {
-					LOG_ERR("kcs_read_task send to BMC fail");
+					//LOG_ERR("kcs_read_task send to BMC fail");
+					printk("kcs_read_task send to BMC fail\n");
+					bridge_msg.completion_code = CC_UNSPECIFIED_ERROR;
 				}
 
 				uint8_t *kcs_buff;
 				kcs_buff = malloc(KCS_BUFF_SIZE * sizeof(uint8_t));
+				memset(kcs_buff, 0, KCS_BUFF_SIZE * sizeof(uint8_t));
 
 				kcs_buff[0] = (bridge_msg.netfn | BIT(0)) << 2;
 				kcs_buff[1] = bridge_msg.cmd;
 				kcs_buff[2] = bridge_msg.completion_code;
 
-				if (bridge_msg.data_len > 0) {
+				if (bridge_msg.completion_code == CC_SUCCESS && bridge_msg.data_len > 0) {
 					memcpy(&kcs_buff[3], &bridge_msg.data, bridge_msg.data_len);
+					printk("%s Wiwynn Debug %d, data len %d\n", __func__, __LINE__, 3 + bridge_msg.data_len);
 					kcs_write(kcs_buff, 3 + bridge_msg.data_len);
 				} else {
+					printk("%s Wiwynn Debug %d, data len 3\n", __func__, __LINE__);
 					kcs_write(kcs_buff, 3);
 				}
 

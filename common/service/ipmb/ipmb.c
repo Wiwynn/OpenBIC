@@ -518,6 +518,7 @@ void IPMB_TXTask(void *pvParameters, void *arvg0, void *arvg1)
 							       current_msg_tx->buffer.data_len);
 						}
 
+						printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 						kcs_write(kcs_buff,
 							  current_msg_tx->buffer.data_len +
 								  3); // data len + netfn + cmd + cc
@@ -701,6 +702,7 @@ void IPMB_RXTask(void *pvParameters, void *arvg0, void *arvg1)
 							       current_msg_rx->buffer.data_len);
 						}
 
+						printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 						kcs_write(kcs_buff,
 							  current_msg_rx->buffer.data_len +
 								  3); // data len + netfn + cmd + cc

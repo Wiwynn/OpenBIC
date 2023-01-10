@@ -29,11 +29,11 @@
 LOG_MODULE_REGISTER(pldm);
 
 #define PLDM_HDR_INST_ID_MASK 0x1F
-#define PLDM_MSG_CHECK_PER_MS 1000
-#define PLDM_MSG_TIMEOUT_MS 5000
+#define PLDM_MSG_CHECK_PER_MS 100
+#define PLDM_MSG_TIMEOUT_MS 500
 #define PLDM_RESP_MSG_PROC_MUTEX_TIMEOUT_MS 500
 #define PLDM_TASK_NAME_MAX_SIZE 32
-#define PLDM_MSG_MAX_RETRY 3
+#define PLDM_MSG_MAX_RETRY 0
 
 #define PLDM_READ_EVENT_SUCCESS BIT(0)
 #define PLDM_READ_EVENT_TIMEOUT BIT(1)
@@ -121,7 +121,7 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 	msg->timeout_cb_fn_args = (void *)&event_msgq;
 	msg->timeout_ms = PLDM_MSG_TIMEOUT_MS;
 
-	for (uint8_t retry_count = 0; retry_count < PLDM_MSG_MAX_RETRY; retry_count++) {
+	for (uint8_t retry_count = 0; retry_count <= PLDM_MSG_MAX_RETRY; retry_count++) {
 		uint8_t event = 0;
 		if (mctp_pldm_send_msg(mctp_p, msg) == PLDM_ERROR) {
 			LOG_WRN("[%s] send msg failed!", __func__);
@@ -135,7 +135,8 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 			return recv_arg.return_len;
 		}
 	}
-	LOG_WRN("[%s] retry reach max!", __func__);
+	printk("[%s] retry reach max!\n", __func__);
+	//LOG_WRN("[%s] retry reach max!", __func__);
 	return 0;
 }
 
@@ -314,6 +315,7 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 
 	mctp *mctp_inst = (mctp *)mctp_p;
 
+	printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 	/*
 * The request should be set inst_id/msg_type/mctp_tag_owner in the
 * header
@@ -346,7 +348,8 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 		wait_msg *p = (wait_msg *)malloc(sizeof(*p));
 		if (!p) {
 			LOG_WRN("wait_msg alloc failed!");
-			return MCTP_ERROR;
+			//return MCTP_ERROR;
+			return PLDM_ERROR;
 		}
 
 		memset(p, 0, sizeof(*p));
@@ -518,19 +521,22 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 		mctp_pldm_read(pal_get_mctp(medium_type, target), &pmsg, rbuf, sizeof(rbuf));
 
 	if (!res_len) {
-		LOG_ERR("[%s] mctp_pldm_read fail", __func__);
-		return false;
+		printk("[%s] mctp_pldm_read fail\n", __func__);
+		// LOG_ERR("[%s] mctp_pldm_read fail", __func__);
+		return -1;
 	}
 
 	struct _pldm_ipmi_cmd_resp *resp = (struct _pldm_ipmi_cmd_resp *)rbuf;
 
 	if ((resp->completion_code != MCTP_SUCCESS)) {
+		printk("%s Wiwynn Debug %d completion code error\n", __func__, __LINE__);
 		resp->ipmi_comp_code = CC_UNSPECIFIED_ERROR;
 	}
 
 	msg->completion_code = resp->ipmi_comp_code;
 	msg->netfn = resp->netfn_lun >> 2;
 	msg->cmd = resp->cmd;
+	printk("%s Wiwynn Debug %d completion code 0x%x\n", __func__, __LINE__, msg->completion_code);
 	// MCTP CC, Netfn, cmd, ipmi CC
 	if (res_len > 4) {
 		msg->data_len = res_len - 4;
