@@ -56,7 +56,6 @@ void main(void)
 
 	wdt_init();
 	util_init_timer();
-	util_init_I2C();
 	util_init_i3c();
 	pal_pre_init();
 	sensor_init();

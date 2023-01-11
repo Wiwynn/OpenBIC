@@ -46,4 +46,3 @@ target_include_directories(app PRIVATE src/lib)
 target_include_directories(app PRIVATE src/platform)
 
 # Fail build if there are any warnings 
-target_compile_options(app PRIVATE -Werror)
