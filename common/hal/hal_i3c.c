@@ -106,19 +106,11 @@ int i3c_smq_write(I3C_MSG *msg)
 		return -ENODEV;
 	}
 
-	int retry = 0;
-	while (true) {
-		ret = i3c_slave_mqueue_write(dev_i3c_smq[msg->bus], &msg->data[0], msg->tx_len);
-		if (ret == -EBUSY) {
-			retry++;
-			k_usleep(5 * 1000);
-			LOG_INF("Retry %d .. ", retry);
-		} else {
-			break;
-		}
+	ret = i3c_slave_mqueue_write(dev_i3c_smq[msg->bus], &msg->data[0], msg->tx_len);
+	if (ret < 0) {
+		LOG_ERR("[%s] i3c wrtie failed, ret = %d",__func__, ret);
 	}
 
-	//k_usleep(1 * 1000);
 	k_mutex_unlock(&mutex_write[msg->bus]);
 	return ret;
 }
