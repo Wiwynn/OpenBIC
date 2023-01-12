@@ -1,0 +1,26 @@
+From 39880b4b4248b9b68582864225a4b4bff35319ea Mon Sep 17 00:00:00 2001
+From: Eli_Huang <Eli_Huang@wiwynn.com>
+Date: Thu, 12 Jan 2023 10:14:26 +0800
+Subject: [PATCH] Add busy retry
+
+---
+ drivers/i3c/i3c_aspeed.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/i3c/i3c_aspeed.c b/drivers/i3c/i3c_aspeed.c
+index 4d20f93e32..3bd405ca39 100644
+--- a/drivers/i3c/i3c_aspeed.c
++++ b/drivers/i3c/i3c_aspeed.c
+@@ -1415,6 +1415,9 @@ int i3c_aspeed_slave_put_read_data(const struct device *dev, struct i3c_slave_pa
+ 	__ASSERT_NO_MSG(data->buf);
+ 	__ASSERT_NO_MSG(data->size);
+ 
++	while((i3c_register->reserved1[0] & 0xff) != 0x40) {
++                return -EBUSY;
++        }
+ 	k_sem_take(&obj->xfer_sem, K_FOREVER);
+ 	reset_ctrl.value = 0;
+ 	reset_ctrl.fields.tx_queue_reset = 1;
+-- 
+2.25.1
+
