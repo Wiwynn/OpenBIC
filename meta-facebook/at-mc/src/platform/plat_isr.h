@@ -19,4 +19,17 @@
 
 #include <stdint.h>
 
+#define CXL_IOEXP_U15_ADDR (0x44 >> 1)
+#define CXL_IOEXP_U17_ADDR (0x48 >> 1)
+#define CXL_IOEXP_MUX_CHANNEL 0x08
+
+void cxl_ioexp_alert0();
+void cxl_ioexp_alert1();
+void cxl_ioexp_alert2();
+void cxl_ioexp_alert3();
+void cxl_ioexp_alert4();
+void cxl_ioexp_alert5();
+void cxl_ioexp_alert6();
+void cxl_ioexp_alert7();
+
 #endif
