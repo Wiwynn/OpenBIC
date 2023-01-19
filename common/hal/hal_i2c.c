@@ -118,7 +118,7 @@ int i2c_master_read(I2C_MSG *msg, uint8_t retry)
 	}
 
 	if (i > retry)
-		LOG_ERR("I2C %d master read retry reach max with ret %d", msg->bus, ret);
+		LOG_ERR("I2C %d master read retry reach max with ret %d, address 0x%x", msg->bus, ret, msg->target_addr);
 
 exit:
 	SAFE_FREE(txbuf);
@@ -171,8 +171,13 @@ int i2c_master_write(I2C_MSG *msg, uint8_t retry)
 			break;
 	}
 
-	if (i > retry)
-		LOG_ERR("I2C %d master write retry reach max with ret %d", msg->bus, ret);
+	if (i > retry) {
+		LOG_ERR("I2C %d master write retry reach max with ret %d, address 0x%x", msg->bus, ret, msg->target_addr);
+		LOG_ERR("Data: ");
+		for(i = 0; i < msg->tx_len; i++)
+			LOG_ERR("0x%x ", msg->data[i]);
+		LOG_ERR("\n");
+	}
 
 exit:
 	SAFE_FREE(txbuf);

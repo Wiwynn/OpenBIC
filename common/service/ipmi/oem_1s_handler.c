@@ -455,21 +455,23 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		}
 		break;
 #endif
+		printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 #ifdef ENABLE_ISL69260
 	case COMPNT_PVCCIN:
 	case COMPNT_PVCCFA_EHV_FIVRA:
 	case COMPNT_PVCCD_HV:
 	case COMPNT_PVCCINFAON:
 	case COMPNT_PVCCFA_EHV:
+		printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 		if ((component == COMPNT_PVCCIN) || (component == COMPNT_PVCCFA_EHV_FIVRA)) {
 			i2c_msg.target_addr = PVCCIN_ADDR;
 		}
-		if (component == COMPNT_PVCCD_HV) {
-			i2c_msg.target_addr = PVCCD_HV_ADDR;
-		}
-		if ((component == COMPNT_PVCCINFAON) || (component == COMPNT_PVCCFA_EHV)) {
-			i2c_msg.target_addr = PVCCFA_EHV_ADDR;
-		}
+		// if (component == COMPNT_PVCCD_HV) {
+		// 	i2c_msg.target_addr = PVCCD_HV_ADDR;
+		// }
+		// if ((component == COMPNT_PVCCINFAON) || (component == COMPNT_PVCCFA_EHV)) {
+		// 	i2c_msg.target_addr = PVCCFA_EHV_ADDR;
+		// }
 		i2c_msg.tx_len = 1;
 		i2c_msg.rx_len = 7;
 		i2c_msg.bus = I2C_BUS5;
@@ -530,6 +532,7 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 
 		} else if (i2c_msg.data[0] == 0x02 && i2c_msg.data[2] == 0x8A) {
 			/* Infineon xdpe15284 */
+			printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 			i2c_msg.tx_len = 6;
 			i2c_msg.data[0] = 0xFD;
 			i2c_msg.data[1] = 0x04;
