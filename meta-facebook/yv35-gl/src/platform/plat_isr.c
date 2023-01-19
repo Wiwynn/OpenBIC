@@ -220,6 +220,7 @@ void PWRGD_CPU_ACTIVE_HANDLE()
 
 void ISR_BMC_PRDY()
 {
+
 	send_gpio_interrupt(H_BMC_PRDY_BUF_N);
 }
 
@@ -269,11 +270,13 @@ void ISR_PLTRST()
 
 void ISR_DBP_PRSNT()
 {
+	printf("Jeff : access ISR_DBP_PRSNT\n");
 	send_gpio_interrupt(FM_DBP_PRESENT_N);
 }
 
 void ISR_HSC_THROTTLE()
 {
+	printf("Jeff : access IRQ_SML1_PMBUS_ALERT_N\n");
 	common_addsel_msg_t sel_msg;
 	// Flag for filter out fake alert
 	static bool is_hsc_throttle_assert = false;
