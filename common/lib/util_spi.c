@@ -270,6 +270,7 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, uint8_t f
 	uint32_t ret = 0;
 	const struct device *flash_dev;
 
+	printk("%s Wiwynn Debug %d\n", __func__, __LINE__);
 	if (!is_init) {
 		SAFE_FREE(txbuf);
 		txbuf = (uint8_t *)malloc(SECTOR_SZ_64K);
@@ -317,6 +318,7 @@ uint8_t fw_update(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, uint8_t f
 		flash_dev = device_get_binding(flash_device_list[flash_position].name);
 		if (!flash_device_list[flash_position].isinit) {
 			uint8_t rc = 0;
+			printk("%s Wiwynn Debug %d - reinit\n", __func__, __LINE__);
 			rc = spi_nor_re_init(flash_dev);
 			if (rc != 0) {
 				return rc;
