@@ -23,11 +23,12 @@
 #include "power_status.h"
 #include "plat_class.h"
 #include "plat_i2c.h"
+#include "plat_isr.h"
 #include "plat_ipmi.h"
 #include "plat_power_seq.h"
 #include "plat_sensor_table.h"
 
-LOG_MODULE_DECLARE(plat_ipmi);
+LOG_MODULE_REGISTER(plat_ipmi);
 
 uint8_t get_add_sel_target_interface()
 {
@@ -135,6 +136,28 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 	default:
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		break;
+	}
+	return;
+}
+
+void OEM_1S_PRE_POWER_OFF_CONTROL(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 0) {
+		msg->data_len = 0;
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	if (gpio_get(FM_EXP_MAIN_PWR_EN) == GPIO_HIGH) {
+		abort_power_thread();
+		init_power_off_thread();
+		msg->completion_code = CC_SUCCESS;
+	} else {
+		LOG_ERR("Already power off");
+		msg->data_len = 0;
+		msg->completion_code = CC_INVALID_LENGTH;
 	}
 	return;
 }
