@@ -9,5 +9,6 @@ vw_gpio plat_vw_gpio_cfg[] = {
 
 bool pal_load_vw_gpio_config(void)
 {
-	return vw_gpio_init(plat_vw_gpio_cfg, ARRAY_SIZE(plat_vw_gpio_cfg));
+	// return vw_gpio_init(plat_vw_gpio_cfg, ARRAY_SIZE(plat_vw_gpio_cfg));
+	return true;
 };

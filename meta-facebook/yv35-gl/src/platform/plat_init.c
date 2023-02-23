@@ -49,7 +49,7 @@ SCU_CFG scu_cfg[] = {
 void pal_pre_init()
 {
 	init_platform_config();
-	scu_init(scu_cfg, ARRAY_SIZE(scu_cfg));
+	// scu_init(scu_cfg, ARRAY_SIZE(scu_cfg));
 	if (!pal_load_vw_gpio_config()) {
 		printk("failed to initialize vw gpio\n");
 	}
