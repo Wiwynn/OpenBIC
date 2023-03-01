@@ -35,18 +35,43 @@ typedef struct _cxl_work_info {
 	bool is_init;
 	uint8_t cxl_card_id;
 	uint8_t cxl_channel;
+	bool is_device_reset;
 	struct k_work_delayable set_eid_work;
 } cxl_work_info;
 
 cxl_work_info cxl_work_item[] = {
-	{ .is_init = false, .cxl_card_id = CXL_CARD_1, .cxl_channel = PCA9848_CHANNEL_0 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_2, .cxl_channel = PCA9848_CHANNEL_1 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_3, .cxl_channel = PCA9848_CHANNEL_2 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_4, .cxl_channel = PCA9848_CHANNEL_3 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_5, .cxl_channel = PCA9848_CHANNEL_4 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_6, .cxl_channel = PCA9848_CHANNEL_5 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_7, .cxl_channel = PCA9848_CHANNEL_6 },
-	{ .is_init = false, .cxl_card_id = CXL_CARD_8, .cxl_channel = PCA9848_CHANNEL_7 },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_1,
+	  .cxl_channel = PCA9848_CHANNEL_0,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_2,
+	  .cxl_channel = PCA9848_CHANNEL_1,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_3,
+	  .cxl_channel = PCA9848_CHANNEL_2,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_4,
+	  .cxl_channel = PCA9848_CHANNEL_3,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_5,
+	  .cxl_channel = PCA9848_CHANNEL_4,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_6,
+	  .cxl_channel = PCA9848_CHANNEL_5,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_7,
+	  .cxl_channel = PCA9848_CHANNEL_6,
+	  .is_device_reset = false },
+	{ .is_init = false,
+	  .cxl_card_id = CXL_CARD_8,
+	  .cxl_channel = PCA9848_CHANNEL_7,
+	  .is_device_reset = false },
 };
 
 LOG_MODULE_REGISTER(plat_isr);
@@ -275,7 +300,6 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 void check_ioexp_status(uint8_t cxl_card_id)
 {
 	int ret = 0;
-	static bool is_device_reset = false;
 	uint8_t retry = 5;
 	uint8_t u17_input_port0_status = 0;
 	uint8_t u17_input_port1_status = 0;
@@ -316,13 +340,13 @@ void check_ioexp_status(uint8_t cxl_card_id)
 	if ((u17_input_port0_status & CXL_IOEXP_CONTROLLER_PWRGD_VAL) ==
 		    CXL_IOEXP_CONTROLLER_PWRGD_VAL &&
 	    (u17_input_port1_status & CXL_IOEXP_DIMM_PWRGD_VAL) == CXL_IOEXP_DIMM_PWRGD_VAL) {
-		if (is_device_reset != true) {
+		if (cxl_work_item[cxl_card_id].is_device_reset != true) {
 			ret = cxl_device_reset();
 			if (ret != 0) {
 				LOG_ERR("CXL device reset fail");
 			}
 
-			is_device_reset = true;
+			cxl_work_item[cxl_card_id].is_device_reset = true;
 		}
 	}
 
@@ -382,12 +406,16 @@ void cxl_ioexp_alert(cxl_work_info cxl_info)
 
 void ISR_NORMAL_PWRGD()
 {
+	uint8_t index = 0;
 	set_DC_status(MEB_NORMAL_PWRGD_BIC);
 
 	if (gpio_get(MEB_NORMAL_PWRGD_BIC) == HIGH_INACTIVE) {
-		uint8_t index = 0;
 		for (index = 0; index < CXL_CARD_8; ++index) {
 			set_cxl_eid_flag(index, CLEAR_EID_FLAG);
+		}
+	} else {
+		for (index = 0; index < ARRAY_SIZE(cxl_work_item); ++index) {
+			cxl_work_item[index].is_device_reset = false;
 		}
 	}
 }
