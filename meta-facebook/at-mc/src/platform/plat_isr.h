@@ -32,6 +32,7 @@
 #define CXL_IOEXP_DIMM_PWRGD_VAL 0x07
 #define CXL_IOEXP_BUTTON_PRESS_DELAY_MS 1
 
+#define CXL_MUTEX_LOCK_INTERVAL_MS 1500
 #define CXL_CONTROLLER_MUX_CHANNEL 0x01
 #define CXL_DRIVE_READY_DELAY_MS 3000
 
@@ -52,6 +53,7 @@ void ISR_CXL_IOEXP_ALERT5();
 void ISR_CXL_IOEXP_ALERT6();
 void ISR_CXL_IOEXP_ALERT7();
 
-void init_cxl_set_eid_work();
+void init_cxl_work();
+void cxl_ioexp_alert_handler(struct k_work *work_item);
 
 #endif

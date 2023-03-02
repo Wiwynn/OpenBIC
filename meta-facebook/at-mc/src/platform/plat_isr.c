@@ -36,6 +36,7 @@ typedef struct _cxl_work_info {
 	uint8_t cxl_card_id;
 	uint8_t cxl_channel;
 	bool is_device_reset;
+	struct k_work_delayable device_reset_work;
 	struct k_work_delayable set_eid_work;
 } cxl_work_info;
 
@@ -123,13 +124,15 @@ void cxl_set_eid_work_handler(struct k_work *work_item)
 	k_mutex_unlock(meb_mutex);
 }
 
-void init_cxl_set_eid_work()
+void init_cxl_work()
 {
 	uint8_t index = 0;
 	for (index = 0; index < ARRAY_SIZE(cxl_work_item); ++index) {
 		if (cxl_work_item[index].is_init != true) {
 			k_work_init_delayable(&(cxl_work_item[index].set_eid_work),
 					      cxl_set_eid_work_handler);
+			k_work_init_delayable(&(cxl_work_item[index].device_reset_work),
+					      cxl_ioexp_alert_handler);
 			cxl_work_item[index].is_init = true;
 		}
 	}
@@ -356,15 +359,19 @@ void check_ioexp_status(uint8_t cxl_card_id)
 	}
 }
 
-void cxl_ioexp_alert(cxl_work_info cxl_info)
+void cxl_ioexp_alert_handler(struct k_work *work_item)
 {
 	bool ret = false;
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
+	cxl_work_info *cxl_info = CONTAINER_OF(dwork, cxl_work_info, device_reset_work);
+
+	k_msleep(12);
 
 	/** MEB mux for cxl channels **/
 	mux_config meb_mux = { 0 };
 	meb_mux.bus = MEB_CXL_BUS;
 	meb_mux.target_addr = CXL_FRU_MUX0_ADDR;
-	meb_mux.channel = cxl_info.cxl_channel;
+	meb_mux.channel = cxl_info->cxl_channel;
 
 	/** CXL mux for sensor channels **/
 	mux_config cxl_mux = { 0 };
@@ -375,7 +382,7 @@ void cxl_ioexp_alert(cxl_work_info cxl_info)
 	struct k_mutex *meb_mutex = get_i2c_mux_mutex(meb_mux.bus);
 
 	/** Mutex lock bus **/
-	if (k_mutex_lock(meb_mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS))) {
+	if (k_mutex_lock(meb_mutex, K_MSEC(CXL_MUTEX_LOCK_INTERVAL_MS))) {
 		LOG_ERR("mutex locked failed bus%u", meb_mux.bus);
 		return;
 	}
@@ -394,7 +401,7 @@ void cxl_ioexp_alert(cxl_work_info cxl_info)
 	}
 
 	/** Check io expander **/
-	check_ioexp_status(cxl_info.cxl_card_id);
+	check_ioexp_status(cxl_info->cxl_card_id);
 
 	/** Initial ioexp U14 and U16 **/
 	cxl_single_ioexp_init(IOEXP_U14);
@@ -422,40 +429,40 @@ void ISR_NORMAL_PWRGD()
 
 void ISR_CXL_IOEXP_ALERT0()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_1]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_1].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT1()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_2]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_2].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT2()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_3]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_3].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT3()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_4]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_4].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT4()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_5]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_5].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT5()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_6]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_6].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT6()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_7]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_7].device_reset_work, K_NO_WAIT);
 }
 
 void ISR_CXL_IOEXP_ALERT7()
 {
-	cxl_ioexp_alert(cxl_work_item[CXL_CARD_8]);
+	k_work_schedule(&cxl_work_item[CXL_CARD_8].device_reset_work, K_NO_WAIT);
 }
