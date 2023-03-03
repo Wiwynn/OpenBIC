@@ -36,6 +36,7 @@
 #include "plat_mctp.h"
 #include "plat_hook.h"
 #include "plat_class.h"
+#include "hal_gpio.h"
 
 LOG_MODULE_REGISTER(plat_dev);
 
@@ -969,6 +970,10 @@ int cxl_ioexp_init(uint8_t cxl_channel)
 	cxl_single_ioexp_config_init(IOEXP_U15);
 	cxl_single_ioexp_config_init(IOEXP_U16);
 	cxl_single_ioexp_config_init(IOEXP_U17);
+
+	if (check_cxl_power_status() == CXL_NOT_ALL_POWER_GOOD) {
+		set_cxl_device_reset_pin(HIGH_INACTIVE);
+	}
 
 	/** mutex unlock bus **/
 	k_mutex_unlock(meb_mutex);

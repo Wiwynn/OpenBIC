@@ -138,10 +138,11 @@ void init_cxl_work()
 	}
 }
 
-int cxl_device_reset()
+int set_cxl_device_reset_pin(uint8_t val)
 {
 	int ret = 0;
 	uint8_t retry = 5;
+	uint8_t set_val = 0;
 	I2C_MSG msg = { 0 };
 
 	/** Read cxl U15 ioexp output port status **/
@@ -157,57 +158,82 @@ int cxl_device_reset()
 		return -1;
 	}
 
-	/** Button press high **/
-	uint8_t button_press_high = msg.data[0] | CXL_IOEXP_DEV_RESET_BIT;
-	uint8_t button_press_low = msg.data[0] & (~CXL_IOEXP_DEV_RESET_BIT);
-
-	memset(&msg, 0, sizeof(I2C_MSG));
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U15_ADDR;
-	msg.tx_len = 2;
-	msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
-	msg.data[1] = button_press_high;
-
-	ret = i2c_master_write(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp to press button high bus: %u addr: 0x%02x", msg.bus,
-			msg.target_addr);
+	switch (val) {
+	case HIGH_ACTIVE:
+		set_val = msg.data[0] | CXL_IOEXP_DEV_RESET_BIT;
+		break;
+	case HIGH_INACTIVE:
+		set_val = msg.data[0] & (~CXL_IOEXP_DEV_RESET_BIT);
+		break;
+	default:
+		LOG_ERR("Invalid set device reset pin val: 0x%x", val);
 		return -1;
 	}
 
-	/** Button press low **/
 	memset(&msg, 0, sizeof(I2C_MSG));
 	msg.bus = MEB_CXL_BUS;
 	msg.target_addr = CXL_IOEXP_U15_ADDR;
 	msg.tx_len = 2;
 	msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
-	msg.data[1] = button_press_low;
+	msg.data[1] = set_val;
 
 	ret = i2c_master_write(&msg, retry);
 	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp to press button low bus: %u addr: 0x%02x", msg.bus,
-			msg.target_addr);
-		return -1;
-	}
-
-	k_msleep(CXL_IOEXP_BUTTON_PRESS_DELAY_MS);
-
-	/** Button press high **/
-	memset(&msg, 0, sizeof(I2C_MSG));
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U15_ADDR;
-	msg.tx_len = 2;
-	msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
-	msg.data[1] = button_press_high;
-
-	ret = i2c_master_write(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp to press button high  bus: %u addr: 0x%02x", msg.bus,
-			msg.target_addr);
+		LOG_ERR("Unable to write ioexp to val: 0x%x, bus: %u, addr: 0x%02x", set_val,
+			msg.bus, msg.target_addr);
 		return -1;
 	}
 
 	return 0;
+}
+
+int check_cxl_power_status()
+{
+	int ret = 0;
+	uint8_t retry = 5;
+	uint8_t u17_input_port0_status = 0;
+	uint8_t u17_input_port1_status = 0;
+	I2C_MSG msg = { 0 };
+
+	/** Read cxl U17 ioexp input port0 status **/
+	msg.bus = MEB_CXL_BUS;
+	msg.target_addr = CXL_IOEXP_U17_ADDR;
+	msg.rx_len = 1;
+	msg.tx_len = 1;
+	msg.data[0] = TCA9555_INPUT_PORT_REG_0;
+
+	ret = i2c_master_read(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		return -1;
+	}
+
+	u17_input_port0_status = msg.data[0];
+
+	/** Read cxl U17 ioexp input port1 status **/
+	memset(&msg, 0, sizeof(I2C_MSG));
+	msg.bus = MEB_CXL_BUS;
+	msg.target_addr = CXL_IOEXP_U17_ADDR;
+	msg.rx_len = 1;
+	msg.tx_len = 1;
+	msg.data[0] = TCA9555_INPUT_PORT_REG_1;
+
+	ret = i2c_master_read(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		return -1;
+	}
+
+	u17_input_port1_status = msg.data[0];
+
+	/** Check CXL controller power good **/
+	if ((u17_input_port0_status & CXL_IOEXP_CONTROLLER_PWRGD_VAL) ==
+		    CXL_IOEXP_CONTROLLER_PWRGD_VAL &&
+	    (u17_input_port1_status & CXL_IOEXP_DIMM_PWRGD_VAL) == CXL_IOEXP_DIMM_PWRGD_VAL) {
+		return CXL_ALL_POWER_GOOD;
+	} else {
+		return CXL_NOT_ALL_POWER_GOOD;
+	}
 }
 
 int cxl_pe_reset_control(uint8_t cxl_card_id)
@@ -303,54 +329,30 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 void check_ioexp_status(uint8_t cxl_card_id)
 {
 	int ret = 0;
-	uint8_t retry = 5;
-	uint8_t u17_input_port0_status = 0;
-	uint8_t u17_input_port1_status = 0;
-	I2C_MSG msg = { 0 };
 
-	/** Read cxl U17 ioexp input port0 status **/
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U17_ADDR;
-	msg.rx_len = 1;
-	msg.tx_len = 1;
-	msg.data[0] = TCA9555_INPUT_PORT_REG_0;
-
-	ret = i2c_master_read(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
-		return;
-	}
-
-	u17_input_port0_status = msg.data[0];
-
-	/** Read cxl U17 ioexp input port1 status **/
-	memset(&msg, 0, sizeof(I2C_MSG));
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U17_ADDR;
-	msg.rx_len = 1;
-	msg.tx_len = 1;
-	msg.data[0] = TCA9555_INPUT_PORT_REG_1;
-
-	ret = i2c_master_read(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
-		return;
-	}
-
-	u17_input_port1_status = msg.data[0];
+	k_msleep(12);
 
 	/** Check CXL controller power good **/
-	if ((u17_input_port0_status & CXL_IOEXP_CONTROLLER_PWRGD_VAL) ==
-		    CXL_IOEXP_CONTROLLER_PWRGD_VAL &&
-	    (u17_input_port1_status & CXL_IOEXP_DIMM_PWRGD_VAL) == CXL_IOEXP_DIMM_PWRGD_VAL) {
+	ret = check_cxl_power_status();
+	if (ret < 0) {
+		LOG_ERR("Check CXL controller power fail");
+		return;
+	}
+
+	if (ret == CXL_ALL_POWER_GOOD) {
 		if (cxl_work_item[cxl_card_id].is_device_reset != true) {
-			ret = cxl_device_reset();
+			k_msleep(CXL_IOEXP_BUTTON_PRESS_DELAY_MS);
+
+			ret = set_cxl_device_reset_pin(HIGH_ACTIVE);
 			if (ret != 0) {
 				LOG_ERR("CXL device reset fail");
 			}
 
 			cxl_work_item[cxl_card_id].is_device_reset = true;
 		}
+	} else {
+		set_cxl_device_reset_pin(HIGH_INACTIVE);
+		cxl_work_item[cxl_card_id].is_device_reset = false;
 	}
 
 	ret = cxl_pe_reset_control(cxl_card_id);
@@ -364,8 +366,6 @@ void cxl_ioexp_alert_handler(struct k_work *work_item)
 	bool ret = false;
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	cxl_work_info *cxl_info = CONTAINER_OF(dwork, cxl_work_info, device_reset_work);
-
-	k_msleep(12);
 
 	/** MEB mux for cxl channels **/
 	mux_config meb_mux = { 0 };
