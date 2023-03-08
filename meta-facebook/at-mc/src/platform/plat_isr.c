@@ -31,15 +31,8 @@
 #include "hal_gpio.h"
 #include "util_worker.h"
 
-typedef struct _cxl_work_info {
-	bool is_init;
-	uint8_t cxl_card_id;
-	uint8_t cxl_channel;
-	bool is_device_reset;
-	bool is_pe_reset;
-	struct k_work_delayable device_reset_work;
-	struct k_work_delayable set_eid_work;
-} cxl_work_info;
+uint8_t device_reset_count[MAX_CXL_SLOT];
+uint8_t pcie_reset_count[MAX_CXL_SLOT];
 
 cxl_work_info cxl_work_item[] = {
 	{ .is_init = false,
@@ -323,6 +316,14 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 		LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
 		return -1;
 	} else {
+		if (mb_reset_status & (cxl_work_item[cxl_card_id].is_pe_reset != true)) {
+			if (pcie_reset_count[cxl_card_id] < 255) {
+				pcie_reset_count[cxl_card_id] += 1;
+			} else {
+				/** overflow **/
+				pcie_reset_count[cxl_card_id] = 0;
+			}
+		}
 		cxl_work_item[cxl_card_id].is_pe_reset = (mb_reset_status ? true : false);
 	}
 
@@ -348,6 +349,13 @@ void check_ioexp_status(uint8_t cxl_card_id)
 				cxl_work_item[cxl_card_id].is_device_reset = true;
 			} else {
 				LOG_ERR("CXL device reset fail");
+			}
+
+			if (device_reset_count[cxl_card_id] < 255) {
+				device_reset_count[cxl_card_id] += 1;
+			} else {
+				/** overflow **/
+				device_reset_count[cxl_card_id] = 0;
 			}
 		}
 	} else {
