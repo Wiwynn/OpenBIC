@@ -317,6 +317,9 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 		}
 	}
 
+	LOG_INF("[%s] cxl: 0x%x, mb_status: 0x%x, output_status: 0x%x, write: 0x%x", __func__,
+		cxl_card_id, mb_reset_status, u15_output_status, msg.data[1]);
+
 	ret = i2c_master_write(&msg, retry);
 	if (ret != 0) {
 		LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
@@ -343,6 +346,7 @@ void check_ioexp_status(uint8_t cxl_card_id)
 		if (cxl_work_item[cxl_card_id].is_device_reset != true) {
 			k_msleep(CXL_IOEXP_BUTTON_PRESS_DELAY_MS);
 
+			LOG_INF("[%s] cxl: 0x%x, do device reset", __func__, cxl_card_id);
 			ret = set_cxl_device_reset_pin(HIGH_ACTIVE);
 			if (ret != 0) {
 				LOG_ERR("CXL device reset fail");
@@ -367,6 +371,8 @@ void cxl_ioexp_alert_handler(struct k_work *work_item)
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	cxl_work_info *cxl_info = CONTAINER_OF(dwork, cxl_work_info, device_reset_work);
 
+	LOG_INF("[%s] cxl: 0x%x", __func__, cxl_info->cxl_card_id);
+
 	/** MEB mux for cxl channels **/
 	mux_config meb_mux = { 0 };
 	meb_mux.bus = MEB_CXL_BUS;
@@ -383,7 +389,7 @@ void cxl_ioexp_alert_handler(struct k_work *work_item)
 
 	/** Mutex lock bus **/
 	if (k_mutex_lock(meb_mutex, K_MSEC(CXL_MUTEX_LOCK_INTERVAL_MS))) {
-		LOG_ERR("mutex locked failed bus%u", meb_mux.bus);
+		LOG_ERR("mutex locked failed bus%u, id: 0x%x", meb_mux.bus, cxl_info->cxl_card_id);
 		return;
 	}
 
