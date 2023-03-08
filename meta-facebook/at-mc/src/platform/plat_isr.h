@@ -33,6 +33,7 @@
 #define CXL_IOEXP_BUTTON_PRESS_DELAY_MS 1
 #define CXL_NOT_ALL_POWER_GOOD 0
 #define CXL_ALL_POWER_GOOD 1
+#define MAX_CXL_SLOT 8
 
 #define CXL_MUTEX_LOCK_INTERVAL_MS 1500
 #define CXL_CONTROLLER_MUX_CHANNEL 0x01
@@ -44,6 +45,9 @@ enum IOEXP_NAME {
 	IOEXP_U16,
 	IOEXP_U17,
 };
+
+extern uint8_t device_reset_count[MAX_CXL_SLOT];
+extern uint8_t pcie_reset_count[MAX_CXL_SLOT];
 
 void ISR_NORMAL_PWRGD();
 void ISR_CXL_IOEXP_ALERT0();
