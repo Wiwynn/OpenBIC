@@ -151,7 +151,7 @@ void gpio_cb_irq_init(uint8_t gpio_num, gpio_flags_t flags)
 	k_work_init(&gpio_work[gpio_num], gpio_cfg[gpio_num].int_cb);
 }
 
-uint8_t gpio_conf(uint8_t gpio_num, int dir)
+int gpio_conf(uint8_t gpio_num, int dir)
 {
 	return gpio_pin_configure(dev_gpio[gpio_num / GPIO_GROUP_SIZE],
 				  (gpio_num % GPIO_GROUP_SIZE), dir);
@@ -181,7 +181,7 @@ int gpio_get(uint8_t gpio_num)
 {
 	if (gpio_num >= TOTAL_GPIO_NUM) {
 		LOG_ERR("Value unavailable for invalid gpio number %d", gpio_num);
-		return false;
+		return -EINVAL;
 	}
 
 	return gpio_pin_get(dev_gpio[gpio_num / GPIO_GROUP_SIZE], (gpio_num % GPIO_GROUP_SIZE));
@@ -191,7 +191,7 @@ int gpio_set(uint8_t gpio_num, uint8_t status)
 {
 	if (gpio_num >= TOTAL_GPIO_NUM) {
 		LOG_ERR("Unable to set invalid gpio number %d", gpio_num);
-		return false;
+		return -EINVAL;
 	}
 
 	uint8_t gpio_group = gpio_num / GPIO_GROUP_SIZE;

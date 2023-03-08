@@ -81,7 +81,7 @@ bool get_post_status()
 
 void set_CPU_power_status(uint8_t gpio_num)
 {
-	is_CPU_power_good = gpio_get(gpio_num);
+	is_CPU_power_good = (gpio_get(gpio_num) == GPIO_HIGH) ? true : false;
 	LOG_WRN("CPU_PWR_GOOD: %s", (is_CPU_power_good) ? "yes" : "no");
 }
 

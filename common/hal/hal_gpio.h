@@ -116,7 +116,7 @@ enum GPIO_STATUS {
 	HIGH_INACTIVE = GPIO_LOW,
 };
 
-extern char * gpio_name[];
+extern char *gpio_name[];
 
 extern uint8_t gpio_ind_to_num_table[];
 extern uint8_t gpio_ind_to_num_table_cnt;
@@ -134,7 +134,7 @@ bool pal_load_gpio_config(void);
 int gpio_init(const struct device *args);
 int gpio_interrupt_conf(uint8_t, gpio_flags_t);
 uint8_t gpio_get_reg_value(uint8_t gpio_num, uint8_t reg_offset);
-uint8_t gpio_conf(uint8_t gpio_num, int dir);
+int gpio_conf(uint8_t gpio_num, int dir);
 int gpio_get_direction(uint8_t gpio_num);
 void scu_init(SCU_CFG cfg[], size_t size);
 
