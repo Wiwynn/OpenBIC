@@ -31,6 +31,9 @@
 #include "hal_gpio.h"
 #include "util_worker.h"
 
+uint8_t device_reset_count[MAX_CXL_SLOT];
+uint8_t pcie_reset_count[MAX_CXL_SLOT];
+
 typedef struct _cxl_work_info {
 	bool is_init;
 	uint8_t cxl_card_id;
@@ -347,7 +350,13 @@ void check_ioexp_status(uint8_t cxl_card_id)
 			if (ret != 0) {
 				LOG_ERR("CXL device reset fail");
 			}
-
+ 
+			if (device_reset_count[cxl_card_id] < 255) {
+				device_reset_count[cxl_card_id] += 1;
+			} else {
+				/** overflow **/
+				device_reset_count[cxl_card_id] = 0;
+			}
 			cxl_work_item[cxl_card_id].is_device_reset = true;
 		}
 	} else {
@@ -358,6 +367,12 @@ void check_ioexp_status(uint8_t cxl_card_id)
 	ret = cxl_pe_reset_control(cxl_card_id);
 	if (ret != 0) {
 		LOG_ERR("CXL pr-reset control fail");
+	}
+	if (device_reset_count[cxl_card_id] < 255) {
+		pcie_reset_count[cxl_card_id] += 1;
+	} else {
+		/** overflow **/
+		pcie_reset_count[cxl_card_id] = 0;
 	}
 }
 

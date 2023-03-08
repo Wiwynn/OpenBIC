@@ -31,6 +31,7 @@
 #include "plat_class.h"
 #include "plat_hook.h"
 #include "plat_dev.h"
+#include "plat_isr.h"
 #include "cci.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
@@ -529,6 +530,86 @@ void OEM_1S_GET_PCIE_CARD_SENSOR_READING(ipmi_msg *msg)
 	msg->data_len = 5;
 	msg->data[0] = device_status;
 	memcpy(&msg->data[1], &reading, sizeof(reading));
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void OEM_1S_GET_CXL_RESET_COUNT(ipmi_msg *msg)
+{
+	/**
+	 * IPMI command format
+	 * Request:
+	 * Byte 0: Action
+	 * 		0h: Get count values
+	 * 		1h: Clear counts to zero
+	 * Byte 1: Reset Type
+	 * 		0h: Device Reset (Low and High +1 for meaning active once)
+	 * 		1h: PCIe Reset Control (Low or High +1 once toggled)
+	 * Response:
+	 * Byte 0-7: CXL1-CXL8 counts data when byte-0 is 0h; No data when byte-0 is 1h
+	 * 
+	 */
+
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 2) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	switch(msg->data[0]) {
+	case CXL_GET_COUNT:
+		switch(msg->data[1]) {
+		case CXL_DEVICE_RESET_COUNT:
+			msg->data_len = 8;
+			msg->data[0] = device_reset_count[6];
+			msg->data[1] = device_reset_count[7];
+			msg->data[2] = device_reset_count[4];
+			msg->data[3] = device_reset_count[5];
+			msg->data[4] = device_reset_count[3];
+			msg->data[5] = device_reset_count[2];
+			msg->data[6] = device_reset_count[1];
+			msg->data[7] = device_reset_count[0];
+			break;
+		case CXL_PCIE_RESET_COUNT:
+			msg->data_len = 8;
+			msg->data[0] = pcie_reset_count[6];
+			msg->data[1] = pcie_reset_count[7];
+			msg->data[2] = pcie_reset_count[4];
+			msg->data[3] = pcie_reset_count[5];
+			msg->data[4] = pcie_reset_count[3];
+			msg->data[5] = pcie_reset_count[2];
+			msg->data[6] = pcie_reset_count[1];
+			msg->data[7] = pcie_reset_count[0];
+			break;
+		default:
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+		break;
+
+
+	case CXL_CLEAR_COUNT:
+		switch(msg->data[1]) {
+		case CXL_DEVICE_RESET_COUNT:
+			msg->data_len = 0;
+			memset(&device_reset_count[0], 0, sizeof(device_reset_count));
+			break;
+		case CXL_PCIE_RESET_COUNT:
+			msg->data_len = 0;
+			memset(&pcie_reset_count[0], 0, sizeof(pcie_reset_count));
+			break;
+		default:
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+		break;
+
+	default:
+		msg->completion_code = CC_INVALID_PARAM;
+		return;
+	}
+
 	msg->completion_code = CC_SUCCESS;
 	return;
 }
