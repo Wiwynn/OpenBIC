@@ -65,7 +65,7 @@ int pal_write_read_cxl_fru(uint8_t optional, uint8_t fru_id, EEPROM_ENTRY *fru_e
 		return -1;
 	}
 
-	ret = set_mux_channel(cxl_mux);
+	ret = set_mux_channel(cxl_mux, true);
 	if (ret == false) {
 		LOG_ERR("Switch mux channel fail");
 		k_mutex_unlock(mutex);
@@ -81,7 +81,7 @@ int pal_write_read_cxl_fru(uint8_t optional, uint8_t fru_id, EEPROM_ENTRY *fru_e
 	/* Disable mux channel */
 	cxl_mux.channel = 0;
 
-	ret = set_mux_channel(cxl_mux);
+	ret = set_mux_channel(cxl_mux, true);
 	if (ret == false) {
 		LOG_ERR("Disable mux channel fail");
 	}
@@ -143,7 +143,7 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 		return -1;
 	}
 
-	for (retry = 0; retry < 3; ++retry) {
+	for (retry = 0; retry < 5; ++retry) {
 		*reading = 0;
 
 		if (cfg->access_checker(parameter) != true) {
@@ -155,7 +155,7 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 		if (ret != true) {
 			LOG_ERR("Pre switch mux fail, sensor num: 0x%x, card id: 0x%x", sensor_num,
 				pcie_card_id);
-			return -1;
+			continue;
 		}
 
 		if (cfg->pre_sensor_read_hook) {
@@ -163,13 +163,16 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 			    false) {
 				LOG_ERR("Pre sensor read function, sensor number: 0x%x",
 					sensor_num);
-				return -1;
+				post_switch_mux_func(sensor_num, pcie_card_id);
+				continue;
 			}
 		}
 
 		ret = pal_sensor_drive_read(pcie_card_id, cfg, reading, &sensor_status);
 		if (ret != true) {
 			LOG_ERR("sensor: 0x%x read fail", sensor_num);
+			post_switch_mux_func(sensor_num, pcie_card_id);
+			continue;
 		}
 
 		if (cfg->post_sensor_read_hook) {
@@ -177,6 +180,8 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 						       reading) == false) {
 				LOG_ERR("Post sensor read function, sensor number: 0x%x",
 					sensor_num);
+				post_switch_mux_func(sensor_num, pcie_card_id);
+				continue;
 			}
 		}
 

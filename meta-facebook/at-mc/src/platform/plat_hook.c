@@ -26,6 +26,7 @@
 #include "i2c-mux-pca984x.h"
 #include "plat_sensor_table.h"
 #include "ltc2991.h"
+#include "plat_class.h"
 #include "plat_i2c.h"
 #include "plat_ipmi.h"
 
@@ -226,7 +227,7 @@ bool pre_nvme_read(uint8_t sensor_num, void *args)
 		return false;
 	}
 
-	ret = set_mux_channel(*pre_args);
+	ret = set_mux_channel(*pre_args, true);
 	return ret;
 }
 
@@ -268,7 +269,7 @@ bool pre_sq52205_read(uint8_t sensor_num, void *args)
 		return false;
 	}
 
-	ret = set_mux_channel(*pre_args);
+	ret = set_mux_channel(*pre_args, true);
 	return ret;
 }
 
@@ -309,7 +310,7 @@ bool pre_e1s_switch_mux(uint8_t sensor_num, uint8_t card_id)
 		return false;
 	}
 
-	ret = set_mux_channel(e1s_mux);
+	ret = set_mux_channel(e1s_mux, true);
 	if (ret != true) {
 		LOG_ERR("Switch e1s mux fail");
 		k_mutex_unlock(mutex);
@@ -357,7 +358,7 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t card_id)
 	}
 
 	// Switch card mux
-	ret = set_mux_channel(card_mux);
+	ret = set_mux_channel(card_mux, true);
 	if (ret != true) {
 		LOG_ERR("Switch card mux fail");
 		k_mutex_unlock(mutex);
@@ -365,7 +366,7 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t card_id)
 	}
 
 	// Switch cxl mux
-	ret = set_mux_channel(cxl_mux);
+	ret = set_mux_channel(cxl_mux, true);
 	if (ret != true) {
 		LOG_ERR("Switch cxl mux fail");
 		k_mutex_unlock(mutex);
@@ -380,11 +381,13 @@ bool post_cxl_switch_mux(uint8_t sensor_num, uint8_t card_id)
 	int unlock_status = 0;
 	struct k_mutex *mutex = get_i2c_mux_mutex(MEB_CXL_BUS);
 	unlock_status = k_mutex_unlock(mutex);
-	if (unlock_status != 0) {
+
+	//-EINVAL – The mutex is not locked
+	if ((unlock_status != 0) && (unlock_status != -EINVAL)) {
 		LOG_ERR("Mutex unlock fail, status: %d", unlock_status);
 		return false;
 	}
-
+	
 	return true;
 }
 
