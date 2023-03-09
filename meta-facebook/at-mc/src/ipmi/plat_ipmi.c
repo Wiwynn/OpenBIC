@@ -155,7 +155,7 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 		if (ret != true) {
 			LOG_ERR("Pre switch mux fail, sensor num: 0x%x, card id: 0x%x", sensor_num,
 				pcie_card_id);
-			return -1;
+			continue;
 		}
 
 		if (cfg->pre_sensor_read_hook) {
@@ -163,13 +163,16 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 			    false) {
 				LOG_ERR("Pre sensor read function, sensor number: 0x%x",
 					sensor_num);
-				return -1;
+				post_switch_mux_func(sensor_num, pcie_card_id);
+				continue;
 			}
 		}
 
 		ret = pal_sensor_drive_read(cfg, reading, &sensor_status);
 		if (ret != true) {
 			LOG_ERR("sensor: 0x%x read fail", sensor_num);
+			post_switch_mux_func(sensor_num, pcie_card_id);
+			continue;
 		}
 
 		if (cfg->post_sensor_read_hook) {
@@ -177,6 +180,8 @@ int pal_get_pcie_card_sensor_reading(uint8_t read_type, uint8_t sensor_num, uint
 						       reading) == false) {
 				LOG_ERR("Post sensor read function, sensor number: 0x%x",
 					sensor_num);
+				post_switch_mux_func(sensor_num, pcie_card_id);
+				continue;
 			}
 		}
 

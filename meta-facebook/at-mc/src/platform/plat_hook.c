@@ -308,11 +308,13 @@ bool post_cxl_switch_mux(uint8_t sensor_num, uint8_t card_id)
 	int unlock_status = 0;
 	struct k_mutex *mutex = get_i2c_mux_mutex(MEB_CXL_BUS);
 	unlock_status = k_mutex_unlock(mutex);
-	if (unlock_status != 0) {
+
+	//-EINVAL – The mutex is not locked
+	if ((unlock_status != 0) && (unlock_status != -EINVAL)) {
 		LOG_ERR("Mutex unlock fail, status: %d", unlock_status);
 		return false;
 	}
-
+	
 	return true;
 }
 
