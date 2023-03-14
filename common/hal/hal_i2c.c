@@ -117,8 +117,8 @@ int i2c_master_read(I2C_MSG *msg, uint8_t retry)
 		}
 	}
 
-	if (i > retry)
-		LOG_ERR("I2C %d master read retry reach max with ret %d", msg->bus, ret);
+	//if (i > retry)
+		//LOG_ERR("I2C %d master read retry reach max with ret %d", msg->bus, ret);
 
 exit:
 	SAFE_FREE(txbuf);
