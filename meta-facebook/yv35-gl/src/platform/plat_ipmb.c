@@ -25,7 +25,7 @@
 IPMB_config pal_IPMB_config_table[] = {
 	// index, interface, channel, bus, channel_target_address, enable_status, self_address,
 	// rx_thread_name, tx_thread_name
-	{ BMC_IPMB_IDX, I2C_IF, BMC_IPMB, IPMB_I2C_BMC, BMC_I2C_ADDRESS, ENABLE, SELF_I2C_ADDRESS,
+	{ BMC_IPMB_IDX, I2C_IF, BMC_IPMB, IPMB_I2C_BMC, BMC_I2C_ADDRESS, DISABLE, SELF_I2C_ADDRESS,
 	  "RX_BMC_IPMB_TASK", "TX_BMC_IPMB_TASK" },
 	{ RESERVED_IDX, RESERVED_IF, RESERVED, RESERVED_BUS, RESERVED_ADDRESS, DISABLE,
 	  RESERVED_ADDRESS, "RESERVED_ATTR", "RESERVED_ATTR" },
@@ -36,3 +36,13 @@ bool pal_load_ipmb_config(void)
 	memcpy(&IPMB_config_table[0], &pal_IPMB_config_table[0], sizeof(pal_IPMB_config_table));
 	return true;
 };
+
+bool pal_is_interface_use_ipmb(uint8_t interface_index)
+{
+	switch (interface_index) {
+	case BMC_IPMB_IDX:
+		return false;
+	}
+	return true;
+}
+

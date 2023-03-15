@@ -30,21 +30,26 @@
 #include "plat_gpio.h"
 #include "plat_ipmb.h"
 #include "plat_sensor_table.h"
+#include "plat_mctp.h"
 
 LOG_MODULE_REGISTER(plat_isr);
 
 void send_gpio_interrupt(uint8_t gpio_num)
 {
-	ipmb_error status;
-	ipmi_msg msg;
-	uint8_t gpio_val;
+	// ipmb_error status;
+	// ipmi_msg msg;
+	// uint8_t gpio_val;
+	ipmi_msg msg = { 0 };
+	uint8_t gpio_val = gpio_get(gpio_num);
+	int ret = 0;
 
-	gpio_val = gpio_get(gpio_num);
+	// gpio_val = gpio_get(gpio_num);
 	LOG_INF("Send gpio interrupt to BMC, gpio number(%d) status(%d)\n", gpio_num, gpio_val);
 
 	msg.data_len = 5;
 	msg.InF_source = SELF;
-	msg.InF_target = BMC_IPMB;
+	// msg.InF_target = BMC_IPMB;
+	msg.InF_target = MCTP;
 	msg.netfn = NETFN_OEM_1S_REQ;
 	msg.cmd = CMD_OEM_1S_SEND_INTERRUPT_TO_BMC;
 
@@ -54,10 +59,15 @@ void send_gpio_interrupt(uint8_t gpio_num)
 	msg.data[3] = gpio_num;
 	msg.data[4] = gpio_val;
 
-	status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
-	if (status != IPMB_ERROR_SUCCESS) {
-		LOG_ERR("Failed to send GPIO interrupt event to BMC, gpio number(%d) status(%d)",
-			gpio_num, status);
+	// status = ipmb_read(&msg, IPMB_inf_index_map[msg.InF_target]);
+	// if (status != IPMB_ERROR_SUCCESS) {
+	// 	LOG_ERR("Failed to send GPIO interrupt event to BMC, gpio number(%d) status(%d)",
+	// 		gpio_num, status);
+	// }
+	ret = pldm_send_ipmi_request(&msg);
+	if (ret < 0) {
+		LOG_ERR("Failed to send GPIO interrupt event to BMC, gpio number(%d) ret(%d)",
+			gpio_num, ret);
 	}
 }
 
@@ -65,14 +75,16 @@ static void SLP3_handler()
 {
 	common_addsel_msg_t sel_msg;
 	if (gpio_get(PWRGD_CPU_LVC3) == GPIO_LOW) {
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_VRWATCHDOG;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("VR watchdog timeout addsel fail");
 		}
 	}
@@ -112,14 +124,16 @@ void Set_DC_status()
 		if ((gpio_get(PWRGD_CPU_LVC3) == GPIO_HIGH) &&
 		    (gpio_get(PWRGD_AUX_PWRGD_BMC_LVC3) == GPIO_HIGH)) {
 			common_addsel_msg_t sel_msg;
-			sel_msg.InF_target = BMC_IPMB;
+			// sel_msg.InF_target = BMC_IPMB;
+			sel_msg.InF_target = MCTP;
 			sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_OEM_C3;
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 			sel_msg.sensor_number = SENSOR_NUM_POWER_ERROR;
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_PWROK_FAIL;
 			sel_msg.event_data2 = 0xFF;
 			sel_msg.event_data3 = 0xFF;
-			if (!common_add_sel_evt_record(&sel_msg)) {
+			// if (!common_add_sel_evt_record(&sel_msg)) {
+			if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 				LOG_ERR("System PWROK failure addsel fail");
 			}
 		}
@@ -134,14 +148,16 @@ static void PROC_FAIL_handler(struct k_work *work)
 		bool ret = false;
 
 		memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.sensor_number = SENSOR_NUM_PROC_FAIL;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.event_data1 = IPMI_EVENT_OFFSET_PROCESSOR_FRB3;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		ret = common_add_sel_evt_record(&sel_msg);
+		// ret = common_add_sel_evt_record(&sel_msg);
+		ret = mctp_add_sel_to_ipmi(&sel_msg);
 		if (!ret) {
 			LOG_ERR("Fail to assert FRB3 event log.");
 		}
@@ -192,7 +208,8 @@ static void CAT_ERR_handler(struct k_work *work)
 		bool ret = false;
 
 		memset(&sel_msg, 0, sizeof(common_addsel_msg_t));
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.sensor_number = SENSOR_NUM_CATERR;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
@@ -204,7 +221,8 @@ static void CAT_ERR_handler(struct k_work *work)
 		}
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		ret = common_add_sel_evt_record(&sel_msg);
+		// ret = common_add_sel_evt_record(&sel_msg);
+		ret = mctp_add_sel_to_ipmi(&sel_msg);
 		if (!ret) {
 			LOG_ERR("Fail to assert CatErr event log.");
 		}
@@ -255,13 +273,15 @@ void ISR_HSC_THROTTLE()
 				return;
 			}
 
-			sel_msg.InF_target = BMC_IPMB;
+			// sel_msg.InF_target = BMC_IPMB;
+			sel_msg.InF_target = MCTP;
 			sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 			sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_PMBUSALERT;
 			sel_msg.event_data2 = 0xFF;
 			sel_msg.event_data3 = 0xFF;
-			if (!common_add_sel_evt_record(&sel_msg)) {
+			// if (!common_add_sel_evt_record(&sel_msg)) {
+			if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 				LOG_ERR("HSC Throttle addsel fail");
 			}
 		}
@@ -284,13 +304,15 @@ static void mb_throttle_handler(struct k_work *work)
 			is_mb_throttle_assert = true;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_FIRMWAREASSERT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("MB Throttle addsel fail");
 		}
 	}
@@ -320,13 +342,15 @@ void ISR_SOC_THMALTRIP()
 			sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_MEMORY_THERMALTRIP;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			if (sel_msg.event_data1 == IPMI_OEM_EVENT_OFFSET_SYS_THERMAL_TRIP) {
 				LOG_ERR("Failed to add SOC Thermal trip SEL");
 			} else {
@@ -347,13 +371,15 @@ void ISR_SYS_THROTTLE()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_THROTTLE;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("Failed to add system Throttle SEL");
 		}
 	}
@@ -369,13 +395,15 @@ void ISR_HSC_OC()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_SYS_STA;
 		sel_msg.sensor_number = SENSOR_NUM_SYSTEM_STATUS;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_SYS_HSCTIMER;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("Failed to add HSC OC SEL");
 		}
 	}
@@ -392,13 +420,15 @@ void ISR_CPU_MEMHOT()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_CPU_DIMM_HOT;
 		sel_msg.sensor_number = SENSOR_NUM_CPUDIMM_HOT;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_DIMM_HOT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("Failed to add CPU MEM HOT SEL");
 		}
 	}
@@ -416,13 +446,15 @@ void ISR_CPUVR_HOT()
 			sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		}
 
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_OEM_SENSOR_TYPE_CPU_DIMM_VR_HOT;
 		sel_msg.sensor_number = SENSOR_NUM_VR_HOT;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_CPU_VR_HOT;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("Failed to add CPU VR HOT SEL\n");
 		}
 	}
@@ -432,14 +464,16 @@ void ISR_RMCA()
 {
 	if ((gpio_get(RST_PLTRST_BUF_N) == GPIO_LOW) || (gpio_get(PWRGD_CPU_LVC3) == GPIO_HIGH)) {
 		common_addsel_msg_t sel_msg;
-		sel_msg.InF_target = BMC_IPMB;
+		// sel_msg.InF_target = BMC_IPMB;
+		sel_msg.InF_target = MCTP;
 		sel_msg.sensor_type = IPMI_SENSOR_TYPE_PROCESSOR;
 		sel_msg.event_type = IPMI_EVENT_TYPE_SENSOR_SPECIFIC;
 		sel_msg.sensor_number = SENSOR_NUM_CATERR;
 		sel_msg.event_data1 = IPMI_OEM_EVENT_OFFSET_MEM_RMCA;
 		sel_msg.event_data2 = 0xFF;
 		sel_msg.event_data3 = 0xFF;
-		if (!common_add_sel_evt_record(&sel_msg)) {
+		// if (!common_add_sel_evt_record(&sel_msg)) {
+		if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 			LOG_ERR("Failed to add RMCA SEL");
 		}
 	}
@@ -452,7 +486,8 @@ void ISR_POST_COMPLETE(uint8_t gpio_value)
 
 	// Add "END_OF_POST" event log to BMC
 	common_addsel_msg_t sel_msg;
-	sel_msg.InF_target = BMC_IPMB;
+	// sel_msg.InF_target = BMC_IPMB;
+	sel_msg.InF_target = MCTP;
 	sel_msg.sensor_type = IPMI_SENSOR_TYPE_SYS_EVENT;
 	sel_msg.event_type =
 		is_post_completed ? IPMI_EVENT_TYPE_SENSOR_SPECIFIC : IPMI_OEM_EVENT_TYPE_DEASSERT;
@@ -460,7 +495,8 @@ void ISR_POST_COMPLETE(uint8_t gpio_value)
 	sel_msg.event_data1 = IPMI_EVENT_OEM_SYSTEM_BOOT_EVENT;
 	sel_msg.event_data2 = 0xFF;
 	sel_msg.event_data3 = 0xFF;
-	if (!common_add_sel_evt_record(&sel_msg)) {
+	// if (!common_add_sel_evt_record(&sel_msg)) {
+	if (!mctp_add_sel_to_ipmi(&sel_msg)) {
 		LOG_ERR("failed to add end_of_post sel");
 	}
 }

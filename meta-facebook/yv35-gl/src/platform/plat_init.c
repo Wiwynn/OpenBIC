@@ -22,8 +22,15 @@
 #include "plat_gpio.h"
 #include "plat_kcs.h"
 
+#include "plat_mctp.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "hal_i3c.h"
+#include "libutil.h"
+#include "mctp_ctrl.h"
+
 /*
- * The operating voltage of GPIO input pins are lower than actual voltage because the chip 
+ * The operating voltage of GPIO input pins are lower than actual voltage because the chip
  * internal pull-down is enabled.
  * BIC disables the internal GPIO pull-down for all input pins.
  *
@@ -57,6 +64,7 @@ void pal_pre_init()
 
 void pal_post_init()
 {
+	plat_mctp_init();
 	kcs_init();
 }
 

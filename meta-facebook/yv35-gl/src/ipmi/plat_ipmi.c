@@ -25,6 +25,9 @@
 #include "plat_ipmb.h"
 #include <logging/log.h>
 
+#include "pldm.h"
+#include "plat_mctp.h"
+
 LOG_MODULE_REGISTER(plat_ipmi);
 
 void OEM_1S_GET_CARD_TYPE(ipmi_msg *msg)
