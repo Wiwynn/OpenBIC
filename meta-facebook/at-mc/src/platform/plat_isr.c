@@ -318,7 +318,7 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 		msg.data[1] = u15_output_status & (~CXL_IOEXP_ASIC_PERESET_BIT);
 	}
 
-	LOG_INF("[%s] cxl: 0x%x, mb_status: 0x%x, output_status: 0x%x, write: 0x%x", __func__,
+	LOG_WRN("[%s] cxl: 0x%x, mb_status: 0x%x, output_status: 0x%x, write: 0x%x", __func__,
 		cxl_card_id, mb_reset_status, u15_output_status, msg.data[1]);
 
 	ret = i2c_master_write(&msg, retry);
@@ -345,7 +345,7 @@ void check_ioexp_status(uint8_t cxl_card_id)
 
 	if (ret == CXL_ALL_POWER_GOOD) {
 		if (cxl_work_item[cxl_card_id].is_device_reset != true) {
-			LOG_INF("[%s] cxl: 0x%x, do device reset", __func__, cxl_card_id);
+			LOG_WRN("[%s] cxl: 0x%x, do device reset", __func__, cxl_card_id);
 			ret = set_cxl_device_reset_pin(HIGH_ACTIVE);
 			if (ret != 0) {
 				LOG_ERR("CXL device reset fail");
