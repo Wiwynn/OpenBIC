@@ -797,10 +797,10 @@ void *get_pcie_init_sensor_config(uint8_t card_id, uint8_t sensor_number)
 		offset = (offset * cxl_id) + 1;
 		return &ina233_init_args[offset];
 	case CXL_U8_LTC2991_ADDR:
-		offset = (offset * card_id) + 0;
+		offset = (offset * cxl_id) + 0;
 		return &ltc2991_init_args[offset];
 	case CXL_U9_LTC2991_ADDR:
-		offset = (offset * card_id) + 1;
+		offset = (offset * cxl_id) + 1;
 		return &ltc2991_init_args[offset];
 		break;
 	default:
