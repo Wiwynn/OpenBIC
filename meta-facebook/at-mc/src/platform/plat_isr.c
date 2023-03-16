@@ -242,6 +242,7 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 {
 	int ret = 0;
 	uint8_t retry = 5;
+	uint8_t index;
 	uint8_t mb_reset_status = 0;
 	uint8_t u15_output_status = 0;
 	I2C_MSG msg = { 0 };
@@ -275,56 +276,77 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 		return -1;
 	}
 
-	/** Read cxl U15 ioexp output port status **/
-	memset(&msg, 0, sizeof(I2C_MSG));
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U15_ADDR;
-	msg.rx_len = 1;
-	msg.tx_len = 1;
-	msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
 
-	ret = i2c_master_read(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
-		return -1;
-	}
+	/** MEB mux for cxl channels **/
+	mux_config meb_mux = { 0 };
+	meb_mux.bus = MEB_CXL_BUS;
+	meb_mux.target_addr = CXL_FRU_MUX0_ADDR;
 
-	u15_output_status = msg.data[0];
-
-	/** Set asic pe-reset status to MB reset status **/
-	memset(&msg, 0, sizeof(I2C_MSG));
-	msg.bus = MEB_CXL_BUS;
-	msg.target_addr = CXL_IOEXP_U15_ADDR;
-	msg.tx_len = 2;
-	msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
-	if (mb_reset_status) {
-		msg.data[1] = u15_output_status | CXL_IOEXP_ASIC_PERESET_BIT;
-		if (cxl_work_item[cxl_card_id].is_pe_reset != true) {
-			k_work_schedule_for_queue(&plat_work_q,
-						  &cxl_work_item[cxl_card_id].set_eid_work,
-						  K_MSEC(CXL_DRIVE_READY_DELAY_MS));
+	for (index = 0; index < 8; index++) {
+		/** Enable mux channel **/
+		meb_mux.channel = BIT(index);
+		ret = set_mux_channel(meb_mux);
+		if (ret == false) {
+			return -1;
 		}
-	} else {
-		msg.data[1] = u15_output_status & (~CXL_IOEXP_ASIC_PERESET_BIT);
-	}
 
-	LOG_INF("[%s] cxl: 0x%x, mb_status: 0x%x, output_status: 0x%x, write: 0x%x", __func__,
-		cxl_card_id, mb_reset_status, u15_output_status, msg.data[1]);
+		/** Read cxl U15 ioexp output port status **/
+		memset(&msg, 0, sizeof(I2C_MSG));
+		msg.bus = MEB_CXL_BUS;
+		msg.target_addr = CXL_IOEXP_U15_ADDR;
+		msg.rx_len = 1;
+		msg.tx_len = 1;
+		msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
 
-	ret = i2c_master_write(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
-		return -1;
-	} else {
-		if (mb_reset_status & (cxl_work_item[cxl_card_id].is_pe_reset != true)) {
-			if (pcie_reset_count[cxl_card_id] < 255) {
-				pcie_reset_count[cxl_card_id] += 1;
-			} else {
-				/** overflow **/
-				pcie_reset_count[cxl_card_id] = 0;
+		ret = i2c_master_read(&msg, retry);
+		if (ret != 0) {
+			LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+			return -1;
+		}
+
+		u15_output_status = msg.data[0];
+
+		/** Set asic pe-reset status to MB reset status **/
+		memset(&msg, 0, sizeof(I2C_MSG));
+		msg.bus = MEB_CXL_BUS;
+		msg.target_addr = CXL_IOEXP_U15_ADDR;
+		msg.tx_len = 2;
+		msg.data[0] = TCA9555_OUTPUT_PORT_REG_0;
+		if (mb_reset_status) {
+			msg.data[1] = u15_output_status | CXL_IOEXP_ASIC_PERESET_BIT;
+			if (cxl_work_item[index].is_pe_reset != true) {
+				k_work_schedule_for_queue(&plat_work_q,
+							  &cxl_work_item[index].set_eid_work,
+							  K_MSEC(CXL_DRIVE_READY_DELAY_MS));
 			}
+		} else {
+			msg.data[1] = u15_output_status & (~CXL_IOEXP_ASIC_PERESET_BIT);
 		}
-		cxl_work_item[cxl_card_id].is_pe_reset = (mb_reset_status ? true : false);
+
+		LOG_INF("[%s] cxl: 0x%x, mb_status: 0x%x, output_status: 0x%x, write: 0x%x", __func__,
+			index, mb_reset_status, u15_output_status, msg.data[1]);
+
+		ret = i2c_master_write(&msg, retry);
+		if (ret != 0) {
+			LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+			return -1;
+		} else {
+			if (mb_reset_status & (cxl_work_item[index].is_pe_reset != true)) {
+				if (pcie_reset_count[index] < 255) {
+					pcie_reset_count[index] += 1;
+				} else {
+					/** overflow **/
+					pcie_reset_count[index] = 0;
+				}
+			}
+			cxl_work_item[index].is_pe_reset = (mb_reset_status ? true : false);
+		}
+	}
+
+	meb_mux.channel = BIT(cxl_card_id);
+	ret = set_mux_channel(meb_mux);
+	if (ret == false) {
+		return -1;
 	}
 
 	return 0;
