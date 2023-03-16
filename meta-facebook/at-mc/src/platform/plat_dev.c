@@ -76,32 +76,32 @@ pm8702_dev_info pm8702_table[] = {
 	{ .is_init = false }, { .is_init = false }, { .is_init = false }, { .is_init = false },
 };
 
-bool pal_sensor_drive_init(sensor_cfg *cfg, uint8_t *init_status)
+bool pal_sensor_drive_init(uint8_t card_id, sensor_cfg *cfg, uint8_t *init_status)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
 	CHECK_NULL_ARG_WITH_RETURN(init_status, false);
 
 	switch (cfg->type) {
 	case sensor_dev_tmp75:
-		*init_status = pal_tmp75_init(cfg);
+		*init_status = pal_tmp75_init(card_id, cfg);
 		break;
 	case sensor_dev_emc1412:
-		*init_status = pal_emc1412_init(cfg);
+		*init_status = pal_emc1412_init(card_id, cfg);
 		break;
 	case sensor_dev_nvme:
-		*init_status = pal_nvme_init(cfg);
+		*init_status = pal_nvme_init(card_id, cfg);
 		break;
 	case sensor_dev_ina233:
-		*init_status = pal_ina233_init(cfg);
+		*init_status = pal_ina233_init(card_id, cfg);
 		break;
 	case sensor_dev_ltc2991:
-		*init_status = pal_ltc2991_init(cfg);
+		*init_status = pal_ltc2991_init(card_id, cfg);
 		break;
 	case sensor_dev_xdpe12284c:
-		*init_status = pal_xdpe12284c_init(cfg);
+		*init_status = pal_xdpe12284c_init(card_id, cfg);
 		break;
 	case sensor_dev_pm8702:
-		*init_status = pal_pm8702_init(cfg);
+		*init_status = pal_pm8702_init(card_id, cfg);
 		break;
 	default:
 		LOG_ERR("Invalid initial drive type: 0x%x", cfg->type);
@@ -111,7 +111,7 @@ bool pal_sensor_drive_init(sensor_cfg *cfg, uint8_t *init_status)
 	return true;
 }
 
-bool pal_sensor_drive_read(sensor_cfg *cfg, int *reading, uint8_t *sensor_status)
+bool pal_sensor_drive_read(uint8_t card_id, sensor_cfg *cfg, int *reading, uint8_t *sensor_status)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
 	CHECK_NULL_ARG_WITH_RETURN(reading, false);
@@ -119,25 +119,25 @@ bool pal_sensor_drive_read(sensor_cfg *cfg, int *reading, uint8_t *sensor_status
 
 	switch (cfg->type) {
 	case sensor_dev_tmp75:
-		*sensor_status = pal_tmp75_read(cfg, reading);
+		*sensor_status = pal_tmp75_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_emc1412:
-		*sensor_status = pal_emc1412_read(cfg, reading);
+		*sensor_status = pal_emc1412_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_nvme:
-		*sensor_status = pal_nvme_read(cfg, reading);
+		*sensor_status = pal_nvme_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_ina233:
-		*sensor_status = pal_ina233_read(cfg, reading);
+		*sensor_status = pal_ina233_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_ltc2991:
-		*sensor_status = pal_ltc2991_read(cfg, reading);
+		*sensor_status = pal_ltc2991_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_xdpe12284c:
-		*sensor_status = pal_xdpe12284c_read(cfg, reading);
+		*sensor_status = pal_xdpe12284c_read(card_id, cfg, reading);
 		break;
 	case sensor_dev_pm8702:
-		*sensor_status = pal_pm8702_read(cfg, reading);
+		*sensor_status = pal_pm8702_read(card_id, cfg, reading);
 		break;
 	default:
 		LOG_ERR("Invalid reading drive type: 0x%x", cfg->type);
@@ -187,7 +187,7 @@ float pal_vid_to_float(int val, uint8_t vout_mode)
 	return 0;
 }
 
-uint8_t pal_tmp75_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_tmp75_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -219,7 +219,7 @@ uint8_t pal_tmp75_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_tmp75_init(sensor_cfg *cfg)
+uint8_t pal_tmp75_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -230,7 +230,7 @@ uint8_t pal_tmp75_init(sensor_cfg *cfg)
 	return SENSOR_INIT_SUCCESS;
 }
 
-uint8_t pal_emc1412_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_emc1412_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -289,7 +289,7 @@ uint8_t pal_emc1412_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_emc1412_init(sensor_cfg *cfg)
+uint8_t pal_emc1412_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -300,7 +300,7 @@ uint8_t pal_emc1412_init(sensor_cfg *cfg)
 	return SENSOR_INIT_SUCCESS;
 }
 
-uint8_t pal_nvme_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_nvme_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -353,7 +353,7 @@ uint8_t pal_nvme_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_nvme_init(sensor_cfg *cfg)
+uint8_t pal_nvme_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -364,7 +364,7 @@ uint8_t pal_nvme_init(sensor_cfg *cfg)
 	return SENSOR_INIT_SUCCESS;
 }
 
-uint8_t pal_ina233_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_ina233_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -374,10 +374,12 @@ uint8_t pal_ina233_read(sensor_cfg *cfg, int *reading)
 		return SENSOR_UNSPECIFIED_ERROR;
 	}
 
-	ina233_init_arg *init_arg = (ina233_init_arg *)cfg->init_args;
-	if (init_arg == NULL) {
-		LOG_ERR("input initial pointer is NULL");
-		return SENSOR_INIT_UNSPECIFIED_ERROR;
+	ina233_init_arg *init_arg = NULL;
+	if (cfg->init_args == NULL) {
+		init_arg = get_pcie_init_sensor_config(card_id, cfg->num);
+		CHECK_NULL_ARG_WITH_RETURN(init_arg, SENSOR_UNSPECIFIED_ERROR);
+	} else {
+		init_arg = cfg->init_args;
 	}
 
 	if (init_arg->is_init != true) {
@@ -435,7 +437,7 @@ uint8_t pal_ina233_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_ina233_init(sensor_cfg *cfg)
+uint8_t pal_ina233_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -443,11 +445,14 @@ uint8_t pal_ina233_init(sensor_cfg *cfg)
 		return SENSOR_INIT_UNSPECIFIED_ERROR;
 	}
 
-	ina233_init_arg *init_arg = (ina233_init_arg *)cfg->init_args;
-	if (init_arg == NULL) {
-		LOG_ERR("input initial pointer is NULL");
-		return SENSOR_INIT_UNSPECIFIED_ERROR;
+	ina233_init_arg *init_arg = NULL;
+	if (cfg->init_args == NULL) {
+		init_arg = get_pcie_init_sensor_config(card_id, cfg->num);
+		CHECK_NULL_ARG_WITH_RETURN(init_arg, SENSOR_UNSPECIFIED_ERROR);
+	} else {
+		init_arg = cfg->init_args;
 	}
+
 	if (init_arg->is_init != true) {
 		int ret = 0, retry = 5;
 		uint16_t calibration = 0;
@@ -473,7 +478,7 @@ uint8_t pal_ina233_init(sensor_cfg *cfg)
 	return SENSOR_INIT_SUCCESS;
 }
 
-uint8_t pal_ltc2991_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_ltc2991_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -574,7 +579,7 @@ uint8_t pal_ltc2991_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_ltc2991_init(sensor_cfg *cfg)
+uint8_t pal_ltc2991_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -582,10 +587,12 @@ uint8_t pal_ltc2991_init(sensor_cfg *cfg)
 		return SENSOR_INIT_UNSPECIFIED_ERROR;
 	}
 
-	ltc2991_init_arg *init_arg = (ltc2991_init_arg *)cfg->init_args;
-	if (init_arg == NULL) {
-		LOG_ERR("input initial pointer is NULL");
-		return SENSOR_INIT_UNSPECIFIED_ERROR;
+	ltc2991_init_arg *init_arg = NULL;
+	if (cfg->init_args == NULL) {
+		init_arg = get_pcie_init_sensor_config(card_id, cfg->num);
+		CHECK_NULL_ARG_WITH_RETURN(init_arg, SENSOR_UNSPECIFIED_ERROR);
+	} else {
+		init_arg = cfg->init_args;
 	}
 
 	if (init_arg->is_init != true) {
@@ -662,7 +669,7 @@ uint8_t pal_ltc2991_init(sensor_cfg *cfg)
 	return SENSOR_INIT_SUCCESS;
 }
 
-uint8_t pal_xdpe12284c_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_xdpe12284c_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -723,7 +730,7 @@ uint8_t pal_xdpe12284c_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_xdpe12284c_init(sensor_cfg *cfg)
+uint8_t pal_xdpe12284c_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
@@ -981,7 +988,7 @@ int cxl_ioexp_init(uint8_t cxl_channel)
 	return 0;
 }
 
-uint8_t pal_pm8702_read(sensor_cfg *cfg, int *reading)
+uint8_t pal_pm8702_read(uint8_t card_id, sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(reading, SENSOR_UNSPECIFIED_ERROR);
@@ -1023,7 +1030,7 @@ uint8_t pal_pm8702_read(sensor_cfg *cfg, int *reading)
 	return SENSOR_READ_SUCCESS;
 }
 
-uint8_t pal_pm8702_init(sensor_cfg *cfg)
+uint8_t pal_pm8702_init(uint8_t card_id, sensor_cfg *cfg)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_INIT_UNSPECIFIED_ERROR);
 
