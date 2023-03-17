@@ -43,3 +43,25 @@ bool set_mux_channel(mux_config mux_cfg)
 
 	return true;
 }
+
+uint8_t get_mux_channel(mux_config mux_cfg)
+{
+        int status = 0;
+        int retry = 5;
+
+        /* Get channel */
+        I2C_MSG mux_msg = { 0 };
+        mux_msg.bus = mux_cfg.bus;
+        mux_msg.target_addr = mux_cfg.target_addr;
+        mux_msg.rx_len = 1;
+
+        status = i2c_master_read(&mux_msg, retry);
+        if (status != 0) {
+                LOG_ERR("set channel fail, status: %d, bus: %d, addr: 0x%x", status, mux_cfg.bus,
+                        mux_cfg.target_addr);
+                return false;
+        }
+	
+        return mux_msg.data[0];
+}
+

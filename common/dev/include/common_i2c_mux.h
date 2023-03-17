@@ -27,5 +27,6 @@ typedef struct _mux_config {
 } mux_config;
 
 bool set_mux_channel(mux_config mux_cfg);
+uint8_t get_mux_channel(mux_config mux_cfg);
 
 #endif

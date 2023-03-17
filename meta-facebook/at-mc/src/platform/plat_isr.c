@@ -364,6 +364,8 @@ void check_ioexp_status(uint8_t cxl_card_id)
 void cxl_ioexp_alert_handler(struct k_work *work_item)
 {
 	bool ret = false;
+	uint8_t meb_mux_status = 0;
+	uint8_t cxl_mux_status = 0;
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	cxl_work_info *cxl_info = CONTAINER_OF(dwork, cxl_work_info, device_reset_work);
 
@@ -381,24 +383,18 @@ void cxl_ioexp_alert_handler(struct k_work *work_item)
 	cxl_mux.target_addr = CXL_FRU_MUX1_ADDR;
 	cxl_mux.channel = CXL_IOEXP_MUX_CHANNEL;
 
-	struct k_mutex *meb_mutex = get_i2c_mux_mutex(meb_mux.bus);
-
-	/** Mutex lock bus **/
-	if (k_mutex_lock(meb_mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS))) {
-		LOG_ERR("mutex locked failed bus%u, id: 0x%x", meb_mux.bus, cxl_info->cxl_card_id);
-		return;
-	}
-
+	 /** Store previous mux channel **/
+	meb_mux_status = get_mux_channel(meb_mux);
+	cxl_mux_status = get_mux_channel(cxl_mux);
+	
 	/** Enable mux channel **/
 	ret = set_mux_channel(meb_mux);
 	if (ret == false) {
-		k_mutex_unlock(meb_mutex);
 		return;
 	}
 
 	ret = set_mux_channel(cxl_mux);
 	if (ret == false) {
-		k_mutex_unlock(meb_mutex);
 		return;
 	}
 
@@ -407,9 +403,19 @@ void cxl_ioexp_alert_handler(struct k_work *work_item)
 
 	/** Initial ioexp U14 **/
 	cxl_single_ioexp_init(IOEXP_U14);
+	
+	/** Set to previous mux channel **/
+	meb_mux.channel = meb_mux_status;
+	cxl_mux.channel = cxl_mux_status;
+	ret = set_mux_channel(meb_mux);
+        if (ret == false) {
+                return;
+        }
 
-	/** mutex unlock bus **/
-	k_mutex_unlock(meb_mutex);
+        ret = set_mux_channel(cxl_mux);
+        if (ret == false) {
+                return;
+        }
 }
 
 void ISR_NORMAL_PWRGD()
