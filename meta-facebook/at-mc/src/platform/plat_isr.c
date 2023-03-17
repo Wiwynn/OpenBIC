@@ -247,6 +247,13 @@ int cxl_pe_reset_control(uint8_t cxl_card_id)
 	uint8_t u15_output_status = 0;
 	I2C_MSG msg = { 0 };
 
+	/** switch MUX2 **/
+	mux_config cxl_mux = { 0 };
+	cxl_mux.bus = MEB_CXL_BUS;
+	cxl_mux.target_addr = CXL_FRU_MUX1_ADDR;
+	cxl_mux.channel = CXL_IOEXP_MUX_CHANNEL;
+	set_mux_channel(cxl_mux);
+
 	/** Read cxl U15 ioexp input port0 status **/
 	msg.bus = MEB_CXL_BUS;
 	msg.target_addr = CXL_IOEXP_U15_ADDR;
@@ -385,10 +392,13 @@ void check_ioexp_status(uint8_t cxl_card_id)
 		cxl_work_item[cxl_card_id].is_device_reset = false;
 	}
 
-	ret = cxl_pe_reset_control(cxl_card_id);
-	if (ret != 0) {
-		LOG_ERR("CXL pr-reset control fail");
+	if (cxl_card_id == 1) {
+		ret = cxl_pe_reset_control(cxl_card_id);
+		if (ret != 0) {
+			LOG_ERR("CXL pr-reset control fail");
+		}
 	}
+	
 }
 
 void cxl_ioexp_alert_handler(struct k_work *work_item)
