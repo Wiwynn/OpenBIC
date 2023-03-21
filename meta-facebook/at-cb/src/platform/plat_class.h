@@ -68,6 +68,21 @@ enum PCIE_DEVICE_ID {
 	PCIE_DEVICE_ID3,
 };
 
+enum ACCL_CARD_ID {
+	ACCL_CARD_1,
+	ACCL_CARD_2,
+	ACCL_CARD_3,
+	ACCL_CARD_4,
+	ACCL_CARD_5,
+	ACCL_CARD_6,
+	ACCL_CARD_7,
+	ACCL_CARD_8,
+	ACCL_CARD_9,
+	ACCL_CARD_10,
+	ACCL_CARD_11,
+	ACCL_CARD_12,
+};
+
 struct ASIC_CARD_INFO {
 	uint8_t bus;
 	uint8_t mux_addr;

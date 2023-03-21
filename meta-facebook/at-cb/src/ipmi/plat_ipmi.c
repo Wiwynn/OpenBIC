@@ -33,6 +33,7 @@
 #include "plat_gpio.h"
 #include "plat_hook.h"
 #include "plat_dev.h"
+#include "fru.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -46,6 +47,62 @@ struct SWITCH_MUX_INFO pcie_switch_mux_info[PEX_MAX_NUMBER] = {
 		.sw_to_flash_value = GPIO_HIGH,
 		.bic_to_flash_value = GPIO_LOW },
 };
+
+int pal_write_read_accl_fru(uint8_t optional, uint8_t fru_id, EEPROM_ENTRY *fru_entry,
+			    uint8_t *status)
+{
+	CHECK_NULL_ARG_WITH_RETURN(fru_entry, -1);
+	CHECK_NULL_ARG_WITH_RETURN(status, -1);
+
+	bool ret = 0;
+	uint8_t card_id = 0;
+	mux_config accl_mux = { 0 };
+
+	if (optional != ACCL_FRU_WRITE && optional != ACCL_FRU_READ) {
+		LOG_ERR("ACCL fru optional is invalid, optional: %d", optional);
+		return -1;
+	}
+
+	ret = pal_accl_fru_id_map_card_id(fru_id, &card_id);
+	if (ret != true) {
+		LOG_ERR("Invalid fru id: 0x%x to card id", fru_id);
+		return -1;
+	}
+
+	ret = get_accl_mux_config(card_id, &accl_mux);
+	if (ret != true) {
+		LOG_ERR("Invalid card id: 0x%x to get accl mux config", card_id);
+		return -1;
+	}
+
+	struct k_mutex *mutex = get_i2c_mux_mutex(accl_mux.bus);
+	int mutex_status = k_mutex_lock(mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS));
+	if (mutex_status != 0) {
+		LOG_ERR("Mutex lock fail, status: %d", mutex_status);
+		return -1;
+	}
+
+	/* Switch mux channel */
+	ret = set_mux_channel(accl_mux);
+	if (ret == false) {
+		LOG_ERR("Switch accl mux channel fail");
+		k_mutex_unlock(mutex);
+		return -1;
+	}
+
+	if (optional == ACCL_FRU_WRITE) {
+		*status = FRU_write(fru_entry);
+	} else {
+		*status = FRU_read(fru_entry);
+	}
+
+	mutex_status = k_mutex_unlock(mutex);
+	if (mutex_status != 0) {
+		LOG_ERR("Mutex unlock fail, status: %d", mutex_status);
+	}
+
+	return 0;
+}
 
 void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 {
@@ -444,5 +501,121 @@ void OEM_1S_GET_PCIE_CARD_SENSOR_READING(ipmi_msg *msg)
 	msg->data[0] = device_status;
 	memcpy(&msg->data[1], &reading, sizeof(reading));
 	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void STORAGE_READ_FRUID_DATA(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	int ret = -1;
+	uint8_t status = 0;
+	EEPROM_ENTRY fru_entry;
+
+	if (msg->data_len != 4) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	fru_entry.config.dev_id = msg->data[0];
+	fru_entry.offset = (msg->data[2] << 8) | msg->data[1];
+	fru_entry.data_len = msg->data[3];
+
+	// According to IPMI, messages are limited to 32 bytes
+	if (fru_entry.data_len > 32) {
+		msg->completion_code = CC_LENGTH_EXCEEDED;
+		return;
+	}
+
+	if ((fru_entry.config.dev_id == CB_FRU_ID) || (fru_entry.config.dev_id == FIO_FRU_ID)) {
+		status = FRU_read(&fru_entry);
+	} else {
+		ret = pal_write_read_accl_fru(ACCL_FRU_READ, fru_entry.config.dev_id, &fru_entry,
+					      &status);
+		if (ret != 0) {
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+	}
+
+	msg->data_len = fru_entry.data_len + 1;
+	msg->data[0] = fru_entry.data_len;
+	memcpy(&msg->data[1], &fru_entry.data[0], fru_entry.data_len);
+
+	switch (status) {
+	case FRU_READ_SUCCESS:
+		msg->completion_code = CC_SUCCESS;
+		break;
+	case FRU_INVALID_ID:
+		msg->completion_code = CC_INVALID_PARAM;
+		break;
+	case FRU_OUT_OF_RANGE:
+		msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+		break;
+	case FRU_FAIL_TO_ACCESS:
+		msg->completion_code = CC_FRU_DEV_BUSY;
+		break;
+	default:
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		break;
+	}
+
+	return;
+}
+
+void STORAGE_WRITE_FRUID_DATA(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	int ret = -1;
+	uint8_t status;
+	EEPROM_ENTRY fru_entry;
+
+	if (msg->data_len < 4) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	fru_entry.config.dev_id = msg->data[0];
+	fru_entry.offset = (msg->data[2] << 8) | msg->data[1];
+	fru_entry.data_len = msg->data_len - 3; // skip id and offset
+	if (fru_entry.data_len > 32) { // According to IPMI, messages are limited to 32 bytes
+		msg->completion_code = CC_LENGTH_EXCEEDED;
+		return;
+	}
+	memcpy(&fru_entry.data[0], &msg->data[3], fru_entry.data_len);
+
+	msg->data[0] = msg->data_len - 3;
+	msg->data_len = 1;
+
+	if ((fru_entry.config.dev_id == CB_FRU_ID) || (fru_entry.config.dev_id == FIO_FRU_ID)) {
+		status = FRU_write(&fru_entry);
+	} else {
+		ret = pal_write_read_accl_fru(ACCL_FRU_WRITE, fru_entry.config.dev_id, &fru_entry,
+					      &status);
+		if (ret != 0) {
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+	}
+
+	switch (status) {
+	case FRU_WRITE_SUCCESS:
+		msg->completion_code = CC_SUCCESS;
+		break;
+	case FRU_INVALID_ID:
+		msg->completion_code = CC_INVALID_PARAM;
+		break;
+	case FRU_OUT_OF_RANGE:
+		msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+		break;
+	case FRU_FAIL_TO_ACCESS:
+		msg->completion_code = CC_FRU_DEV_BUSY;
+		break;
+	default:
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		break;
+	}
+
 	return;
 }

@@ -18,7 +18,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <logging/log.h>
 #include "fru.h"
+#include "libutil.h"
+#include "plat_class.h"
+
+LOG_MODULE_REGISTER(plat_fru);
 
 const EEPROM_CFG plat_fru_config[] = {
 	// ACB BIC fru
@@ -50,10 +55,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_1_7_FRU_MUX_CHAN,
 	},
 	// ACCL_2 fru
 	{
@@ -64,10 +65,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_2_8_FRU_MUX_CHAN,
 	},
 	// ACCL_3 fru
 	{
@@ -78,10 +75,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_3_9_FRU_MUX_CHAN,
 	},
 	// ACCL_4 fru
 	{
@@ -92,10 +85,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_4_10_FRU_MUX_CHAN,
 	},
 	// ACCL_5 fru
 	{
@@ -106,10 +95,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_5_11_FRU_MUX_CHAN,
 	},
 	// ACCL_6 fru
 	{
@@ -120,10 +105,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_1_6_FRU_MUX_ADDR,
-		ACCL_6_12_FRU_MUX_CHAN,
 	},
 	// ACCL_7 fru
 	{
@@ -134,10 +115,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_1_7_FRU_MUX_CHAN,
 	},
 	// ACCL_8 fru
 	{
@@ -148,10 +125,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_2_8_FRU_MUX_CHAN,
 	},
 	// ACCL_9 fru
 	{
@@ -162,10 +135,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_3_9_FRU_MUX_CHAN,
 	},
 	// ACCL_10 fru
 	{
@@ -176,10 +145,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_4_10_FRU_MUX_CHAN,
 	},
 	// ACCL_11 fru
 	{
@@ -190,10 +155,6 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
-		/* Because there has mux before eeprom, so mux_present is true to access mux first */
-		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_5_11_FRU_MUX_CHAN,
 	},
 	// ACCL_12 fru
 	{
@@ -204,14 +165,418 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_DEV_ACCESS_BYTE,
 		FRU_START,
 		FRU_SIZE,
+	},
+	// ACCL_1 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_1_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
 		/* Because there has mux before eeprom, so mux_present is true to access mux first */
 		true,
-		ACCL_7_12_FRU_MUX_ADDR,
-		ACCL_6_12_FRU_MUX_CHAN,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_1 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_1_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_2 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_2_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_2 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_2_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_3 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_3_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_3 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_3_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_4 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_4_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_4 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_4_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_5 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_5_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_5 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_5_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_6 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_6_CH1_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_6 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_6_CH2_FREYA_FRU_ID,
+		ACCL_1_6_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_7 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_7_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_7 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_7_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_8 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_8_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_8 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_8_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_9 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_9_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_9 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_9_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_10 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_10_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_10 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_10_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_11 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_11_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_11 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_11_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_12 freya ch1 fru
+	{
+		ST_M24C64_W,
+		ACCL_12_CH1_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH1_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
+	},
+	// ACCL_12 freya ch2 fru
+	{
+		ST_M24C64_W,
+		ACCL_12_CH2_FREYA_FRU_ID,
+		ACCL_7_12_FRU_PORT,
+		ACCL_FREYA_CH2_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+		/* Because there has mux before eeprom, so mux_present is true to access mux first */
+		true,
+		ACCL_FREYA_MUX_ADDR,
+		ACCL_FREYA_FRU_MUX_CHAN,
 	},
 };
 
 void pal_load_fru_config(void)
 {
 	memcpy(&fru_config, &plat_fru_config, sizeof(plat_fru_config));
+}
+
+bool pal_accl_fru_id_map_card_id(uint8_t accl_fru_id, uint8_t *card_id)
+{
+	CHECK_NULL_ARG_WITH_RETURN(card_id, false);
+
+	switch (accl_fru_id) {
+	case ACCL_1_FRU_ID:
+	case ACCL_1_CH1_FREYA_FRU_ID:
+	case ACCL_1_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_1;
+		break;
+	case ACCL_2_FRU_ID:
+	case ACCL_2_CH1_FREYA_FRU_ID:
+	case ACCL_2_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_2;
+		break;
+	case ACCL_3_FRU_ID:
+	case ACCL_3_CH1_FREYA_FRU_ID:
+	case ACCL_3_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_3;
+		break;
+	case ACCL_4_FRU_ID:
+	case ACCL_4_CH1_FREYA_FRU_ID:
+	case ACCL_4_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_4;
+		break;
+	case ACCL_5_FRU_ID:
+	case ACCL_5_CH1_FREYA_FRU_ID:
+	case ACCL_5_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_5;
+		break;
+	case ACCL_6_FRU_ID:
+	case ACCL_6_CH1_FREYA_FRU_ID:
+	case ACCL_6_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_6;
+		break;
+	case ACCL_7_FRU_ID:
+	case ACCL_7_CH1_FREYA_FRU_ID:
+	case ACCL_7_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_7;
+		break;
+	case ACCL_8_FRU_ID:
+	case ACCL_8_CH1_FREYA_FRU_ID:
+	case ACCL_8_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_8;
+		break;
+	case ACCL_9_FRU_ID:
+	case ACCL_9_CH1_FREYA_FRU_ID:
+	case ACCL_9_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_9;
+		break;
+	case ACCL_10_FRU_ID:
+	case ACCL_10_CH1_FREYA_FRU_ID:
+	case ACCL_10_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_10;
+		break;
+	case ACCL_11_FRU_ID:
+	case ACCL_11_CH1_FREYA_FRU_ID:
+	case ACCL_11_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_11;
+		break;
+	case ACCL_12_FRU_ID:
+	case ACCL_12_CH1_FREYA_FRU_ID:
+	case ACCL_12_CH2_FREYA_FRU_ID:
+		*card_id = ACCL_CARD_12;
+		break;
+	default:
+		return false;
+	}
+
+	return true;
 }
