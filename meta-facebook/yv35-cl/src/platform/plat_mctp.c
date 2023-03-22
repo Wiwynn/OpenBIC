@@ -24,11 +24,6 @@
 
 LOG_MODULE_REGISTER(plat_mctp);
 
-#define MCTP_MSG_TYPE_SHIFT 0
-#define MCTP_MSG_TYPE_MASK 0x7F
-#define MCTP_IC_SHIFT 7
-#define MCTP_IC_MASK 0x80
-
 /* i3c 8-bit addr */
 #define I3C_STATIC_ADDR_BIC		0x40
 #define I3C_STATIC_ADDR_BMC		0x20
@@ -38,34 +33,9 @@ LOG_MODULE_REGISTER(plat_mctp);
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x01
-#define MCTP_EID_SELF 0x02
 
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
-
-typedef struct _mctp_smbus_port {
-	mctp *mctp_inst;
-	mctp_medium_conf conf;
-	uint8_t user_idx;
-} mctp_smbus_port;
-
-typedef struct _mctp_i3c_port {
-	mctp *mctp_inst;
-	mctp_medium_conf conf;
-	uint8_t user_idx;
-} mctp_i3c_port;
-
-/* mctp route entry struct */
-typedef struct _mctp_route_entry {
-	uint8_t endpoint;
-	uint8_t bus; /* TODO: only consider smbus/i3c */
-	uint8_t addr; /* TODO: only consider smbus/i3c */
-} mctp_route_entry;
-
-typedef struct _mctp_msg_handler {
-	MCTP_MSG_TYPE type;
-	mctp_fn_cb msg_handler_cb;
-} mctp_msg_handler;
 
 static mctp_i3c_port i3c_port[] = {
 	{ .conf.i3c_conf.bus = I3C_BUS_BMC, .conf.i3c_conf.addr = I3C_STATIC_ADDR_BMC},

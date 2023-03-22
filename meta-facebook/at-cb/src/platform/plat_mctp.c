@@ -32,24 +32,6 @@
 
 LOG_MODULE_REGISTER(plat_mctp);
 
-#define MCTP_MSG_TYPE_SHIFT 0
-#define MCTP_MSG_TYPE_MASK 0x7F
-#define MCTP_IC_SHIFT 7
-#define MCTP_IC_MASK 0x80
-
-typedef struct _mctp_smbus_port {
-	mctp *mctp_inst;
-	mctp_medium_conf conf;
-	uint8_t user_idx;
-} mctp_smbus_port;
-
-/* mctp route entry struct */
-typedef struct _mctp_route_entry {
-	uint8_t endpoint;
-	uint8_t bus;
-	uint8_t addr;
-} mctp_route_entry;
-
 static mctp_smbus_port smbus_port[] = {
 	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I3C_BUS_BMC },
 };

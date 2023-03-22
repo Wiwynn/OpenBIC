@@ -58,6 +58,12 @@ extern "C" {
 
 #define MCTP_POLL_TIME_MS 1
 
+#define MCTP_MSG_TYPE_SHIFT 0
+#define MCTP_MSG_TYPE_MASK 0x7F
+
+#define MCTP_IC_SHIFT 7
+#define MCTP_IC_MASK 0x80
+
 typedef enum {
 	MCTP_MSG_TYPE_CTRL = 0x00,
 	MCTP_MSG_TYPE_PLDM,
@@ -185,6 +191,31 @@ typedef struct _mctp {
 	/* for cci_msg_tag */
 	uint8_t cci_msg_tag;
 } mctp;
+
+typedef struct _mctp_smbus_port {
+	mctp *mctp_inst;
+	mctp_medium_conf conf;
+	uint8_t user_idx;
+} mctp_smbus_port;
+
+typedef struct _mctp_i3c_port {
+	mctp *mctp_inst;
+	mctp_medium_conf conf;
+	uint8_t user_idx;
+} mctp_i3c_port;
+
+/* mctp route entry struct */
+typedef struct _mctp_route_entry {
+        uint8_t endpoint;
+        uint8_t bus; /* TODO: only consider smbus/i3c */
+        uint8_t addr; /* TODO: only consider smbus/i3c */
+        uint8_t dev_present_pin;
+} mctp_route_entry;
+
+typedef struct _mctp_msg_handler {
+	MCTP_MSG_TYPE type;
+	mctp_fn_cb msg_handler_cb;
+} mctp_msg_handler;
 
 /* public function */
 mctp *mctp_init(void);

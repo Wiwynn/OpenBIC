@@ -18,10 +18,6 @@
 #define _PLAT_MCTP_h
 
 #include "storage_handler.h"
-#define MCTP_MSG_TYPE_SHIFT 0
-#define MCTP_MSG_TYPE_MASK 0x7F
-#define MCTP_IC_SHIFT 7
-#define MCTP_IC_MASK 0x80
 
 /* i2c 8 bit address */
 #define I2C_ADDR_BIC 0x20
@@ -31,25 +27,6 @@
 #define I2C_BUS_CXL 0x01
 /* mctp endpoint */
 #define CXL_EID 0x2E
-
-typedef struct _mctp_smbus_port {
-	mctp *mctp_inst;
-	mctp_medium_conf conf;
-	uint8_t user_idx;
-} mctp_smbus_port;
-
-/* mctp route entry struct */
-typedef struct _mctp_route_entry {
-	uint8_t endpoint;
-	uint8_t bus; /* TODO: only consider smbus/i3c */
-	uint8_t addr; /* TODO: only consider smbus/i3c */
-	uint8_t dev_present_pin;
-} mctp_route_entry;
-
-typedef struct _mctp_msg_handler {
-	MCTP_MSG_TYPE type;
-	mctp_fn_cb msg_handler_cb;
-} mctp_msg_handler;
 
 /* init the mctp moduel for platform */
 void send_cmd_to_dev(struct k_timer *timer);
