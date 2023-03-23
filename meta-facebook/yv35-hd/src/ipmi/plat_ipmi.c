@@ -28,6 +28,7 @@
 #include "plat_sensor_table.h"
 #include "sensor.h"
 #include "pmbus.h"
+#include "pldm.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -195,12 +196,12 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 	}
 
 	// Bridge to invalid or disabled interface
-	if ((IPMB_inf_index_map[target_IF] == RESERVED) ||
-	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].interface == RESERVED_IF) ||
-	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].enable_status == DISABLE)) {
-		LOG_ERR("OEM_MSG_OUT: Invalid bridge interface: %x", target_IF);
-		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
-	}
+	//if ((IPMB_inf_index_map[target_IF] == RESERVED) ||
+	//    (IPMB_config_table[IPMB_inf_index_map[target_IF]].interface == RESERVED_IF) ||
+	//    (IPMB_config_table[IPMB_inf_index_map[target_IF]].enable_status == DISABLE)) {
+	//	LOG_ERR("OEM_MSG_OUT: Invalid bridge interface: %x", target_IF);
+	//	msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+	//}
 
 	// only send to target while msg is valid
 	if (msg->completion_code == CC_SUCCESS) {
@@ -245,10 +246,10 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 				}
 			}
 
-			status = ipmb_send_request(bridge_msg, IPMB_inf_index_map[target_IF]);
-
+			//status = pldm_send_ipmi_request(bridge_msg);
+			status = IPMB_ERROR_SUCCESS;
 			if (status != IPMB_ERROR_SUCCESS) {
-				LOG_ERR("OEM_MSG_OUT send IPMB req fail status: %x", status);
+				LOG_ERR("OEM_MSG_OUT send PLDM over MCTP req fail status: %x", status);
 				msg->completion_code = CC_BRIDGE_MSG_ERR;
 			}
 			SAFE_FREE(bridge_msg);

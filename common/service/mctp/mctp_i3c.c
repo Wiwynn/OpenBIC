@@ -30,6 +30,24 @@ LOG_MODULE_REGISTER(mctp_i3c);
 #define MCTP_I3C_PEC_ENABLE 0
 #endif
 
+static uint16_t mctp_i3c_read(void *mctp_p, uint8_t *buf, uint32_t len,
+				  mctp_ext_params *extra_data)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(extra_data, MCTP_ERROR);
+	return MCTP_SUCCESS;
+}
+
+static uint16_t mctp_i3c_write(void *mctp_p, uint8_t *buf, uint32_t len,
+				   mctp_ext_params extra_data)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+
+	return MCTP_SUCCESS;
+}
+
 static uint16_t mctp_i3c_read_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 				  mctp_ext_params *extra_data)
 {
@@ -61,7 +79,7 @@ static uint16_t mctp_i3c_read_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 		}
 	}
 
-	extra_data->type = MCTP_MEDIUM_TYPE_I3C;
+	extra_data->type = MCTP_MEDIUM_TYPE_TARGET_I3C;
 	memcpy(buf, &i3c_msg.data[0], i3c_msg.rx_len);
 	return i3c_msg.rx_len;
 }
@@ -72,7 +90,7 @@ static uint16_t mctp_i3c_write_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
 
-	if (extra_data.type != MCTP_MEDIUM_TYPE_I3C) {
+	if (extra_data.type != MCTP_MEDIUM_TYPE_TARGET_I3C) {
 		LOG_ERR("mctp medium type incorrect");
 		return MCTP_ERROR;
 	}
@@ -102,7 +120,18 @@ static uint16_t mctp_i3c_write_smq(void *mctp_p, uint8_t *buf, uint32_t len,
 	return MCTP_SUCCESS;
 }
 
-uint8_t mctp_i3c_init(mctp *mctp_instance, mctp_medium_conf medium_conf)
+uint8_t mctp_i3c_controller_init(mctp *mctp_instance, mctp_medium_conf medium_conf)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_instance, MCTP_ERROR);
+
+	mctp_instance->medium_conf = medium_conf;
+	mctp_instance->read_data = mctp_i3c_read;
+	mctp_instance->write_data = mctp_i3c_write;
+
+	return MCTP_SUCCESS;
+}
+
+uint8_t mctp_i3c_target_init(mctp *mctp_instance, mctp_medium_conf medium_conf)
 {
 	CHECK_NULL_ARG_WITH_RETURN(mctp_instance, MCTP_ERROR);
 
@@ -112,6 +141,7 @@ uint8_t mctp_i3c_init(mctp *mctp_instance, mctp_medium_conf medium_conf)
 
 	return MCTP_SUCCESS;
 }
+
 
 uint8_t mctp_i3c_deinit(mctp *mctp_instance)
 {

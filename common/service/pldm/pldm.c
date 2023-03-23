@@ -498,6 +498,7 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	if (target < 0) {
 		return -1;
 	}
+	LOG_INF("[PASS] target_interface = %d",target_interface);
 
 	// Set PLDM header
 	pmsg.ext_params.type = medium_type;
@@ -520,6 +521,8 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	pmsg.len = sizeof(struct _ipmi_cmd_req) - 1 + msg->data_len;
 
 	uint8_t rbuf[PLDM_MAX_DATA_SIZE];
+
+	LOG_HEXDUMP_INF(pmsg.buf, pmsg.len, "pmsg.buf");
 	// Send request to PLDM/MCTP thread and get response
 	uint8_t res_len =
 		mctp_pldm_read(pal_get_mctp(medium_type, target), &pmsg, rbuf, sizeof(rbuf));

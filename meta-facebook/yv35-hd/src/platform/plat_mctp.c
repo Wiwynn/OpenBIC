@@ -29,7 +29,8 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define I3C_STATIC_ADDR_BMC		0x20
 
 /* i3c dev bus */
-#define I3C_BUS_BMC	0
+#define I3C_BUS_BMC 0 
+#define I3C_BUS_CONTROLLER 1
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x01
@@ -37,19 +38,19 @@ LOG_MODULE_REGISTER(plat_mctp);
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
-static mctp_i3c_port i3c_port[] = {
-	{ .conf.i3c_conf.bus = I3C_BUS_BMC, .conf.i3c_conf.addr = I3C_STATIC_ADDR_BMC},
+static mctp_i3c_port i3c_controller[] = {
+	{ .conf.i3c_conf.bus = I3C_BUS_CONTROLLER},
 };
 
 mctp_route_entry mctp_route_tbl[] = {
-	{ MCTP_EID_BMC, I3C_BUS_BMC, I3C_STATIC_ADDR_BMC },
+	{ MCTP_EID_BMC, I3C_BUS_CONTROLLER, I3C_STATIC_ADDR_BIC },
 };
 
 static mctp *find_mctp_by_i3c(uint8_t bus)
 {
 	uint8_t i;
-	for (i = 0; i < ARRAY_SIZE(i3c_port); i++) {
-		mctp_i3c_port *p = i3c_port + i;
+	for (i = 0; i < ARRAY_SIZE(i3c_controller); i++) {
+		mctp_i3c_port *p = i3c_controller + i;
 
 		if (bus == p->conf.i3c_conf.bus) {
 			return p->mctp_inst;
@@ -84,8 +85,8 @@ static void set_dev_endpoint(void)
 		if (p->bus == I3C_BUS_BMC && p->addr == I3C_STATIC_ADDR_BMC)
 			continue;
 
-		for (uint8_t j = 0; j < ARRAY_SIZE(i3c_port); j++) {
-			if (p->bus != i3c_port[j].conf.i3c_conf.bus)
+		for (uint8_t j = 0; j < ARRAY_SIZE(i3c_controller); j++) {
+			if (p->bus != i3c_controller[j].conf.i3c_conf.bus)
 				continue;
 
 			struct _set_eid_req req = { 0 };
@@ -112,53 +113,53 @@ static void set_dev_endpoint(void)
 	}
 }
 
-static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
-{
-	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
-	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+//static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
+//{
+//	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
+//	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+//
+//	/* first byte is message type */
+//	uint8_t msg_type = (buf[0] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
+//
+//	switch (msg_type) {
+//	case MCTP_MSG_TYPE_CTRL:
+//		mctp_ctrl_cmd_handler(mctp_p, buf, len, ext_params);
+//		break;
+//
+//	case MCTP_MSG_TYPE_PLDM:
+//		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
+//		break;
+//
+//	default:
+//		LOG_WRN("Cannot find message receive function!!");
+//		return MCTP_ERROR;
+//	}
+//
+//	return MCTP_SUCCESS;
+//}
 
-	/* first byte is message type */
-	uint8_t msg_type = (buf[0] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
-
-	switch (msg_type) {
-	case MCTP_MSG_TYPE_CTRL:
-		mctp_ctrl_cmd_handler(mctp_p, buf, len, ext_params);
-		break;
-
-	case MCTP_MSG_TYPE_PLDM:
-		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
-		break;
-
-	default:
-		LOG_WRN("Cannot find message receive function!!");
-		return MCTP_ERROR;
-	}
-
-	return MCTP_SUCCESS;
-}
-
-static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
-				   mctp_ext_params *ext_params)
-{
-	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
-	CHECK_NULL_ARG_WITH_RETURN(ext_params, MCTP_ERROR);
-
-	uint8_t rc = MCTP_ERROR;
-	uint32_t i;
-
-	for (i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
-		mctp_route_entry *p = mctp_route_tbl + i;
-		if (p->endpoint == dest_endpoint) {
-			*mctp_inst = find_mctp_by_i3c(p->bus);
-			ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
-			ext_params->smbus_ext_params.addr = p->addr;
-			rc = MCTP_SUCCESS;
-			break;
-		}
-	}
-
-	return rc;
-}
+//static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
+//				   mctp_ext_params *ext_params)
+//{
+//	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
+//	CHECK_NULL_ARG_WITH_RETURN(ext_params, MCTP_ERROR);
+//
+//	uint8_t rc = MCTP_ERROR;
+//	uint32_t i;
+//
+//	for (i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
+//		mctp_route_entry *p = mctp_route_tbl + i;
+//		if (p->endpoint == dest_endpoint) {
+//			*mctp_inst = find_mctp_by_i3c(p->bus);
+//			ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
+//			ext_params->smbus_ext_params.addr = p->addr;
+//			rc = MCTP_SUCCESS;
+//			break;
+//		}
+//	}
+//
+//	return rc;
+//}
 
 void send_cmd_to_dev_handler(struct k_work *work)
 {
@@ -233,6 +234,8 @@ int pal_get_medium_type(uint8_t interface)
 		case MCTP:
 		case PLDM:
 		medium_type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+		case EXP1_IPMB:
+		medium_type = MCTP_MEDIUM_TYPE_CONTROLLER_I3C;
 		break;
 		default:
 		medium_type = -1;
@@ -249,9 +252,10 @@ int pal_get_target(uint8_t interface)
 
 	switch(interface) {
 		case BMC_IPMB:
+		case EXP1_IPMB:
 		case MCTP:
 		case PLDM:
-		target = I3C_BUS_BMC;
+		target = I3C_BUS_CONTROLLER;
 		break;
 		default:
 		target = -1;
@@ -266,6 +270,8 @@ mctp *pal_get_mctp(uint8_t mctp_medium_type, uint8_t bus)
 	switch (mctp_medium_type) {
 		case MCTP_MEDIUM_TYPE_TARGET_I3C:
 		return find_mctp_by_i3c(bus);
+		case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
+		return find_mctp_by_i3c(bus);
 		default:
 		return NULL;
 	}
@@ -276,8 +282,8 @@ void plat_mctp_init(void)
 	int ret = 0;
 
 	/* init the mctp/pldm instance */
-	for (uint8_t i = 0; i < ARRAY_SIZE(i3c_port); i++) {
-		mctp_i3c_port *p = i3c_port + i;
+	for (uint8_t i = 0; i < ARRAY_SIZE(i3c_controller); i++) {
+		mctp_i3c_port *p = i3c_controller + i;
 
 		p->mctp_inst = mctp_init();
 		if (!p->mctp_inst) {
@@ -285,15 +291,15 @@ void plat_mctp_init(void)
 			continue;
 		}
 
-		uint8_t rc = mctp_set_medium_configure(p->mctp_inst, MCTP_MEDIUM_TYPE_TARGET_I3C, p->conf);
+		uint8_t rc = mctp_set_medium_configure(p->mctp_inst, MCTP_MEDIUM_TYPE_CONTROLLER_I3C, p->conf);
 		if (rc != MCTP_SUCCESS) {
 			LOG_INF("mctp set medium configure failed");
 		}
 
-		mctp_reg_endpoint_resolve_func(p->mctp_inst, get_mctp_route_info);
+		//mctp_reg_endpoint_resolve_func(p->mctp_inst, get_mctp_route_info);
 
-		mctp_reg_msg_rx_func(p->mctp_inst, mctp_msg_recv);
-
+		//mctp_reg_msg_rx_func(p->mctp_inst, mctp_msg_recv);
+		LOG_INF("i3c controller : %d", i);
 		ret = mctp_start(p->mctp_inst);
 	}
 }
