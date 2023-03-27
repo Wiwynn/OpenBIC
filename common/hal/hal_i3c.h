@@ -20,6 +20,8 @@
 #include <zephyr.h>
 #include <drivers/i3c/i3c.h>
 
+#define MAX_I3C_DEVICE 8
+
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(i3c0), okay)
 #define DEV_I3C_0
 #endif
@@ -89,9 +91,11 @@
 
 #define I3C_MAX_NUM 8
 #define I3C_MAX_DATA_SIZE 256
+#define IBI_PAYLOAD_SIZE 128
 #define I3C_DEBUG 0
 #define I3C_SMQ_SUCCESS 0
 #define I3C_MAX_BUFFER_COUNT 2
+#define I3C_MDB 0xBF
 
 enum I3C_WRITE_READ_CMD {
 	I3C_WRITE_CMD = 0,
@@ -113,5 +117,7 @@ int i3c_attach(I3C_MSG *msg);
 int i3c_transfer(I3C_MSG *msg);
 int i3c_brocast_ccc(I3C_MSG *msg, uint8_t ccc_id, uint8_t ccc_addr);
 int i3c_spd_reg_read(I3C_MSG *msg, bool is_nvm);
+int i3c_master_ibi_init(I3C_MSG *msg);
+int i3c_master_ibi_read(I3C_MSG *msg);
 
 #endif

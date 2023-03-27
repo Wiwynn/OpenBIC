@@ -27,6 +27,7 @@ LOG_MODULE_REGISTER(plat_mctp);
 /* i3c 8-bit addr */
 #define I3C_STATIC_ADDR_BIC		0x40
 #define I3C_STATIC_ADDR_BMC		0x20
+#define I3C_ADDR_RF_BIC			0x9
 
 /* i3c dev bus */
 #define I3C_BUS_BMC 0 
@@ -39,11 +40,11 @@ K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
 static mctp_i3c_port i3c_controller[] = {
-	{ .conf.i3c_conf.bus = I3C_BUS_CONTROLLER},
+	{ .conf.i3c_conf.bus = I3C_BUS_CONTROLLER, .conf.i3c_conf.addr = I3C_ADDR_RF_BIC},
 };
 
 mctp_route_entry mctp_route_tbl[] = {
-	{ MCTP_EID_BMC, I3C_BUS_CONTROLLER, I3C_STATIC_ADDR_BIC },
+	{ MCTP_EID_BMC, I3C_BUS_CONTROLLER, I3C_STATIC_ADDR_BIC},
 };
 
 static mctp *find_mctp_by_i3c(uint8_t bus)

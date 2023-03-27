@@ -32,8 +32,30 @@ static int i3c_desc_count = 0;
 static struct k_mutex mutex_write[I3C_MAX_NUM];
 static struct k_mutex mutex_read[I3C_MAX_NUM];
 
+static uint8_t data_rx[I3C_MAX_DATA_SIZE];
+static struct i3c_ibi_payload i3c_payload;
+static struct k_sem ibi_complete;
+
 int i3c_slave_mqueue_read(const struct device *dev, uint8_t *dest, int budget);
 int i3c_slave_mqueue_write(const struct device *dev, uint8_t *src, int size);
+
+static struct i3c_ibi_payload *ibi_write_requested(struct i3c_dev_desc *desc)
+{
+	i3c_payload.buf = data_rx;
+	i3c_payload.size = 0;
+
+	return &i3c_payload;
+}
+
+static void ibi_write_done(struct i3c_dev_desc *desc)
+{
+	k_sem_give(&ibi_complete);
+}
+
+static struct i3c_ibi_callbacks i3c_ibi_def_callbacks = {
+	.write_requested = ibi_write_requested,
+	.write_done = ibi_write_done,
+};
 
 static struct i3c_dev_desc *find_matching_desc(const struct device *dev, uint8_t desc_addr)
 {
@@ -248,8 +270,89 @@ int i3c_spd_reg_read(I3C_MSG *msg, bool is_nvm)
 	return ret;
 }
 
+int i3c_master_ibi_init(I3C_MSG *msg)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg, -EINVAL);
+
+	if (!dev_i3c[msg->bus]) {
+		LOG_ERR("Failed to receive messages to address 0x%x due to undefined bus%u",
+			msg->target_addr, msg->bus);
+		return -ENODEV;
+	}
+
+	struct i3c_dev_desc *desc;
+	desc = find_matching_desc(dev_i3c[msg->bus], msg->target_addr);
+	if (desc == NULL) {
+		LOG_ERR("Failed to reveive messages to address 0x%x due to unknown address",
+			msg->target_addr);
+		return -ENODEV;
+	}
+
+	int ret = 0;
+
+	ret = i3c_master_request_ibi(desc, &i3c_ibi_def_callbacks);
+	if (ret != 0) {
+		LOG_ERR("Failed to request SIR, bus = %x, addr = %u",msg->target_addr, msg->bus);
+	}
+
+	ret = i3c_master_enable_ibi(desc);
+	if (ret != 0) {
+		LOG_ERR("Failed to enable SIR, bus = %x, addr = %u",msg->target_addr, msg->bus);
+	}
+
+	return -ret;
+}
+
+int i3c_master_ibi_read(I3C_MSG *msg)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg, -EINVAL);
+
+	if (!dev_i3c[msg->bus]) {
+		LOG_ERR("Failed to receive messages to address 0x%x due to undefined bus%u",
+			msg->target_addr, msg->bus);
+		return -ENODEV;
+	}
+
+	struct i3c_dev_desc *desc;
+	desc = find_matching_desc(dev_i3c[msg->bus], msg->target_addr);
+	if (desc == NULL) {
+		LOG_ERR("Failed to reveive messages to address 0x%x due to unknown address",
+			msg->target_addr);
+		return -ENODEV;
+	}
+
+	/* master device waits for the IBI from the target */
+	k_sem_take(&ibi_complete, K_FOREVER);
+
+	/* init the flag for the next loop */
+	k_sem_init(&ibi_complete, 0, 1);
+
+	int ret = 0;
+
+	/* check result: first byte (MDB) shall match the DT property mandatory-data-byte */
+	LOG_INF("IBI MDB: %02x %02x\n", I3C_MDB, data_rx[0]);
+
+	if (IS_MDB_PENDING_READ_NOTIFY(data_rx[0])) {
+		struct i3c_priv_xfer xfer;
+
+		/* initiate a private read transfer to read the pending data */
+		xfer.rnw = 1;
+		xfer.len = IBI_PAYLOAD_SIZE;
+		xfer.data.in = data_rx;
+		k_yield();
+		ret = i3c_master_priv_xfer(desc, &xfer, 1);
+
+		msg->rx_len = xfer.len;
+		memcpy (msg->data, data_rx, IBI_PAYLOAD_SIZE);
+		LOG_HEXDUMP_INF(data_rx, xfer.len, "[Debug] Receive data:");
+	}
+
+	return -ret;
+}
+
 void util_init_i3c(void)
 {
+
 #ifdef DEV_I3C_0
 	dev_i3c[0] = device_get_binding("I3C_0");
 #endif
