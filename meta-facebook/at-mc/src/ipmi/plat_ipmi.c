@@ -41,28 +41,28 @@ int pal_cxl_component_id_map_jcn(uint8_t component_id, uint8_t *card_id)
 
 	switch (component_id) {
 	case MC_COMPNT_CXL1:
-		*card_id = CXL_CARD_8;
-		break;
-	case MC_COMPNT_CXL2:
 		*card_id = CXL_CARD_7;
 		break;
-	case MC_COMPNT_CXL3:
-		*card_id = CXL_CARD_6;
+	case MC_COMPNT_CXL2:
+		*card_id = CXL_CARD_8;
 		break;
-	case MC_COMPNT_CXL4:
+	case MC_COMPNT_CXL3:
 		*card_id = CXL_CARD_5;
 		break;
-	case MC_COMPNT_CXL5:
-		*card_id = CXL_CARD_3;
+	case MC_COMPNT_CXL4:
+		*card_id = CXL_CARD_6;
 		break;
-	case MC_COMPNT_CXL6:
+	case MC_COMPNT_CXL5:
 		*card_id = CXL_CARD_4;
 		break;
+	case MC_COMPNT_CXL6:
+		*card_id = CXL_CARD_3;
+		break;
 	case MC_COMPNT_CXL7:
-		*card_id = CXL_CARD_1;
+		*card_id = CXL_CARD_2;
 		break;
 	case MC_COMPNT_CXL8:
-		*card_id = CXL_CARD_2;
+		*card_id = CXL_CARD_1;
 		break;
 	default:
 		return -1;
