@@ -20,10 +20,12 @@
 #include <stdint.h>
 #include "sensor.h"
 #include "cci.h"
+#include "pm8702.h"
 
 typedef struct _pm8702_dev_info {
 	bool is_init;
 	cci_fw_info_resp dev_info;
+	pm8702_device_info_resp config_info;
 } pm8702_dev_info;
 
 extern pm8702_dev_info pm8702_table[];
@@ -53,5 +55,6 @@ bool pal_pm8702_command_handler(uint8_t pcie_card_id, uint16_t opcode, uint8_t *
 bool pal_get_pm8702_hbo_status(uint8_t pcie_card_id, uint8_t *resp_buf, uint8_t *resp_len);
 bool pal_pm8702_transfer_fw(uint8_t pcie_card_id, uint8_t *req_buf, int req_len);
 bool pal_set_pm8702_active_slot(uint8_t pcie_card_id, uint8_t *req_buf, int req_len);
+bool pal_get_pm8702_config_version(uint8_t pcie_card_id, uint8_t *req_buf, int req_len);
 
 #endif
