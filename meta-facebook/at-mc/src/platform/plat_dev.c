@@ -1163,6 +1163,7 @@ bool pal_init_pm8702_info(uint8_t cxl_id)
 	uint8_t resp_buf[resp_len];
 	memset(resp_buf, 0, sizeof(uint8_t) * resp_len);
 
+	/* Get firmware info */
 	ret = pal_pm8702_command_handler(pcie_card_id, CCI_GET_FW_INFO, req_buf, req_len, resp_buf,
 					 &resp_len);
 	if (ret != true) {
@@ -1171,6 +1172,19 @@ bool pal_init_pm8702_info(uint8_t cxl_id)
 	}
 
 	memcpy(&pm8702_table[cxl_id].dev_info, resp_buf, resp_len);
+
+	/* Get device info */
+	req_len = DEVICE_INFO_REQ_PL_LEN;
+	resp_len = sizeof(pm8702_device_info_resp);
+	memset(resp_buf, 0, sizeof(uint8_t) * resp_len);
+	ret = pal_pm8702_command_handler(pcie_card_id, PM8702_DEVICE_INFO, req_buf, req_len,
+					 resp_buf, &resp_len);
+	if (ret != true) {
+		LOG_ERR("Fail to get cxl card: 0x%x device info", cxl_id);
+		return false;
+	}
+
+	memcpy(&pm8702_table[cxl_id].config_info, resp_buf, resp_len);
 	pm8702_table[cxl_id].is_init = true;
 	return true;
 }
@@ -1222,6 +1236,23 @@ bool pal_set_pm8702_active_slot(uint8_t pcie_card_id, uint8_t *req_buf, int req_
 					 resp_buf, &resp_len);
 	if (ret != true) {
 		LOG_ERR("Fail to activate card id: 0x%x slot firmware", pcie_card_id);
+	}
+
+	return ret;
+}
+
+bool pal_get_pm8702_config_version(uint8_t pcie_card_id, uint8_t *req_buf, int req_len)
+{
+	CHECK_NULL_ARG_WITH_RETURN(req_buf, false);
+
+	bool ret = false;
+	uint8_t resp_buf[DEVICE_INFO_RESP_PL_LEN];
+	uint8_t resp_len = 0;
+
+	ret = pal_pm8702_command_handler(pcie_card_id, PM8702_DEVICE_INFO, req_buf, req_len,
+					 resp_buf, &resp_len);
+	if (ret != true) {
+		LOG_ERR("Fail to get card id: 0x%x config version", pcie_card_id);
 	}
 
 	return ret;
