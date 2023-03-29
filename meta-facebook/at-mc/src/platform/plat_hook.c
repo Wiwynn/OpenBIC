@@ -480,7 +480,7 @@ bool pre_nvme_read(uint8_t sensor_num, void *args)
 		return false;
 	}
 
-	ret = set_mux_channel(*pre_args);
+	ret = set_mux_channel(*pre_args, MUTEX_LOCK_ENABLE);
 	return ret;
 }
 
@@ -522,7 +522,7 @@ bool pre_sq52205_read(uint8_t sensor_num, void *args)
 		return false;
 	}
 
-	ret = set_mux_channel(*pre_args);
+	ret = set_mux_channel(*pre_args, MUTEX_LOCK_ENABLE);
 	return ret;
 }
 
@@ -551,8 +551,7 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t pcie_card_id)
 {
 	mux_config card_mux = { 0 };
 	mux_config cxl_mux = { 0 };
-	bool ret =
-		get_pcie_card_mux_config(pcie_card_id, sensor_num, &card_mux, &cxl_mux);
+	bool ret = get_pcie_card_mux_config(pcie_card_id, sensor_num, &card_mux, &cxl_mux);
 	if (ret != true) {
 		return ret;
 	}
@@ -566,7 +565,7 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t pcie_card_id)
 	}
 
 	// Switch card mux
-	ret = set_mux_channel(card_mux);
+	ret = set_mux_channel(card_mux, MUTEX_LOCK_ENABLE);
 	if (ret != true) {
 		LOG_ERR("Switch card mux fail");
 		k_mutex_unlock(mutex);
@@ -574,7 +573,7 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t pcie_card_id)
 	}
 
 	// Switch cxl mux
-	ret = set_mux_channel(cxl_mux);
+	ret = set_mux_channel(cxl_mux, MUTEX_LOCK_ENABLE);
 	if (ret != true) {
 		LOG_ERR("Switch cxl mux fail");
 		k_mutex_unlock(mutex);
