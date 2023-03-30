@@ -38,6 +38,17 @@ typedef struct _mctp_ctrl_cmd_handler {
 #define MCTP_CTRL_CMD_GET_ENDPOINT_ID 0x02
 
 /*
+ * EID table
+ */
+#define MCTP_EID_YV35_CL_BIC 0x20
+#define MCTP_EID_YV35_BB_BIC 0x21
+#define MCTP_EID_YV35_GT_BIC 0x22
+#define MCTP_EID_YV35_HD_BIC 0x23
+#define MCTP_EID_YV35_RF_BIC 0x24
+
+#define MCTP_EID_OP2_OP_BIC 0x30
+
+/*
  * MCTP Control Completion Codes
  * See DSP0236 v1.3.0 Table 13.
  */

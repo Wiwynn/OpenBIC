@@ -22,6 +22,7 @@
 #include "snoop.h"
 #include "pcc.h"
 #include "plat_i2c.h"
+#include "plat_i3c.h"
 #include "plat_pmic.h"
 #include "plat_apml.h"
 #include "plat_kcs.h"
@@ -45,23 +46,47 @@ void pal_pre_init()
 {
 	init_platform_config();
 	CARD_STATUS _1ou_status = get_1ou_status();
-	CARD_STATUS _2ou_status = get_2ou_status();
+	//CARD_STATUS _2ou_status = get_2ou_status();
+
 	if (_1ou_status.present && (_1ou_status.card_type == TYPE_1OU_EXP_WITH_E1S)) {
+
+    	// i3c master initial
+    	I3C_MSG i3c_msg = { 0 };
+    	i3c_msg.bus = I3C_BUS_HUB;
+    	i3c_msg.target_addr = I3C_ADDR_HUB;
+	
+		const int rstdaa_count = 2;
+		int ret = 0;
+
+		for (int i = 0; i < rstdaa_count; i++) {
+			ret = i3c_brocast_ccc(&i3c_msg, I3C_CCC_RSTDAA, I3C_BROADCAST_ADDR);
+			if (ret != 0) {
+				printf("Error to reset daa. count = %d\n", i);
+			}
+		}
+	
+		ret = i3c_brocast_ccc(&i3c_msg, I3C_CCC_SETAASA, I3C_BROADCAST_ADDR);
+		if (ret != 0) {
+			printf("Error to set daa\n");
+		}
+	
+    	i3c_attach(&i3c_msg);
+
 		// Initialize I3C HUB (HD BIC connects to Olympic2 1ou expension-A and B)
-		if (!rg3mxxb12_i2c_mode_only_init(I2C_BUS8, BIT(2), ldo_1_8_volt, pullup_1k_ohm)) {
+		if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, ldo_1_8_volt)) {
 			printk("failed to initialize 1ou rg3mxxb12\n");
 		}
 	}
-	if (_2ou_status.present && (_1ou_status.card_type == TYPE_1OU_EXP_WITH_E1S)) {
-		// Initialize I3C HUB (HD BIC connects to Olympic2 3ou expension-A and B)
-		if (!rg3mxxb12_i2c_mode_only_init(I2C_BUS9, BIT(2), ldo_1_8_volt, pullup_1k_ohm)) {
-			printk("failed to initialize 3ou rg3mxxb12\n");
-		}
-	}
+	//if (_2ou_status.present && (_1ou_status.card_type == TYPE_1OU_EXP_WITH_E1S)) {
+	//	// Initialize I3C HUB (HD BIC connects to Olympic2 3ou expension-A and B)
+	//	if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, ldo_1_8_volt)) {
+	//		printk("failed to initialize 3ou rg3mxxb12\n");
+	//	}
+	//}
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 	pcc_init();
 	apml_init();
-	plat_mctp_init();
+//	plat_mctp_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
 }
 
