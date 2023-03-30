@@ -3,6 +3,10 @@
 #include <kernel.h>
 #include "storage_handler.h"
 #include "pldm.h"
+#include "plat_i3c.h"
+
+/* mctp endpoint */
+#define MCTP_EID_BMC 0x01
 
 struct mctp_to_ipmi_header_req {
     uint8_t iana[IANA_LEN];
