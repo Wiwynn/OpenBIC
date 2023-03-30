@@ -350,6 +350,34 @@ int i3c_master_ibi_read(I3C_MSG *msg)
 	return -ret;
 }
 
+int i3c_write(I3C_MSG *msg)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg, -EINVAL);
+
+	struct i3c_dev_desc *desc;
+	desc = find_matching_desc(dev_i3c[msg->bus], msg->target_addr);
+	if (desc == NULL) {
+		LOG_ERR("Failed to write messages to address 0x%x due to unknown address",
+			msg->target_addr);
+		return -ENODEV;
+	}
+
+	struct i3c_priv_xfer xfer[1];
+	LOG_HEXDUMP_INF(msg->data, msg->tx_len, "[Debug] i3c_write data:");
+
+	xfer[0].rnw = I3C_WRITE_CMD;
+	xfer[0].len = msg->tx_len;
+	xfer[0].data.out = &msg->data;
+
+	int ret = i3c_master_priv_xfer(desc, xfer, 1);
+	if (ret != 0) {
+		LOG_ERR("Failed to write messages to bus 0x%d addr 0x%x, ret: %d",msg->bus, msg->target_addr, ret);
+		return false;
+	}
+
+	return true;
+}
+
 void util_init_i3c(void)
 {
 
