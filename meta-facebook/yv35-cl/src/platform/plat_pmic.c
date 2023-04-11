@@ -130,6 +130,11 @@ void monitor_pmic_error_via_me_handler()
 	memset(is_pmic_error_flag, false, sizeof(is_pmic_error_flag));
 
 	while (1) {
+		if (!is_dimm_polling()) {
+			k_msleep(MONITOR_PMIC_ERROR_TIME_MS);
+			continue;
+		}
+
 		// Check sensor poll enable
 		if (get_sensor_poll_enable_flag() == false) {
 			k_msleep(MONITOR_PMIC_ERROR_TIME_MS);
@@ -145,7 +150,7 @@ void monitor_pmic_error_via_me_handler()
 		for (dimm_id = 0; dimm_id < MAX_COUNT_DIMM; dimm_id++) {
 			// If dimm isn't present, skip monitor
 			dimm_status = get_dimm_status(dimm_id);
-			if ((dimm_status != SENSOR_NOT_SUPPORT) &&
+			if ((dimm_status == SENSOR_INIT_STATUS) ||
 			    (dimm_status == SENSOR_NOT_PRESENT)) {
 				continue;
 			}

@@ -44,7 +44,7 @@ bool pal_request_msg_to_BIC_from_KCS(uint8_t netfn, uint8_t cmd)
 	if (netfn == NETFN_OEM_1S_REQ) {
 		if ((cmd == CMD_OEM_1S_FW_UPDATE) || (cmd == CMD_OEM_1S_RESET_BMC) ||
 		    (cmd == CMD_OEM_1S_GET_BIC_STATUS) || (cmd == CMD_OEM_1S_RESET_BIC) ||
-		    (cmd == CMD_OEM_1S_GET_BIC_FW_INFO))
+		    (cmd == CMD_OEM_1S_GET_BIC_FW_INFO) || (cmd == CMD_OEM_1S_DIMM_POLL_EN))
 			return true;
 	} else if (netfn == NETFN_APP_REQ) {
 		if (cmd == CMD_APP_GET_SYSTEM_GUID) {
@@ -396,5 +396,30 @@ void OEM_1S_GET_DIMM_I3C_MUX_SELECTION(ipmi_msg *msg)
 
 	msg->completion_code = CC_SUCCESS;
 	msg->data_len = 1;
+	return;
+}
+
+void OEM_1S_DIMM_POLL_EN(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 1) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	switch (msg->data[0]) {
+	case DIMM_POLLING_ENABLE:
+	case DIMM_POLLING_DISABLE:
+		control_dimm_polling(msg->data[0]);
+		break;
+	default:
+		msg->completion_code = CC_INVALID_DATA_FIELD;
+		return;
+	}
+
+	msg->data_len = 0;
+	msg->completion_code = CC_SUCCESS;
+
 	return;
 }

@@ -40,6 +40,11 @@
 
 #define DIMM_I3C_MUX_CONTROL_OFFSET 0x0B
 
+enum DIMM_POLLING_FLAG {
+	DIMM_POLLING_DISABLE = 0,
+	DIMM_POLLING_ENABLE,
+};
+
 enum DIMM_ID {
 	DIMM_ID_A0 = 0,
 	DIMM_ID_A2,
@@ -95,5 +100,7 @@ uint8_t sensor_num_map_dimm_id(uint8_t sensor_num);
 int get_pmic_error_raw_data(int dimm_index, uint8_t *data);
 void get_pmic_power_raw_data(int dimm_index, uint8_t *data);
 void get_spd_temp_raw_data(int dimm_index, uint8_t *data);
+void control_dimm_polling(uint8_t status);
+bool is_dimm_polling();
 
 #endif

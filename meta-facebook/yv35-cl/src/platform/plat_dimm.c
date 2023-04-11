@@ -43,9 +43,17 @@ uint8_t pmic_i3c_addr_list[MAX_COUNT_DIMM / 2] = { PMIC_A0_A4_ADDR, PMIC_A2_A6_A
 uint8_t spd_i3c_addr_list[MAX_COUNT_DIMM / 2] = { DIMM_SPD_A0_A4_ADDR, DIMM_SPD_A2_A6_ADDR,
 						  DIMM_SPD_A3_A7_ADDR };
 
+static uint8_t dimm_related_sensor_list[] = {
+	SENSOR_NUM_PWR_DIMMA0_PMIC, SENSOR_NUM_PWR_DIMMA2_PMIC, SENSOR_NUM_PWR_DIMMA3_PMIC,
+	SENSOR_NUM_PWR_DIMMA4_PMIC, SENSOR_NUM_PWR_DIMMA6_PMIC, SENSOR_NUM_PWR_DIMMA7_PMIC,
+	SENSOR_NUM_TEMP_DIMM_A0,    SENSOR_NUM_TEMP_DIMM_A2,	SENSOR_NUM_TEMP_DIMM_A3,
+	SENSOR_NUM_TEMP_DIMM_A4,    SENSOR_NUM_TEMP_DIMM_A6,	SENSOR_NUM_TEMP_DIMM_A7
+};
+
 dimm_info dimm_data[MAX_COUNT_DIMM];
 
 static bool is_dimm_data_init = false;
+static bool is_dimm_poll_enable = true;
 
 void start_get_dimm_info_thread()
 {
@@ -439,6 +447,33 @@ int pal_get_spd_temp(uint8_t sensor_num, uint8_t *data)
 	}
 
 	return 0;
+}
+
+void control_dimm_polling(uint8_t status)
+{
+	int i = 0;
+	uint8_t option = DISABLE_SENSOR_POLLING;
+
+	switch (status) {
+	case DIMM_POLLING_ENABLE:
+		is_dimm_poll_enable = true;
+		option = ENABLE_SENSOR_POLLING;
+		break;
+	default:
+		is_dimm_poll_enable = false;
+		option = DISABLE_SENSOR_POLLING;
+		break;
+	}
+
+	for (i = 0; i < sizeof(dimm_related_sensor_list); i++) {
+		sensor_config[sensor_config_index_map[dimm_related_sensor_list[i]]]
+			.is_enable_polling = option;
+	}
+}
+
+bool is_dimm_polling()
+{
+	return is_dimm_poll_enable;
 }
 
 void clear_unaccessible_dimm_data(uint8_t dimm_id)

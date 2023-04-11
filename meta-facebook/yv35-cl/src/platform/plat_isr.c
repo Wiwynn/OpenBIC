@@ -110,6 +110,8 @@ void ISR_POST_COMPLETE()
 		if (get_me_mode() == ME_INIT_MODE) {
 			init_me_firmware();
 		}
+
+		control_dimm_polling(DIMM_POLLING_ENABLE);
 	}
 
 	set_post_status(FM_BIOS_POST_CMPLT_BMC_N);
