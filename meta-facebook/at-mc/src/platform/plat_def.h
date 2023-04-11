@@ -21,4 +21,10 @@
 #define ENABLE_CCI
 #define ENABLE_PM8702
 
+/* 
+ * Customize i2c buffer size so that bic can send 256 bytes to spi bridge,
+ * i2c buffer size must be 256 bytes plus flash header size
+*/
+#define PLATFORM_I2C_BUFF_SIZE (256 + 6)
+
 #endif

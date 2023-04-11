@@ -36,6 +36,11 @@
 #include "pm8702.h"
 #include "power_status.h"
 #include "plat_ipmb.h"
+#include "sc18is606.h"
+#include "hal_gpio.h"
+#include "plat_isr.h"
+#include "ioexp_tca9555.h"
+#include <crypto/hash.h>
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -84,6 +89,16 @@ int pal_cxl_component_id_map_cxl_id(uint8_t component_id, uint8_t *cxl_id)
 	case MC_COMPNT_CXL7:
 	case MC_COMPNT_CXL8:
 		*cxl_id = component_id - MC_COMPNT_CXL1;
+		break;
+	case MC_COMPNT_CXL1_RECOVERY:
+	case MC_COMPNT_CXL2_RECOVERY:
+	case MC_COMPNT_CXL3_RECOVERY:
+	case MC_COMPNT_CXL4_RECOVERY:
+	case MC_COMPNT_CXL5_RECOVERY:
+	case MC_COMPNT_CXL6_RECOVERY:
+	case MC_COMPNT_CXL7_RECOVERY:
+	case MC_COMPNT_CXL8_RECOVERY:
+		*cxl_id = component_id - MC_COMPNT_CXL1_RECOVERY;
 		break;
 	default:
 		return -1;
@@ -152,6 +167,147 @@ uint8_t fw_update_pm8702(uint8_t cxl_id, uint8_t pcie_card_id, uint8_t next_acti
 	}
 
 	return FWUPDATE_SUCCESS;
+}
+
+uint8_t fw_update_pm8702_via_spi_bridge(uint8_t cxl_id, uint8_t pcie_card_id, uint32_t offset,
+					uint16_t msg_len, uint8_t *msg_buf, bool sector_end)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg_buf, FWUPDATE_UPDATE_FAIL);
+
+	/* Falsh image size maximum 32M */
+	if (offset > CXL_FLASH_IMAGE_MAX_OFFSET) {
+		LOG_ERR("Offset: 0x%x is over flash image size maximum", offset);
+		return FWUPDATE_ERROR_OFFSET;
+	}
+
+	if (msg_len > PM8702_TRANSFER_FW_DATA_LEN) {
+		LOG_ERR("Transfer data len over maximum, msg_len: 0x%x", msg_len);
+		return FWUPDATE_OVER_LENGTH;
+	}
+
+	static bool is_init = false;
+	static uint8_t retry = 0;
+	static uint8_t txbuf[CXL_FLASH_PAGE_SIZE] = { 0 };
+	static uint32_t start_offset = 0;
+	static uint32_t buf_offset = 0;
+
+	bool ret = false;
+	uint8_t bus = MEB_CXL_BUS;
+	int mutex_status = 0;
+	struct k_mutex *mutex = NULL;
+
+	if (is_init != true) {
+		start_offset = offset;
+		buf_offset = 0;
+		memset(txbuf, 0, CXL_FLASH_PAGE_SIZE);
+		is_init = true;
+	}
+
+	if (offset != (start_offset + buf_offset)) {
+		LOG_ERR("Record offset 0x%x but updating 0x%x, cxl id: 0x%x",
+			start_offset + buf_offset, offset, cxl_id);
+		return FWUPDATE_REPEATED_UPDATED;
+	}
+
+	if ((buf_offset + msg_len) > CXL_FLASH_PAGE_SIZE) {
+		LOG_ERR("Receive data over buffer length(256 bytes), buf_offset 0x%x, msg_len 0x%x, cxl id: 0x%x",
+			buf_offset, msg_len, cxl_id);
+		return FWUPDATE_OVER_LENGTH;
+	}
+
+	memcpy(&txbuf[buf_offset], msg_buf, msg_len);
+	buf_offset += msg_len;
+
+	// Erase sector when a sector start offset is received
+	if (offset % EEPROM_ERASE_SECTOR_SIZE == 0) {
+		mutex = get_i2c_mux_mutex(bus);
+		CHECK_NULL_ARG_WITH_RETURN(mutex, FWUPDATE_UPDATE_FAIL);
+
+		mutex_status = k_mutex_lock(mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS));
+		if (mutex_status != 0) {
+			LOG_ERR("Mutex lock fail, status: %d, cxl id: 0x%x, bus: 0x%x",
+				mutex_status, cxl_id, bus);
+			retry += 1;
+			buf_offset -= msg_len;
+
+			if (retry > CXL_FLASH_UPDATE_RETRY) {
+				is_init = false;
+			}
+			return FWUPDATE_UPDATE_FAIL;
+		}
+
+		ret = sc18is606_pre_transfer_setting(cxl_id);
+		if (ret != true) {
+			LOG_ERR("SPI bridge pre transfer setting fail, cxl id: 0x%x, offset: 0x%x",
+				cxl_id, start_offset);
+			goto error_exit;
+		}
+
+		ret = sc18is606_erase_sector(bus, SPI_BRIDGE_ADDR, FUNCTION_ID_SPI_WRITE_READ_SS_1,
+					     offset);
+		if (ret != true) {
+			return FWUPDATE_UPDATE_FAIL;
+		}
+	}
+
+	// Update flash when collect a page (256 bytes) data or BMC signal last image package with sector end flag
+	if ((buf_offset == CXL_FLASH_PAGE_SIZE) || (sector_end == true)) {
+		mutex = get_i2c_mux_mutex(bus);
+		CHECK_NULL_ARG_WITH_RETURN(mutex, FWUPDATE_UPDATE_FAIL);
+
+		mutex_status = k_mutex_lock(mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS));
+		if (mutex_status != 0) {
+			LOG_ERR("Mutex lock fail, status: %d, cxl id: 0x%x, bus: 0x%x",
+				mutex_status, cxl_id, bus);
+			retry += 1;
+			buf_offset -= msg_len;
+
+			if (retry > CXL_FLASH_UPDATE_RETRY) {
+				is_init = false;
+			}
+			return FWUPDATE_UPDATE_FAIL;
+		}
+
+		ret = sc18is606_pre_transfer_setting(cxl_id);
+		if (ret != true) {
+			LOG_ERR("SPI bridge pre transfer setting fail, cxl id: 0x%x, offset: 0x%x",
+				cxl_id, start_offset);
+			goto error_exit;
+		}
+
+		ret = sc18is606_fw_update(bus, SPI_BRIDGE_ADDR, FUNCTION_ID_SPI_WRITE_READ_SS_1,
+					  start_offset, txbuf, CXL_FLASH_PAGE_SIZE);
+		if (ret != true) {
+			LOG_ERR("SPI bridge fw update fail, cxl id: 0x%x, offset: 0x%x", cxl_id,
+				offset);
+			goto error_exit;
+		}
+
+		// Switch mux to PM8702 after every sector size update to avoid the last package not needing update
+		if (sector_end ||
+		    ((offset + PM8702_TRANSFER_FW_DATA_LEN) == EEPROM_ERASE_SECTOR_SIZE)) {
+			is_spi_bridge_switch_mux(cxl_id, false);
+		}
+
+		k_mutex_unlock(mutex);
+		is_init = false;
+		retry = 0;
+		return FWUPDATE_SUCCESS;
+	}
+
+	return FWUPDATE_SUCCESS;
+
+error_exit:
+	retry += 1;
+	buf_offset -= msg_len;
+	k_mutex_unlock(mutex);
+
+	if (retry > CXL_FLASH_UPDATE_RETRY) {
+		is_init = false;
+		is_spi_bridge_switch_mux(cxl_id, false);
+	}
+
+	return FWUPDATE_UPDATE_FAIL;
 }
 
 int pal_write_read_cxl_fru(uint8_t optional, uint8_t fru_id, EEPROM_ENTRY *fru_entry,
@@ -773,6 +929,39 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 		status = fw_update_pm8702(cxl_id, pcie_card_id, next_active_slot, offset, length,
 					  &msg->data[7], (component & IS_SECTOR_END_MASK));
 		break;
+	case MC_COMPNT_CXL1_RECOVERY:
+	case (MC_COMPNT_CXL1_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL2_RECOVERY:
+	case (MC_COMPNT_CXL2_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL3_RECOVERY:
+	case (MC_COMPNT_CXL3_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL4_RECOVERY:
+	case (MC_COMPNT_CXL4_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL5_RECOVERY:
+	case (MC_COMPNT_CXL5_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL6_RECOVERY:
+	case (MC_COMPNT_CXL6_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL7_RECOVERY:
+	case (MC_COMPNT_CXL7_RECOVERY | IS_SECTOR_END_MASK):
+	case MC_COMPNT_CXL8_RECOVERY:
+	case (MC_COMPNT_CXL8_RECOVERY | IS_SECTOR_END_MASK):
+		if (pal_cxl_component_id_map_cxl_id((component & WITHOUT_SENCTOR_END_MASK),
+						    &cxl_id) != 0) {
+			LOG_ERR("Invalid cxl component id: 0x%x", component);
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+		if (cxl_id_to_pcie_card_id(cxl_id, &pcie_card_id) != 0) {
+			LOG_ERR("Fail to transfer cxl id: 0x%x to pcie card id", cxl_id);
+			msg->completion_code = CC_INVALID_DATA_FIELD;
+			return;
+		}
+
+		status = fw_update_pm8702_via_spi_bridge(cxl_id, pcie_card_id, offset, length,
+							 &msg->data[7],
+							 (component & IS_SECTOR_END_MASK));
+		break;
 	default:
 		LOG_ERR("target: 0x%x is invalid", component);
 		msg->completion_code = CC_INVALID_PARAM;
@@ -887,4 +1076,145 @@ void OEM_1S_SET_DEVICE_ACTIVE(ipmi_msg *msg)
 	msg->data_len = 0;
 	msg->completion_code = CC_SUCCESS;
 	return;
+}
+
+#define HASH_DRV_NAME CONFIG_CRYPTO_ASPEED_HASH_DRV_NAME
+uint8_t pal_get_fw_sha256(uint8_t cxl_id, uint8_t *msg_buf, uint32_t offset, uint32_t length)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg_buf, CC_UNSPECIFIED_ERROR);
+
+	bool ret = 0;
+	bool need_free_section = false;
+	uint8_t *buf = NULL;
+	uint8_t bus = MEB_CXL_BUS;
+	uint16_t index = 0;
+
+	const struct device *dev = device_get_binding(HASH_DRV_NAME);
+	uint8_t digest[SHA256_DIGEST_SIZE] = { 0 };
+	struct hash_ctx ini = { 0 };
+	struct hash_pkt pkt = { 0 };
+
+	buf = (uint8_t *)malloc(length);
+	CHECK_NULL_ARG_WITH_RETURN(buf, CC_OUT_OF_SPACE);
+
+	int mutex_status = 0;
+	struct k_mutex *mutex = get_i2c_mux_mutex(bus);
+	if (mutex == NULL) {
+		LOG_ERR("Mutex is NULL");
+		SAFE_FREE(buf);
+		return CC_UNSPECIFIED_ERROR;
+	}
+
+	mutex_status = k_mutex_lock(mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS));
+	if (mutex_status != 0) {
+		LOG_ERR("Mutex lock fail, status: %d, offset: 0x%x", mutex_status, offset);
+		SAFE_FREE(buf);
+		return CC_UNSPECIFIED_ERROR;
+	}
+
+	ret = sc18is606_pre_transfer_setting(cxl_id);
+	if (ret != true) {
+		LOG_ERR("SPI bridge pre transfer setting fail before fw update, cxl id: 0x%x, offset: 0x%x",
+			cxl_id, offset);
+		goto end;
+	}
+
+	for (index = 0; index < EEPROM_ERASE_SECTOR_SIZE; index += CXL_FLASH_PAGE_SIZE) {
+		ret = sc18is606_spi_read(bus, SPI_BRIDGE_ADDR, FUNCTION_ID_SPI_WRITE_READ_SS_1,
+					 offset + index, &buf[index], CXL_FLASH_PAGE_SIZE);
+		if (ret != true) {
+			ret = CC_UNSPECIFIED_ERROR;
+			goto end;
+		}
+	}
+
+	pkt.in_buf = buf;
+	pkt.in_len = length;
+	pkt.out_buf = digest;
+	pkt.out_buf_max = sizeof(digest);
+
+	ret = hash_begin_session(dev, &ini, HASH_SHA256);
+	if (ret) {
+		LOG_ERR("hash_begin_session error, ret %d, offset: 0x%x", ret, offset);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	need_free_section = true;
+
+	ret = hash_update(&ini, &pkt);
+	if (ret) {
+		LOG_ERR("hash_update error, ret %d, offset: 0x%x", ret, offset);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+	ret = hash_final(&ini, &pkt);
+	if (ret) {
+		LOG_ERR("hash_final error, ret %d, offset: 0x%x", ret, offset);
+		ret = CC_UNSPECIFIED_ERROR;
+		goto end;
+	}
+
+	memcpy(msg_buf, &digest[0], sizeof(digest));
+	ret = CC_SUCCESS;
+
+end:
+	SAFE_FREE(buf);
+	is_spi_bridge_switch_mux(cxl_id, false);
+	k_mutex_unlock(mutex);
+
+	if (need_free_section) {
+		hash_free_session(dev, &ini);
+	}
+	return ret;
+}
+
+void OEM_1S_GET_FW_SHA256(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	uint8_t cxl_id = 0;
+	uint8_t status = 0;
+	uint8_t component = msg->data[0];
+	uint32_t offset =
+		(msg->data[1] | (msg->data[2] << 8) | (msg->data[3] << 16) | (msg->data[4] << 24));
+	uint32_t length =
+		(msg->data[5] | (msg->data[6] << 8) | (msg->data[7] << 16) | (msg->data[8] << 24));
+
+	if (msg->data_len != 9) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	if (length != EEPROM_ERASE_SECTOR_SIZE) {
+		LOG_ERR("Get sha256 func: invalid length: 0x%x", length);
+		msg->completion_code = CC_INVALID_PARAM;
+		return;
+	}
+
+	switch (component) {
+	case MC_COMPNT_CXL1_RECOVERY:
+	case MC_COMPNT_CXL2_RECOVERY:
+	case MC_COMPNT_CXL3_RECOVERY:
+	case MC_COMPNT_CXL4_RECOVERY:
+	case MC_COMPNT_CXL5_RECOVERY:
+	case MC_COMPNT_CXL6_RECOVERY:
+	case MC_COMPNT_CXL7_RECOVERY:
+	case MC_COMPNT_CXL8_RECOVERY:
+		if (pal_cxl_component_id_map_cxl_id((component), &cxl_id) != 0) {
+			LOG_ERR("Invalid cxl component id: 0x%x", component);
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+		status = pal_get_fw_sha256(cxl_id, &msg->data[0], offset, length);
+
+		msg->completion_code = status;
+		msg->data_len = SHA256_DIGEST_SIZE;
+		return;
+	default:
+		LOG_ERR("Get sha256 func: invalid component: 0x%x", component);
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
 }

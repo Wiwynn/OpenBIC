@@ -850,6 +850,24 @@ bool get_cxl_sensor_config_index(uint8_t sensor_num, uint8_t *index)
 	return false;
 }
 
+bool get_card_mux_cfg(uint8_t card_id, mux_config *card_mux_cfg)
+{
+	CHECK_NULL_ARG_WITH_RETURN(card_mux_cfg, false);
+
+	int ret = -1;
+	uint8_t cxl_id = 0;
+
+	ret = pcie_card_id_to_cxl_id(card_id, &cxl_id);
+	if (ret != 0) {
+		return false;
+	}
+
+	*card_mux_cfg = bus_2_pca9548_configs[cxl_id];
+	card_mux_cfg->bus = MEB_CXL_BUS;
+
+	return true;
+}
+
 bool get_pcie_card_mux_config(uint8_t card_id, uint8_t sensor_num, mux_config *card_mux_cfg,
 			      mux_config *cxl_mux_cfg)
 {

@@ -19,6 +19,7 @@
 
 #include <drivers/i2c.h>
 #include <drivers/i2c/slave/ipmb.h>
+#include "plat_def.h"
 
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(i2c0), okay)
 #define DEV_I2C_0
@@ -86,7 +87,11 @@
 
 #define DEV_I2C(n) DEV_I2C_##n
 
-#define I2C_BUFF_SIZE 256
+#ifndef PLATFORM_I2C_BUFF_SIZE
+#define PLATFORM_I2C_BUFF_SIZE 256
+#endif
+
+#define I2C_BUFF_SIZE PLATFORM_I2C_BUFF_SIZE
 #define MUTEX_LOCK_ENABLE true
 #define MUTEX_LOCK_DISENABLE false
 
@@ -98,8 +103,8 @@ enum I2C_TRANSFER_TYPE {
 typedef struct _I2C_MSG_ {
 	uint8_t bus;
 	uint8_t target_addr;
-	uint8_t rx_len;
-	uint8_t tx_len;
+	uint16_t rx_len;
+	uint16_t tx_len;
 	uint8_t data[I2C_BUFF_SIZE];
 	struct k_mutex lock;
 } I2C_MSG;

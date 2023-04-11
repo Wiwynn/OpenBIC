@@ -39,6 +39,7 @@
 #include "hal_gpio.h"
 #include "xdpe12284c.h"
 #include "util_sys.h"
+#include "sc18is606.h"
 
 LOG_MODULE_REGISTER(plat_dev);
 
@@ -67,7 +68,7 @@ LOG_MODULE_REGISTER(plat_dev);
 #define CXL_IOEXP_U15_CONFIG_0_REG_VAL 0x21
 #define CXL_IOEXP_U15_CONFIG_1_REG_VAL 0xFE
 
-#define CXL_IOEXP_U16_OUTPUT_0_REG_VAL 0xFF
+#define CXL_IOEXP_U16_OUTPUT_0_REG_VAL 0x7F
 #define CXL_IOEXP_U16_OUTPUT_1_REG_VAL 0xFF
 #define CXL_IOEXP_U16_CONFIG_0_REG_VAL 0x00
 #define CXL_IOEXP_U16_CONFIG_1_REG_VAL 0x00
@@ -76,6 +77,7 @@ LOG_MODULE_REGISTER(plat_dev);
 #define CXL_IOEXP_U17_OUTPUT_1_REG_VAL 0xFF
 #define CXL_IOEXP_U17_CONFIG_0_REG_VAL 0xFF
 #define CXL_IOEXP_U17_CONFIG_1_REG_VAL 0xFF
+#define CXL_IOEXP_MAX_PIN_INDEX 7
 
 #define PM8702_DEFAULT_SENSOR_NUM SENSOR_NUM_TEMP_CXL
 
@@ -86,8 +88,30 @@ enum XDPE12284_VID {
 };
 
 pm8702_dev_info pm8702_table[] = {
-	{ .is_init = false }, { .is_init = false }, { .is_init = false }, { .is_init = false },
-	{ .is_init = false }, { .is_init = false }, { .is_init = false }, { .is_init = false },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
+	{ .is_init = false,
+	  .spi_bridge_info.is_init_setting = false,
+	  .spi_bridge_info.arg = { .spi_clock_rate = 0b00, .mode_selection = 0b00, .order = 0b0 } },
 };
 
 cxl_vr_fw_info cxl_vr_info_table[] = {
@@ -875,6 +899,63 @@ void cxl_mb_status_init(uint8_t cxl_id)
 	k_mutex_unlock(meb_mutex);
 }
 
+bool set_cxl_ioexp_pin_value(uint8_t ioexp_addr, uint8_t register_addr, uint8_t pin_index,
+			     uint8_t val)
+{
+	int ret = 0;
+	uint8_t retry = 5;
+	uint8_t set_val = 0;
+	I2C_MSG msg = { 0 };
+
+	if (pin_index > CXL_IOEXP_MAX_PIN_INDEX) {
+		LOG_ERR("Invalid pin index: 0x%x", pin_index);
+		return false;
+	}
+
+	/** Read cxl ioexp output register status **/
+	msg.bus = MEB_CXL_BUS;
+	msg.target_addr = ioexp_addr;
+	msg.rx_len = 1;
+	msg.tx_len = 1;
+	msg.data[0] = register_addr;
+
+	ret = i2c_master_read(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Unable to read ioexp addr: 0x%x, register addr: 0x%x", msg.target_addr,
+			register_addr);
+		return false;
+	}
+
+	switch (val) {
+	case GPIO_HIGH:
+		set_val = msg.data[0] | BIT(pin_index);
+		break;
+	case GPIO_LOW:
+		set_val = msg.data[0] & (~BIT(pin_index));
+		break;
+	default:
+		LOG_ERR("Invalid setting val: 0x%x", val);
+		return false;
+	}
+
+	/** Write cxl ioexp output register status **/
+	memset(&msg, 0, sizeof(I2C_MSG));
+	msg.bus = MEB_CXL_BUS;
+	msg.target_addr = ioexp_addr;
+	msg.tx_len = 2;
+	msg.data[0] = register_addr;
+	msg.data[1] = set_val;
+
+	ret = i2c_master_write(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Unable to write ioexp addr: 0x%x, register addr: 0x%x", msg.target_addr,
+			register_addr);
+		return false;
+	}
+
+	return true;
+}
+
 bool cxl_single_ioexp_alert_reset(uint8_t ioexp_name, bool is_mutex)
 {
 	int ret = 0;
@@ -1272,6 +1353,100 @@ bool pal_pm8702_command_handler(uint8_t pcie_card_id, uint16_t opcode, uint8_t *
 	if (ret != true) {
 		LOG_ERR("Post switch mux fail, sensor num: 0x%x, card id: 0x%x", sensor_num,
 			pcie_card_id);
+	}
+
+	return true;
+}
+
+bool is_spi_bridge_switch_mux(uint8_t cxl_id, bool is_switch_mux)
+{
+	bool ret = true;
+	uint8_t set_val = 0;
+
+	if (pm8702_table[cxl_id].spi_bridge_info.is_switch_mux != is_switch_mux) {
+		if (is_switch_mux == true) {
+			set_val = SPI_BRIDGE_MUX_TO_BIC;
+		} else {
+			set_val = SPI_BRIDGE_MUX_TO_CXL;
+		}
+
+		ret = set_cxl_ioexp_pin_value(CXL_IOEXP_U16_ADDR, TCA9555_OUTPUT_PORT_REG_0, 2,
+					      set_val);
+		if (ret != true) {
+			LOG_ERR("Set cxl ioexp pin fail, cxl id: 0x%x, val: %d", cxl_id, set_val);
+		} else {
+			pm8702_table[cxl_id].spi_bridge_info.is_switch_mux = is_switch_mux;
+		}
+	}
+
+	return ret;
+}
+
+bool sc18is606_pre_transfer_setting(uint8_t cxl_id)
+{
+	bool ret = false;
+	uint8_t pcie_card_id = 0;
+	mux_config meb_mux = { 0 };
+	mux_config cxl_mux = { 0 };
+
+	if (cxl_id_to_pcie_card_id(cxl_id, &pcie_card_id) != 0) {
+		LOG_ERR("Fail to transfer cxl id: 0x%x to pcie card id", cxl_id);
+		return false;
+	}
+
+	ret = get_card_mux_cfg(pcie_card_id, &meb_mux);
+	if (ret != true) {
+		LOG_ERR("Get card mux config fail, cxl id: 0x%x", cxl_id);
+		return ret;
+	}
+
+	/** CXL mux for ioexp channels **/
+	cxl_mux.bus = MEB_CXL_BUS;
+	cxl_mux.target_addr = CXL_FRU_MUX1_ADDR;
+	cxl_mux.channel = CXL_IOEXP_MUX_CHANNEL;
+
+	// Switch card mux
+	ret = set_mux_channel(meb_mux, true);
+	if (ret != true) {
+		LOG_ERR("Switch card mux fail, cxl id: 0x%x", cxl_id);
+		return ret;
+	}
+
+	ret = set_mux_channel(cxl_mux, true);
+	if (ret != true) {
+		LOG_ERR("Switch cxl mux fail, cxl id: 0x%x", cxl_id);
+		return ret;
+	}
+
+	ret = is_spi_bridge_switch_mux(cxl_id, true);
+	if (ret != true) {
+		LOG_ERR("Switch ioexp spi mux fail, cxl id: 0x%x", cxl_id);
+		return ret;
+	}
+
+	if (pm8702_table[cxl_id].spi_bridge_info.is_init_setting != true) {
+		ret = sc18is606_config_spi(meb_mux.bus, SPI_BRIDGE_ADDR,
+					   pm8702_table[cxl_id].spi_bridge_info.arg);
+		if (ret != true) {
+			LOG_ERR("Set spi config fail, cxl id: 0x%x", cxl_id);
+			return ret;
+		}
+
+		ret = sc18is606_sw_reset(meb_mux.bus, SPI_BRIDGE_ADDR,
+					 FUNCTION_ID_SPI_WRITE_READ_SS_1);
+		if (ret != true) {
+			LOG_ERR("SW reset fail, cxl id: 0x%x", cxl_id);
+			return ret;
+		}
+
+		ret = sc18is606_set_4bytes_mode(meb_mux.bus, SPI_BRIDGE_ADDR,
+						FUNCTION_ID_SPI_WRITE_READ_SS_1);
+		if (ret != true) {
+			LOG_ERR("Set 4 bytes mode fail, cxl id: 0x%x", cxl_id);
+			return ret;
+		}
+
+		pm8702_table[cxl_id].spi_bridge_info.is_init_setting = true;
 	}
 
 	return true;
