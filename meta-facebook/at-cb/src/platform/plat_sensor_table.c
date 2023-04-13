@@ -481,23 +481,28 @@ void load_sensor_config(void)
 
 bool is_mb_dc_on()
 {
-	// BIC can check motherboard dc power status by P1V8_PEX voltage
-	// Motherboard is dc off if ADC-4 voltage is lower than 1.8V - (1.8V * 7%) = 1.674
-	bool ret = false;
-	uint8_t channel = P1V8_PEX_ADC_CHANNEL;
-	float mb_dc_low_threshold = P1V8_PEX_LOW_THRESHOLD;
-	float voltage = 0;
+	// BIC can check motherboard dc power status by CPLD power good flag
+	int ret = -1;
+	int retry = 5;
+	I2C_MSG msg = { 0 };
 
-	ret = get_adc_voltage(channel, &voltage);
-	if (ret == true) {
-		if (voltage < mb_dc_low_threshold) {
-			ret = false;
-		}
-	} else {
-		LOG_ERR("Ret false");
+	msg.bus = I2C_BUS3;
+	msg.target_addr = CPLD_ADDR;
+	msg.rx_len = 1;
+	msg.tx_len = 1;
+	msg.data[0] = CPLD_PWRGD_OFFSET;
+
+	ret = i2c_master_read(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Fail to read cpld offset: 0x%x", CPLD_PWRGD_OFFSET);
+		return false;
 	}
 
-	return ret;
+	if (msg.data[0] & CPLD_PWRGD_BIT) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool is_dc_access(uint8_t sensor_num)

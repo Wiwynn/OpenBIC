@@ -45,8 +45,10 @@
 #define SQ52205_P1V25_1_ADDR 0x40
 #define SQ52205_P1V25_2_ADDR 0x41
 #define FIO_THERMAL_ADDR 0x48
-#define P1V8_PEX_ADC_CHANNEL 4
-#define P1V8_PEX_LOW_THRESHOLD 1.674
+
+#define CPLD_ADDR (0xA0 >> 1)
+#define CPLD_PWRGD_OFFSET 0x05
+#define CPLD_PWRGD_BIT BIT(0)
 
 /* Temperature sensor number, 1 based  */
 #define SENSOR_NUM_TEMP_OUTLET_1 0x01
