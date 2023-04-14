@@ -45,6 +45,22 @@
 #define PEX_ACCL_DEV_PRESENT_REG 0x2A080048
 #define PEX_ACCL_PRESENT_MAP_VAL 0x07
 
+enum BOM_SOURCE {
+	MAIN_SOURCE,
+	SECOND_SOURCE,
+	UNKNOWN_SOURCE = 0xFF,
+};
+
+enum BOARD_REVISION_ID {
+	POC_STAGE = 0b000,
+	EVT1_STAGE = 0b001,
+	EVT2_STAGE = 0b010,
+	DVT_STAGE = 0b011,
+	PVT_STAGE = 0b100,
+	MP_STAGE = 0b101,
+	UNKNOWN_STAGE = 0xFF,
+};
+
 enum ASIC_CARD_STATUS {
 	ASIC_CARD_NOT_PRESENT,
 	ASIC_CARD_PRESENT,
@@ -86,5 +102,10 @@ extern struct ASIC_CARD_INFO asic_card_info[ASIC_CARD_COUNT];
 void check_asic_card_status();
 bool get_adc_voltage(int channel, float *voltage);
 void check_accl_device_presence_status(uint8_t pex_id);
+void init_platform_config();
+uint8_t get_board_revision();
+uint8_t get_hsc_module_source();
+uint8_t get_pwr_brick_module_source();
+uint8_t get_vr_module_source();
 
 #endif

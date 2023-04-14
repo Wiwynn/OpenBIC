@@ -26,11 +26,18 @@
 #include "common_i2c_mux.h"
 #include "pex89000.h"
 #include "plat_sensor_table.h"
+#include "hal_gpio.h"
+#include "plat_gpio.h"
 
 LOG_MODULE_REGISTER(plat_class);
 
 #define NUMBER_OF_ADC_CHANNEL 16
 #define AST1030_ADC_BASE_ADDR 0x7e6e9000
+
+static uint8_t board_revision = UNKNOWN_STAGE;
+static uint8_t hsc_module = UNKNOWN_SOURCE;
+static uint8_t vr_module = UNKNOWN_SOURCE;
+static uint8_t pwr_brick_module = UNKNOWN_SOURCE;
 
 /* ADC information for each channel
  * offset: register offset
@@ -319,4 +326,35 @@ void check_asic_card_status()
 			asic_card_info[index].card_status = ASIC_CARD_NOT_PRESENT;
 		}
 	}
+}
+
+void init_platform_config()
+{
+	board_revision = gpio_get(REV_ID0);
+	board_revision |= gpio_get(REV_ID1) << 1;
+	board_revision |= gpio_get(REV_ID2) << 2;
+
+	hsc_module = gpio_get(BOARD_ID2);
+	pwr_brick_module = gpio_get(BOARD_ID1);
+	vr_module = gpio_get(BOARD_ID0);
+}
+
+uint8_t get_board_revision()
+{
+	return board_revision;
+}
+
+uint8_t get_hsc_module_source()
+{
+	return hsc_module;
+}
+
+uint8_t get_pwr_brick_module_source()
+{
+	return pwr_brick_module;
+}
+
+uint8_t get_vr_module_source()
+{
+	return vr_module;
 }
