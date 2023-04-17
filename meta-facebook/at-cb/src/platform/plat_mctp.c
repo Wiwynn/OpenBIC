@@ -37,11 +37,21 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define MCTP_IC_SHIFT 7
 #define MCTP_IC_MASK 0x80
 
+/* i3c 8-bit addr */
+#define I3C_STATIC_ADDR_BIC 0x40
+#define I3C_STATIC_ADDR_BMC 0x20
+
 typedef struct _mctp_smbus_port {
 	mctp *mctp_inst;
 	mctp_medium_conf conf;
 	uint8_t user_idx;
 } mctp_smbus_port;
+
+typedef struct _mctp_i3c_port {
+	mctp *mctp_inst;
+	mctp_medium_conf conf;
+	uint8_t user_idx;
+} mctp_i3c_port;
 
 /* mctp route entry struct */
 typedef struct _mctp_route_entry {
@@ -50,23 +60,23 @@ typedef struct _mctp_route_entry {
 	uint8_t addr;
 } mctp_route_entry;
 
-static mctp_smbus_port smbus_port[] = {
-	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I3C_BUS_BMC },
+static mctp_i3c_port i3c_port[] = {
+	{ .conf.i3c_conf.addr = I3C_STATIC_ADDR_BMC, .conf.smbus_conf.bus = I3C_BUS_BMC },
 };
 
 mctp_route_entry mctp_route_tbl[] = {
-	{ MCTP_EID_BMC, I3C_BUS_BMC, I2C_ADDR_BMC },
+	{ MCTP_EID_BMC, I3C_BUS_BMC, I3C_STATIC_ADDR_BMC },
 };
 
-mctp *find_mctp_by_smbus(uint8_t bus)
+mctp *find_mctp_by_i3c(uint8_t bus)
 {
 	uint8_t i;
-	for (i = 0; i < ARRAY_SIZE(smbus_port); i++) {
-		mctp_smbus_port *p = smbus_port + i;
+	for (i = 0; i < ARRAY_SIZE(i3c_port); i++) {
+		mctp_i3c_port *p = i3c_port + i;
 		if (!p) {
 			return NULL;
 		}
-		if (bus == p->conf.smbus_conf.bus) {
+		if (bus == p->conf.i3c_conf.bus) {
 			return p->mctp_inst;
 		}
 	}
@@ -108,7 +118,7 @@ int pal_get_medium_type(uint8_t interface)
 	case BMC_IPMB:
 	case MCTP:
 	case PLDM:
-		medium_type = MCTP_MEDIUM_TYPE_SMBUS;
+		medium_type = MCTP_MEDIUM_TYPE_I3C;
 		break;
 	default:
 		medium_type = -1;
@@ -139,8 +149,8 @@ int pal_get_target(uint8_t interface)
 mctp *pal_get_mctp(uint8_t mctp_medium_type, uint8_t bus)
 {
 	switch (mctp_medium_type) {
-	case MCTP_MEDIUM_TYPE_SMBUS:
-		return find_mctp_by_smbus(bus);
+	case MCTP_MEDIUM_TYPE_I3C:
+		return find_mctp_by_i3c(bus);
 	default:
 		return NULL;
 	}
@@ -159,7 +169,7 @@ uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst, mctp_ext_pa
 		CHECK_NULL_ARG_WITH_RETURN(port, MCTP_ERROR);
 
 		if (port->endpoint == dest_endpoint) {
-			*mctp_inst = find_mctp_by_smbus(port->bus);
+			*mctp_inst = find_mctp_by_i3c(port->bus);
 			CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
 
 			ext_params->ep = port->endpoint;
@@ -240,23 +250,21 @@ void plat_mctp_init(void)
 	uint8_t ret = 0;
 	uint8_t index = 0;
 
-	for (index = 0; index < ARRAY_SIZE(smbus_port); index++) {
-		mctp_smbus_port *port = smbus_port + index;
+	for (index = 0; index < ARRAY_SIZE(i3c_port); index++) {
+		mctp_i3c_port *port = i3c_port + index;
 		CHECK_NULL_ARG(port);
 
-		/* init mctp for bmc bus */
 		port->mctp_inst = mctp_init();
 		CHECK_NULL_ARG(port->mctp_inst);
 
-		ret = mctp_set_medium_configure(port->mctp_inst, MCTP_MEDIUM_TYPE_SMBUS,
-						port->conf);
+		ret = mctp_set_medium_configure(port->mctp_inst, MCTP_MEDIUM_TYPE_I3C, port->conf);
 		if (ret != MCTP_SUCCESS) {
 			LOG_INF("[%s] mctp set medium configure failed", __func__);
 		}
 
 		mctp_reg_endpoint_resolve_func(port->mctp_inst, get_mctp_route_info);
 		mctp_reg_msg_rx_func(port->mctp_inst, mctp_msg_recv);
-		mctp_start(port->mctp_inst);
+		ret = mctp_start(port->mctp_inst);
 	}
 
 	LOG_DBG("mctp_start");

@@ -27,7 +27,7 @@
 #include "plat_i2c.h"
 
 #define I2C_BUS_BMC I2C_BUS9
-#define I3C_BUS_BMC I3C_BUS1
+#define I3C_BUS_BMC 0
 #define I2C_ADDR_BIC 0x40
 #define I2C_ADDR_BMC 0x20
 
