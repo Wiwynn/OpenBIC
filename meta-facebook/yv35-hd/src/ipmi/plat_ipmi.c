@@ -246,8 +246,8 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 				}
 			}
 
-			status = pldm_send_ipmi_request(bridge_msg);
-			//status = IPMB_ERROR_SUCCESS;
+			//status = pldm_send_ipmi_request(bridge_msg);
+			status = IPMB_ERROR_SUCCESS;
 			if (status != IPMB_ERROR_SUCCESS) {
 				LOG_ERR("OEM_MSG_OUT send PLDM over MCTP req fail status: %x", status);
 				msg->completion_code = CC_BRIDGE_MSG_ERR;
