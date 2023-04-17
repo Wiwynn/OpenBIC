@@ -102,6 +102,9 @@ int i3c_smq_read(I3C_MSG *msg)
 	}
 
 	k_mutex_unlock(&mutex_read[msg->bus]);
+
+	LOG_HEXDUMP_INF(msg->data, msg->rx_len, "[Debug] i3c_smq_read data:");
+
 	return msg->rx_len;
 }
 
@@ -185,6 +188,7 @@ int i3c_brocast_ccc(I3C_MSG *msg, uint8_t ccc_id, uint8_t ccc_addr)
 	ccc.payload.data = &msg->data;
 	ccc.payload.length = 0;
 
+	LOG_INF("[Debug] broadcast ccc 0x%x addresses 0x%x", ccc_id, ccc_addr);
 	ret = i3c_master_send_ccc(dev_i3c[msg->bus], &ccc);
 	if (ret != 0) {
 		LOG_ERR("Failed to broadcast ccc 0x%x to addresses 0x%x due to undefined bus%u",

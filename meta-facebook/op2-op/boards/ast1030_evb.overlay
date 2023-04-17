@@ -80,8 +80,8 @@
         assigned-address = <0x9>;
         pinctrl-0 = <&pinctrl_hvi3c0_default>;
         i3c-scl-hz = <8000000>;
-        secondary;
         ibi-append-pec;
+        secondary;
         i3c0_smq: i3c-slave-mqueue@9 {
                 compatible = "aspeed,i3c-slave-mqueue";
                 reg = <0x9>;

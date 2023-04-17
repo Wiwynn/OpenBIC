@@ -100,7 +100,7 @@ static uint16_t mctp_i3c_write(void *mctp_p, uint8_t *buf, uint32_t len,
 
 	LOG_HEXDUMP_INF(&i3c_msg.data[0], i3c_msg.tx_len, "mctp_i3c_write msg dump");
 
-	ret = i3c_transfer(&i3c_msg);
+	ret = i3c_write(&i3c_msg);
 	if (ret < 0) {
 		LOG_ERR("mctp_i3c_write write failed, %d", ret);
 		return MCTP_ERROR;
@@ -194,6 +194,10 @@ uint8_t mctp_i3c_controller_init(mctp *mctp_instance, mctp_medium_conf medium_co
 	i3c_msg.target_addr = medium_conf.i3c_conf.addr;
 
 	i3c_attach(&i3c_msg);
+
+	i3c_brocast_ccc(&i3c_msg, I3C_CCC_RSTDAA, I3C_BROADCAST_ADDR);
+	i3c_brocast_ccc(&i3c_msg, I3C_CCC_RSTDAA, I3C_BROADCAST_ADDR);
+	i3c_brocast_ccc(&i3c_msg, I3C_CCC_SETAASA, I3C_BROADCAST_ADDR);
 
 	// i3c ibi mqueue initial
 	i3c_master_ibi_init(&i3c_msg);
