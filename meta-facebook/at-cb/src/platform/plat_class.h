@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "plat_i2c.h"
+#include "plat_gpio.h"
 #include "i2c-mux-pca954x.h"
 
 #define ASIC_CARD_COUNT 12
@@ -61,10 +62,19 @@
 #define IOEXP_DEV_2_PRESENT_VAL 0x0C
 #define IOEXP_DEV_1_2_PRESENT_VAL 0x00
 
-enum BOM_SOURCE {
-	MAIN_SOURCE,
-	SECOND_SOURCE,
-	UNKNOWN_SOURCE = 0xFF,
+#define HSC_MODULE_PIN_NUM BOARD_ID2
+#define POWER_BRICK_MODULE_PIN_NUM BOARD_ID1
+
+enum HSC_MODULE {
+	HSC_MODULE_ADM1272,
+	HSC_MODULE_LTC4286,
+	HSC_MODULE_UNKNOWN = 0xFF,
+};
+
+enum POWER_BRICK_MODULE {
+	POWER_BRICK_Q50SN120A1,
+	POWER_BRICK_BMR3512202,
+	POWER_BRICK_UNKNOWN = 0xFF,
 };
 
 enum BOARD_REVISION_ID {
@@ -119,9 +129,8 @@ void check_asic_card_status();
 void check_accl_device_presence_status_via_pex(uint8_t pex_id);
 void init_platform_config();
 uint8_t get_board_revision();
-uint8_t get_hsc_module_source();
-uint8_t get_pwr_brick_module_source();
-uint8_t get_vr_module_source();
+uint8_t get_hsc_module();
+uint8_t get_pwr_brick_module();
 bool get_acb_power_status();
 bool get_acb_power_good_flag();
 
