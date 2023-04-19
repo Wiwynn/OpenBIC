@@ -84,7 +84,7 @@ void pal_pre_init()
 	}
 
 	// initial mctp thread
-	plat_mctp_init();
+	//plat_mctp_init();
 }
 
 DEVICE_DEFINE(PRE_DEF_PLAT_CONFIG, "PRE_DEF_PLATFOMR", &init_platform_config, NULL, NULL, NULL,

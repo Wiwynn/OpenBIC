@@ -86,7 +86,7 @@ void pal_pre_init()
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 	pcc_init();
 	apml_init();
-	//plat_mctp_init();
+//	plat_mctp_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
 }
 
