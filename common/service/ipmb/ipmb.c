@@ -862,6 +862,9 @@ void IPMB_RXTask(void *pvParameters, void *arvg0, void *arvg1)
 					// Check BMC communication interface if use IPMB or not
 					if (!pal_is_interface_use_ipmb(
 						    IPMB_inf_index_map[BMC_IPMB])) {
+						if (bridge_msg->netfn == 0x4 && bridge_msg->cmd == 0x2)
+							LOG_ERR("%s %d, netfn %x, cmd %x, seq %x", __func__, __LINE__, bridge_msg->netfn, bridge_msg->cmd, bridge_msg->seq);
+
 						// Send ME request to MCTP/PLDM thread to BMC and get response
 						pldm_send_ipmi_request(bridge_msg);
 						bridge_msg->netfn = current_msg_rx->buffer.netfn;
@@ -1001,9 +1004,12 @@ ipmb_error ipmb_send_response(ipmi_msg *resp, uint8_t index)
 	resp_cfg.buffer.cmd = resp->cmd;
 	resp_cfg.retries = 0;
 
-	LOG_DBG("Send resp message, index(%d) cc(0x%x) data[%d]:", index,
+	if (resp->netfn == 0x4 && resp->cmd == 0x2) {
+		LOG_ERR("Send resp message, index(%d) cc(0x%x) data[%d]:", index,
 		resp_cfg.buffer.completion_code, resp_cfg.buffer.data_len);
-	LOG_HEXDUMP_DBG(resp_cfg.buffer.data, resp_cfg.buffer.data_len, "");
+		LOG_HEXDUMP_ERR(resp_cfg.buffer.data, resp_cfg.buffer.data_len, "");
+	}
+
 
 	/* Blocks here until is able put message in tx queue */
 	if (k_msgq_put(&ipmb_txqueue[index], &resp_cfg, K_FOREVER) != osOK) {

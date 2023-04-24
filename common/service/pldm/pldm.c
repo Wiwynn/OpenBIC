@@ -88,7 +88,7 @@ static bool unregister_instid(void *mctp_p, uint8_t inst_num)
 		return false;
 	}
 	WRITE_BIT(mctp_inst->pldm_inst_table, inst_num, 0);
-
+//LOG_ERR("Unregister %d, table: %x", inst_num, mctp_inst->pldm_inst_table);
 	return true;
 }
 
@@ -108,13 +108,13 @@ static bool register_instid(void *mctp_p, uint8_t *inst_num)
 		}
 		cur_inst_num = (cur_inst_num + 1) & PLDM_HDR_INST_ID_MASK;
 	}
-
 	if (retry == PLDM_MAX_INSTID_COUNT) {
 		LOG_DBG("Inatant id %d not available!", cur_inst_num);
 		return false;
 	}
 
 	WRITE_BIT(mctp_inst->pldm_inst_table, cur_inst_num, 1);
+	//LOG_ERR("Register %d, table: %x", cur_inst_num, mctp_inst->pldm_inst_table);
 	*inst_num = cur_inst_num;
 
 	cur_inst_num = (cur_inst_num + 1) & PLDM_HDR_INST_ID_MASK;
@@ -160,13 +160,19 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 	CHECK_NULL_ARG_WITH_RETURN(msg, 0);
 	CHECK_NULL_ARG_WITH_RETURN(rbuf, 0);
 
-	if (!rbuf_len)
+	if (!rbuf_len) {
+		LOG_ERR("%s %d", __func__, __LINE__);
 		return 0;
+	}
+//if (msg->buf[3] == 0x4 && msg->buf[4] == 0x2) {
+//}
+//				LOG_ERR("%s %d, %x %x", __func__, __LINE__, msg->buf[3], msg->buf[4]);
 
 	uint8_t event_msgq_buffer[1];
 	struct k_msgq *event_msgq_p = (struct k_msgq *)malloc(sizeof(struct k_msgq));
 	if (!event_msgq_p) {
 		LOG_WRN("Failed to allocate event_msgq_p");
+		LOG_ERR("%s %d", __func__, __LINE__);
 		return 0;
 	}
 	uint16_t ret_len = 0;
@@ -204,12 +210,16 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 			ret_len = recv_arg_p->return_len;
 			SAFE_FREE(recv_arg_p);
 			SAFE_FREE(event_msgq_p);
+			if (msg->buf[3] == 0x4 && msg->buf[4] == 0x2) {
+				LOG_ERR("%s %d, len %d", __func__, __LINE__, ret_len);
+			}
 			return ret_len;
 		}
 	}
 	SAFE_FREE(event_msgq_p);
 	SAFE_FREE(recv_arg_p);
 	LOG_WRN("Retry reach max!");
+	LOG_ERR("Retry reach max (%x %x)", msg->buf[3], msg->buf[4]);
 	return 0;
 }
 
@@ -394,8 +404,10 @@ send_msg:
 
 uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 {
-	if (!mctp_p || !msg)
+	if (!mctp_p || !msg) {
+		LOG_ERR("%s %d", __func__, __LINE__);
 		return PLDM_ERROR;
+	}
 
 	mctp *mctp_inst = (mctp *)mctp_p;
 
@@ -430,6 +442,7 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 
 	if (rc == MCTP_ERROR) {
 		LOG_WRN("mctp_send_msg error!!");
+		//LOG_HEXDUMP_ERR(msg->buf, msg->len, __func__);
 		return PLDM_ERROR;
 	}
 
@@ -581,6 +594,7 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	uint8_t req_buf[PLDM_MAX_DATA_SIZE] = { 0 };
 	memset(&pmsg, 0, sizeof(pmsg));
 	memset(req_buf, 0, sizeof(req_buf));
+	int retry = 0;
 
 	uint8_t target_interface = msg->InF_target;
 	int medium_type = pal_get_medium_type(target_interface);
@@ -616,10 +630,23 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	// Send request to PLDM/MCTP thread and get response
 	uint8_t res_len =
 		mctp_pldm_read(pal_get_mctp(medium_type, target), &pmsg, rbuf, sizeof(rbuf));
-
+	if ((msg->netfn == 0x4) && (msg->cmd == 0x2)) {
+		LOG_HEXDUMP_ERR(msg->data, msg->data_len, __func__);
+		LOG_ERR("res_len %d", res_len);
+	}
 	if (!res_len) {
-		LOG_ERR("mctp_pldm_read fail");
-		return false;
+		LOG_ERR("mctp_pldm_read fail, (%x %x), res_len %d", msg->netfn, msg->cmd, res_len);
+		if ((msg->netfn == 0x4) && (msg->cmd == 0x2)) {
+			//ret = i3c_slave_get_dynamic_addr(obj->i3c_controller, &dynamic_addr);
+			while ((retry > 0) && (!res_len)) {
+				k_sleep(K_MSEC(1000));
+				res_len =
+					mctp_pldm_read(pal_get_mctp(medium_type, target), &pmsg, rbuf, sizeof(rbuf));
+				LOG_ERR("retry %d, res_len %d", retry, res_len);
+				retry--;
+			}
+		}
+		return -1;
 	}
 
 	struct _pldm_ipmi_cmd_resp *resp = (struct _pldm_ipmi_cmd_resp *)rbuf;
