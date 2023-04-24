@@ -374,6 +374,8 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 						    cp_msg_size + MCTP_TRANSPORT_HEADER_SIZE,
 						    mctp_msg.ext_params);
 
+			k_msleep(1);
+
 			if (ret != MCTP_SUCCESS) {
 				LOG_WRN("mctp write data failed");
 				break;
