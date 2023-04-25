@@ -572,6 +572,8 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t pcie_card_id)
 		return false;
 	}
 
+	k_msleep(2);
+
 	// Switch cxl mux
 	ret = set_mux_channel(cxl_mux, MUTEX_LOCK_ENABLE);
 	if (ret != true) {
@@ -579,6 +581,8 @@ bool pre_cxl_switch_mux(uint8_t sensor_num, uint8_t pcie_card_id)
 		k_mutex_unlock(mutex);
 		return false;
 	}
+
+	k_msleep(2);
 
 	return true;
 }
