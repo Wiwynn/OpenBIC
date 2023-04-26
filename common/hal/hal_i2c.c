@@ -112,7 +112,7 @@ int i2c_master_read(I2C_MSG *msg, uint8_t retry)
 	uint8_t *txbuf = NULL, *rxbuf = NULL;
 	txbuf = (uint8_t *)malloc(I2C_BUFF_SIZE * sizeof(uint8_t));
 	if (!txbuf) {
-		LOG_ERR("Failed to malloc txbuf");
+		LOG_ERR("Failed to malloc txbuf,errno = %d",errno);
 		goto exit;
 	}
 	rxbuf = (uint8_t *)malloc(I2C_BUFF_SIZE * sizeof(uint8_t));
@@ -137,8 +137,8 @@ int i2c_master_read(I2C_MSG *msg, uint8_t retry)
 		}
 	}
 
-	if (i > retry)
-		LOG_ERR("I2C %d master read retry reach max with ret %d", msg->bus, ret);
+	//if (i > retry)
+		//LOG_ERR("I2C %d master read retry reach max with ret %d", msg->bus, ret);
 
 exit:
 	SAFE_FREE(txbuf);

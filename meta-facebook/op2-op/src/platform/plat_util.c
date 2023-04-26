@@ -50,11 +50,11 @@ void send_system_status_event(uint8_t event_type, uint8_t error_type, uint8_t de
 	sel_msg->event_data2 = card_position;
 	sel_msg->event_data3 = device_index;
 
-	if (!common_add_sel_evt_record(sel_msg)) {
+//	if (!common_add_sel_evt_record(sel_msg)) {
 		LOG_ERR("Failed to add SEL to BMC, type: 0x%x data: 0x%02x%02x%02x",
 			sel_msg->event_type, sel_msg->event_data1, sel_msg->event_data2,
 			sel_msg->event_data3);
-	}
+//	}
 
 	SAFE_FREE(sel_msg);
 }

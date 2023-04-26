@@ -385,7 +385,8 @@ bool notify_cpld_e1s_present(uint8_t index, uint8_t present)
 		msg->data[10] = cpld_e1s_prsnt_reg;
 	}
 
-	status = ipmb_read(msg, IPMB_inf_index_map[msg->InF_target]);
+	//status = ipmb_read(msg, IPMB_inf_index_map[msg->InF_target]);
+	return true;
 	if (status != IPMB_ERROR_SUCCESS) {
 		LOG_ERR("Failed to write sb cpld, ret %d", status);
 		SAFE_FREE(msg);

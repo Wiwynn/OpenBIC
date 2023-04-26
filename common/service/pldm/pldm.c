@@ -336,9 +336,9 @@ uint8_t mctp_pldm_cmd_handler(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext
 * invoked
 */
 
-	if (!hdr->rq) {
+	if (!hdr->rq)
 		return pldm_resp_msg_process(mctp_inst, buf, len, ext_params);
-	}
+
 	/* the message is a request, find the proper handler to handle it */
 
 	/* initial response data */
@@ -401,9 +401,9 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 	uint8_t get_inst_id = 0xff;
 
 	/*
-	* The request should be set inst_id/msg_type/mctp_tag_owner in the
-	* header
-	*/
+* The request should be set inst_id/msg_type/mctp_tag_owner in the
+* header
+*/
 	if (msg->hdr.rq) {
 		if (register_instid(mctp_p, &get_inst_id) == false) {
 			LOG_ERR("Register failed!");

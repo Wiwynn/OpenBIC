@@ -94,6 +94,9 @@ static uint8_t mctp_medium_init(mctp *mctp_inst, mctp_medium_conf medium_conf)
 	case MCTP_MEDIUM_TYPE_TARGET_I3C:
 		ret = mctp_i3c_target_init(mctp_inst, medium_conf);
 		break;
+	case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
+		ret = mctp_i3c_controller_init(mctp_inst, medium_conf);
+		break;
 	default:
 		return MCTP_ERROR;
 	}
@@ -110,6 +113,7 @@ static uint8_t mctp_medium_deinit(mctp *mctp_inst)
 		mctp_smbus_deinit(mctp_inst);
 		break;
 	case MCTP_MEDIUM_TYPE_TARGET_I3C:
+	case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
 		mctp_i3c_deinit(mctp_inst);
 		break;
 	default:
@@ -222,9 +226,9 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		/* Set the tranport layer extra parameters */
 		ext_params.msg_tag = hdr->msg_tag;
 		/*
-* The high-level application won't modify the tag_owner flag, change the
-* tag_owner for response if needs
-*/
+		* The high-level application won't modify the tag_owner flag, change the
+		* tag_owner for response if needs
+		*/
 		ext_params.tag_owner = 0;
 		ext_params.ep = hdr->src_ep;
 

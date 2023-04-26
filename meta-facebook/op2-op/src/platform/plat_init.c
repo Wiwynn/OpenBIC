@@ -22,6 +22,7 @@
 #include "plat_i2c.h"
 #include "plat_isr.h"
 #include "plat_power_seq.h"
+#include "plat_mctp.h"
 
 #define DEF_PLAT_CONFIG_PRIORITY 77
 #define DEF_PROJ_GPIO_PRIORITY 78
@@ -81,6 +82,9 @@ void pal_pre_init()
 	if (!rg3mxxb12_i2c_mode_only_init(I2C_BUS2, slave_port, ldo_1_2_volt, pullup_1k_ohm)) {
 		printk("failed to initialize rg3mxxb12\n");
 	}
+
+	// initial mctp thread
+	plat_mctp_init();
 }
 
 DEVICE_DEFINE(PRE_DEF_PLAT_CONFIG, "PRE_DEF_PLATFOMR", &init_platform_config, NULL, NULL, NULL,

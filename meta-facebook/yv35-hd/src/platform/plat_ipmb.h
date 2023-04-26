@@ -28,7 +28,7 @@
 #define SELF_I2C_ADDRESS 0x20
 #define BIC1_I2C_ADDRESS 0x20
 #define BIC2_I2C_ADDRESS 0x20
-#define MAX_IPMB_IDX 4
+#define MAX_IPMB_IDX 3
 
 enum {
 	BMC_IPMB_IDX,

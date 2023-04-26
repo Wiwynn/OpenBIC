@@ -28,6 +28,7 @@
 #include "plat_sensor_table.h"
 #include "sensor.h"
 #include "pmbus.h"
+#include "pldm.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -161,7 +162,6 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 		msg->completion_code = CC_INVALID_LENGTH;
 	}
 
-	CARD_STATUS _1ou_status = get_1ou_status();
 	target_IF = msg->data[0];
 
 	switch (target_IF) {
@@ -182,25 +182,17 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 			msg->data[1] = msg->data[1] << 2;
 		}
 		break;
-	case EXP2_IPMB:
-		if (_1ou_status.card_type == TYPE_1OU_EXP_WITH_E1S) {
-			target_IF = EXP1_IPMB;
-		}
-		break;
-	case EXP4_IPMB:
-		target_IF = EXP3_IPMB;
-		break;
 	default:
 		break;
 	}
 
 	// Bridge to invalid or disabled interface
-	if ((IPMB_inf_index_map[target_IF] == RESERVED) ||
-	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].interface == RESERVED_IF) ||
-	    (IPMB_config_table[IPMB_inf_index_map[target_IF]].enable_status == DISABLE)) {
-		LOG_ERR("OEM_MSG_OUT: Invalid bridge interface: %x", target_IF);
-		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
-	}
+	//if ((IPMB_inf_index_map[target_IF] == RESERVED) ||
+	//    (IPMB_config_table[IPMB_inf_index_map[target_IF]].interface == RESERVED_IF) ||
+	//    (IPMB_config_table[IPMB_inf_index_map[target_IF]].enable_status == DISABLE)) {
+	//	LOG_ERR("OEM_MSG_OUT: Invalid bridge interface: %x", target_IF);
+	//	msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+	//}
 
 	// only send to target while msg is valid
 	if (msg->completion_code == CC_SUCCESS) {
@@ -213,56 +205,54 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 
 			LOG_DBG("bridge targetIf %x, len %d, netfn %x, cmd %x", target_IF,
 				msg->data_len, msg->data[1] >> 2, msg->data[2]);
+			//LOG_HEXDUMP_INF(msg->data,msg->data_len,"Data: ");
 
-			if ((_1ou_status.card_type == TYPE_1OU_EXP_WITH_E1S) &&
-			    ((msg->data[0] == EXP2_IPMB) || (msg->data[0] == EXP4_IPMB))) {
-				bridge_msg->seq_source = msg->seq_source;
-				bridge_msg->InF_target = msg->data[0];
-				bridge_msg->InF_source = msg->InF_source;
-				bridge_msg->netfn = NETFN_OEM_1S_REQ;
-				bridge_msg->cmd = CMD_OEM_1S_MSG_OUT;
-				bridge_msg->data[0] = IANA_ID & 0xFF;
-				bridge_msg->data[1] = (IANA_ID >> 8) & 0xFF;
-				bridge_msg->data[2] = (IANA_ID >> 16) & 0xFF;
+			bridge_msg->data_len = msg->data_len - 3;
+			bridge_msg->seq_source = msg->seq_source;
+			bridge_msg->InF_target = msg->data[0];
+			bridge_msg->InF_source = msg->InF_source;
+			bridge_msg->netfn = msg->data[1] >> 2;
+			bridge_msg->cmd = msg->data[2];
 
-				if (msg->data_len != 0) {
-					memcpy(&bridge_msg->data[3], &msg->data[0],
-					       msg->data_len * sizeof(msg->data[0]));
-				}
-
-				bridge_msg->data_len = msg->data_len + 3;
-			} else {
-				bridge_msg->data_len = msg->data_len - 3;
-				bridge_msg->seq_source = msg->seq_source;
-				bridge_msg->InF_target = msg->data[0];
-				bridge_msg->InF_source = msg->InF_source;
-				bridge_msg->netfn = msg->data[1] >> 2;
-				bridge_msg->cmd = msg->data[2];
-
-				if (bridge_msg->data_len != 0) {
-					memcpy(&bridge_msg->data[0], &msg->data[3],
-					       bridge_msg->data_len * sizeof(msg->data[0]));
-				}
+			if (bridge_msg->data_len != 0) {
+				memcpy(&bridge_msg->data[0], &msg->data[3],
+				       bridge_msg->data_len * sizeof(msg->data[0]));
 			}
 
-			status = ipmb_send_request(bridge_msg, IPMB_inf_index_map[target_IF]);
-
+			status = pldm_send_ipmi_request(bridge_msg);
 			if (status != IPMB_ERROR_SUCCESS) {
-				LOG_ERR("OEM_MSG_OUT send IPMB req fail status: %x", status);
-				msg->completion_code = CC_BRIDGE_MSG_ERR;
+				msg->data_len = 0;
+				status = ipmb_send_response(msg, IPMB_inf_index_map[msg->InF_source]);
+				if (status != IPMB_ERROR_SUCCESS) {
+				        LOG_ERR("OEM_MSG_OUT send IPMB resp fail status: %x", status);
+				}
 			}
+			else {
+
+				bridge_msg->netfn = msg->netfn;
+				bridge_msg->seq = msg->seq;
+				if(bridge_msg->data_len > 0) {
+					bridge_msg->data[0] = bridge_msg->data[0] >> 2;
+				}
+
+				uint8_t bridge_res_msg[IPMI_MSG_MAX_LENGTH] = {IANA_ID & 0xFF, (IANA_ID >> 8) & 0xFF, (IANA_ID >> 16) & 0xFF, target_IF};
+
+				memcpy(bridge_res_msg + 4, bridge_msg->data, bridge_msg->data_len);
+
+				bridge_msg->data_len += 4;
+
+				memcpy(bridge_msg->data, bridge_res_msg, bridge_msg->data_len);
+
+				if (ipmb_send_response(bridge_msg, IPMB_inf_index_map[msg->InF_source]) != IPMB_ERROR_SUCCESS) {
+					LOG_ERR("Failed to send IPMB response message");
+				}
+			}
+
+
 			SAFE_FREE(bridge_msg);
 		}
 	}
 
-	// Return to source while data is invalid or sending req to Tx task fail
-	if (msg->completion_code != CC_SUCCESS) {
-		msg->data_len = 0;
-		status = ipmb_send_response(msg, IPMB_inf_index_map[msg->InF_source]);
-		if (status != IPMB_ERROR_SUCCESS) {
-			LOG_ERR("OEM_MSG_OUT send IPMB resp fail status: %x", status);
-		}
-	}
 #else
 	msg->completion_code = CC_UNSPECIFIED_ERROR;
 #endif
