@@ -730,11 +730,6 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 			return;
 		}
 
-		if (is_cxl_access(pcie_card_id) != true) {
-			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
-			return;
-		}
-
 		if (pm8702_table[cxl_id].is_init != true) {
 			bool ret = pal_init_pm8702_info(cxl_id);
 			if (ret == false) {
