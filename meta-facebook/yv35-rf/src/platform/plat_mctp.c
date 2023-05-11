@@ -41,7 +41,7 @@ LOG_MODULE_REGISTER(plat_mctp);
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
-static mctp_smbus_port smbus_port[] = {
+static mctp_port smbus_port[] = {
 	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I2C_BUS_CXL },
 };
 
@@ -53,7 +53,7 @@ mctp *find_mctp_by_smbus(uint8_t bus)
 {
 	uint8_t i;
 	for (i = 0; i < ARRAY_SIZE(smbus_port); i++) {
-		mctp_smbus_port *p = smbus_port + i;
+		mctp_port *p = smbus_port + i;
 		if (!p) {
 			return NULL;
 		}
@@ -202,7 +202,7 @@ void plat_mctp_init()
 {
 	LOG_INF("plat_mctp_init");
 	for (uint8_t i = 0; i < ARRAY_SIZE(smbus_port); i++) {
-		mctp_smbus_port *p = smbus_port + i;
+		mctp_port *p = smbus_port + i;
 		if (!p) {
 			return;
 		}
