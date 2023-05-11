@@ -348,8 +348,9 @@ uint8_t mctp_pldm_cmd_handler(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext
 * invoked
 */
 
-	if (!hdr->rq)
+	if (!hdr->rq) {
 		return pldm_resp_msg_process(mctp_inst, buf, len, ext_params);
+	}
 
 	/* the message is a request, find the proper handler to handle it */
 
@@ -417,6 +418,7 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 	* The request should be set inst_id/msg_type/mctp_tag_owner in the
 	* header
 	*/
+
 	if (msg->hdr.rq) {
 		if (register_instid(mctp_p, &get_inst_id) == false) {
 			LOG_ERR("Register failed!");
@@ -589,8 +591,6 @@ int pldm_send_ipmi_response(uint8_t interface, ipmi_msg *msg)
 	// Total data len = IANA + PLDM CC + ipmi CC + ipmi netfn + ipmi cmd + ipmi response data len
 	pmsg.len = sizeof(struct _ipmi_cmd_resp) - 1 + msg->data_len;
 
-	LOG_HEXDUMP_DBG(pmsg.buf, pmsg.len, "pmsg.buf");
-
 	mctp *mctp_inst = pal_get_mctp(medium_type, target);
 	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, -1);
 
@@ -640,6 +640,8 @@ int pldm_send_ipmi_request(ipmi_msg *msg)
 	pmsg.len = sizeof(struct _ipmi_cmd_req) - 1 + msg->data_len;
 
 	uint8_t rbuf[PLDM_MAX_DATA_SIZE];
+
+	LOG_HEXDUMP_DBG(pmsg.buf, pmsg.len, "pmsg.buf");
 	// Send request to PLDM/MCTP thread and get response
 	uint8_t res_len =
 		mctp_pldm_read(pal_get_mctp(medium_type, target), &pmsg, rbuf, sizeof(rbuf));
