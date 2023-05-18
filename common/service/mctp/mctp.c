@@ -360,7 +360,7 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
        * If the message is response, keep the original msg_tag of ext_params
 */
 			hdr->msg_tag = (hdr->to) ? (msg_tag & MCTP_HDR_TAG_MASK) :
-						   mctp_msg.ext_params.msg_tag;
+							 mctp_msg.ext_params.msg_tag;
 
 			hdr->dest_ep = mctp_msg.ext_params.ep;
 			hdr->src_ep = mctp_inst->endpoint;
@@ -373,6 +373,8 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 			ret = mctp_inst->write_data(mctp_inst, buf,
 						    cp_msg_size + MCTP_TRANSPORT_HEADER_SIZE,
 						    mctp_msg.ext_params);
+
+			k_usleep(2500);
 
 			if (ret != MCTP_SUCCESS) {
 				LOG_WRN("mctp write data failed");

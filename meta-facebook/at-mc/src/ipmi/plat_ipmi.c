@@ -36,6 +36,7 @@
 #include "pm8702.h"
 #include "power_status.h"
 #include "plat_ipmb.h"
+#include "plat_mctp.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -112,7 +113,6 @@ uint8_t fw_update_pm8702(uint8_t cxl_id, uint8_t pcie_card_id, uint8_t next_acti
 	uint8_t resp_len = 0;
 	pm8702_hbo_status_resp hbo_status = { 0 };
 
-	k_msleep(PM8702_TRANSFER_DELAY_MS);
 	if (pal_get_pm8702_hbo_status(pcie_card_id, (uint8_t *)&hbo_status, &resp_len) != true) {
 		LOG_ERR("Fail to get HBO status");
 		return FWUPDATE_UPDATE_FAIL;
@@ -143,8 +143,6 @@ uint8_t fw_update_pm8702(uint8_t cxl_id, uint8_t pcie_card_id, uint8_t next_acti
 	update_fw_req.slot = next_active_slot;
 	update_fw_req.offset = offset / PM8702_TRANSFER_FW_DATA_LEN;
 	memcpy(update_fw_req.data, msg_buf, sizeof(uint8_t) * msg_len);
-
-	k_msleep(PM8702_TRANSFER_DELAY_MS);
 
 	if (pal_pm8702_transfer_fw(pcie_card_id, (uint8_t *)&update_fw_req, req_len) != true) {
 		LOG_ERR("Fail to transfer PM8702 firmware");
@@ -435,6 +433,37 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		} else {
 			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
 		}
+		break;
+	case MC_COMPNT_CXL1_CFG:
+	case MC_COMPNT_CXL2_CFG:
+	case MC_COMPNT_CXL3_CFG:
+	case MC_COMPNT_CXL4_CFG:
+	case MC_COMPNT_CXL5_CFG:
+	case MC_COMPNT_CXL6_CFG:
+	case MC_COMPNT_CXL7_CFG:
+	case MC_COMPNT_CXL8_CFG:
+		if (pal_cxl_component_id_map_cxl_id(
+			    (component - MC_COMPNT_CXL1_CFG + MC_COMPNT_CXL1), &cxl_id) != 0) {
+			LOG_ERR("Invalid cxl component id: 0x%x", component);
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+		if (pm8702_table[cxl_id].is_init != true) {
+			ret = pal_init_pm8702_info(cxl_id);
+			if (ret == false) {
+				LOG_ERR("Initial cxl id: 0x%x info fail", cxl_id);
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+		}
+
+		msg->data[0] = component;
+		msg->data[1] = PM8702_CFG_VERSION_LEN;
+		memcpy(&msg->data[2], &pm8702_table[cxl_id].config_info.customer_version,
+		       sizeof(uint8_t) * PM8702_CFG_VERSION_LEN);
+		msg->data_len = PM8702_CFG_VERSION_LEN + 2;
+		msg->completion_code = CC_SUCCESS;
 		break;
 	default:
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
@@ -734,6 +763,13 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 		}
 
 		if (is_cxl_access(pcie_card_id) != true) {
+			static bool is_retry_set_eid = false;
+			if (is_retry_set_eid != true) {
+				bool ret = get_set_cxl_endpoint(cxl_id, MCTP_EID_CXL);
+				LOG_WRN("[%s] retry set eid, cxl id: 0x%x, ret: 0x%x", __func__,
+					cxl_id, ret);
+				is_retry_set_eid = true;
+			}
 			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
 			return;
 		}
