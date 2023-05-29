@@ -24,7 +24,7 @@
 #include <zephyr.h>
 #include "libutil.h"
 
-LOG_MODULE_REGISTER(mctp);
+LOG_MODULE_REGISTER(mctp, LOG_LEVEL_DBG);
 
 typedef struct __attribute__((packed)) {
 	uint8_t hdr_ver;

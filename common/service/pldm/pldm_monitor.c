@@ -120,6 +120,7 @@ exit:
 uint8_t pldm_get_sensor_reading(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
 				uint8_t *resp, uint16_t *resp_len, void *ext_params)
 {
+	LOG_ERR("pldm_get_sensor_reading");
 	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
@@ -767,12 +768,36 @@ uint8_t pldm_get_state_effecter_states(void *mctp_inst, uint8_t *buf, uint16_t l
 	return plat_pldm_get_state_effecter_state_handler(buf, len, resp, resp_len);
 }
 
+uint8_t pldm_get_pdr(void *mctp_inst, uint8_t *buf, uint16_t len,
+				     uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
+				     void *ext_params)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(ext_params, PLDM_ERROR);
+
+	struct pldm_get_pdr_req *req_p = (struct pldm_get_pdr_req *)buf;
+	struct pldm_get_pdr_resp *res_p = (struct pldm_get_pdr_resp *)resp;
+
+	res_p->nextRecordHandle = req_p->recordHandle;
+	res_p->nextDataTransferHandle = 0x02;
+	res_p->transferFlag = 0x03;
+	res_p->responseCount = 0x04;
+	res_p->transferCRC = 0x05;
+	*resp_len = sizeof(struct pldm_get_pdr_resp);
+	res_p->completionCode = PLDM_SUCCESS;
+	return PLDM_SUCCESS;
+}
+
 static pldm_cmd_handler pldm_monitor_cmd_tbl[] = {
 	{ PLDM_MONITOR_CMD_CODE_GET_SENSOR_READING, pldm_get_sensor_reading },
 	{ PLDM_MONITOR_CMD_CODE_SET_EVENT_RECEIVER, pldm_set_event_receiver },
 	{ PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE, pldm_platform_event_message },
 	{ PLDM_MONITOR_CMD_CODE_SET_STATE_EFFECTER_STATES, pldm_set_state_effecter_states },
 	{ PLDM_MONITOR_CMD_CODE_GET_STATE_EFFECTER_STATES, pldm_get_state_effecter_states },
+	{ PLDM_MONITOR_CMD_CODE_GET_PDR, pldm_get_pdr },
 };
 
 uint8_t pldm_monitor_handler_query(uint8_t code, void **ret_fn)

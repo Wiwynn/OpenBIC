@@ -25,7 +25,7 @@
 /* LOG SET */
 #include <logging/log.h>
 #define LOG_LEVEL CONFIG_I2C_LOG_LEVEL
-LOG_MODULE_REGISTER(hal_i2c_target);
+LOG_MODULE_REGISTER(hal_i2c_target, LOG_LEVEL_DBG);
 
 /* I2C target device arr */
 static struct i2c_target_device i2c_target_device_global[MAX_TARGET_NUM] = { 0 };

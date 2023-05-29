@@ -25,7 +25,7 @@
 #include <zephyr.h>
 #include "libutil.h"
 
-LOG_MODULE_DECLARE(mctp);
+LOG_MODULE_DECLARE(mctp, LOG_LEVEL_DBG);
 
 #define DEFAULT_WAIT_TO_MS 3000
 #define RESP_MSG_PROC_MUTEX_WAIT_TO_MS 1000

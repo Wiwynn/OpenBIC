@@ -30,6 +30,7 @@ typedef enum pldm_platform_monitor_commands {
 	PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE = 0x0A,
 	PLDM_MONITOR_CMD_CODE_SET_STATE_EFFECTER_STATES = 0x39,
 	PLDM_MONITOR_CMD_CODE_GET_STATE_EFFECTER_STATES = 0x3A,
+	PLDM_MONITOR_CMD_CODE_GET_PDR = 0x51,
 } pldm_platform_monitor_commands_t;
 
 /* define size of request */
