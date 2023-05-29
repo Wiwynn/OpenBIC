@@ -209,11 +209,6 @@ void check_accl_device_presence_status_via_pex(uint8_t pex_id)
 			LOG_ERR("Invalid register val: 0x%x", val);
 			break;
 		}
-
-		if ((asic_card_info[index].asic_1_status == ASIC_CARD_DEVICE_PRESENT) ||
-		    (asic_card_info[index].asic_2_status == ASIC_CARD_DEVICE_PRESENT)) {
-			pal_init_drive(plat_accl_sensor_config, ACCL_SENSOR_CONFIG_SIZE, index);
-		}
 	}
 }
 
@@ -295,14 +290,6 @@ void check_accl_device_presence_status_via_ioexp()
 				break;
 			}
 
-			if ((asic_card_info[card_index].asic_1_status ==
-			     ASIC_CARD_DEVICE_PRESENT) ||
-			    (asic_card_info[card_index].asic_2_status ==
-			     ASIC_CARD_DEVICE_PRESENT)) {
-				pal_init_drive(plat_accl_sensor_config, ACCL_SENSOR_CONFIG_SIZE,
-					       card_index);
-			}
-
 			card_index += 1;
 		}
 	}
@@ -346,8 +333,6 @@ void check_asic_card_status()
 		for (device_index = 0; device_index < dev_count; ++device_index) {
 			if (i2c_dev[device_index] == (ACCL_FRU_ADDR << 1)) {
 				asic_card_info[index].card_status = ASIC_CARD_PRESENT;
-				pal_init_drive(plat_accl_sensor_config, ACCL_SENSOR_CONFIG_SIZE,
-					       index);
 				break;
 			}
 		}
