@@ -43,6 +43,9 @@ pm8702_command_info pm8702_cmd_table[] = {
 	{ .cmd_opcode = PM8702_HBO_ACTIVATE_FW,
 	  .payload_len = HBO_ACTIVATE_FW_REQ_PL_LEN,
 	  .response_len = ACTIVATE_FW_RESP_PL_LEN },
+	{ .cmd_opcode = CCI_PCIE_STATUS,
+	  .payload_len = GET_PCIE_STATUS_LEN,
+	  .response_len = sizeof(cci_pcie_status_resp) },
 };
 
 bool pm8702_cmd_handler(void *mctp_inst, mctp_ext_params ext_params, uint16_t opcode,

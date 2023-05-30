@@ -23,6 +23,7 @@ typedef enum {
 	CCI_GET_FW_INFO = 0x0200,
 	CCI_TRANSFER_FW = 0x0201,
 	CCI_ACTIVATE_FW = 0x0202,
+	CCI_PCIE_STATUS = 0xC700,
 } CCI_CMD;
 
 /*CCI Request paypload length */
@@ -36,6 +37,7 @@ typedef enum {
 #define GET_FW_INFO_RESP_PL_LEN 80
 #define TRANSFER_FW_RESP_PL_LEN 0
 #define ACTIVATE_FW_RESP_PL_LEN 0
+#define GET_PCIE_STATUS_LEN 1
 
 #define GET_FW_INFO_RESV_LEN 13
 #define GET_FW_INFO_REVISION_LEN 16
@@ -165,6 +167,19 @@ typedef struct _cci_activate_fw_req {
 	uint8_t action;
 	uint8_t slot;
 } cci_activate_fw_req;
+
+typedef struct __attribute__((__packed__)) {
+	uint16_t disable_lane;
+	uint16_t active_lane;
+	uint16_t detected_lane;
+	uint8_t link_width;
+	uint8_t link_speed;
+	uint8_t link_target_speed;
+	uint8_t link_support_speed;
+	uint8_t link_rate_limit_cxl;
+	uint8_t ltssm_status;
+	uint8_t link_status;
+} cci_pcie_status_resp;
 
 enum ACTIVE_FW_SLOT {
 	SLOT1_FW_ACTIVE = 0x01,

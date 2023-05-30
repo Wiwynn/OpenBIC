@@ -888,3 +888,66 @@ void OEM_1S_SET_DEVICE_ACTIVE(ipmi_msg *msg)
 	msg->completion_code = CC_SUCCESS;
 	return;
 }
+
+__weak void OEM_1S_CCI_RAW_COMMAND(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 3) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	bool ret;
+	uint8_t cxl_id = msg->data[0];
+	uint16_t cci_cmd = (msg->data[1] << 8) | msg->data[2];
+	uint8_t pcie_card_id;
+	uint8_t req_len;
+	uint8_t *req_buf;
+	uint8_t resp_len;
+	cci_pcie_status_resp resp_buf = { 0 };
+
+	cxl_id_to_pcie_card_id(cxl_id, &pcie_card_id);
+
+	if (is_cxl_access(pcie_card_id) != true) {
+		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		return;
+	}
+
+	switch (cci_cmd) {
+	case CCI_GET_FW_INFO:
+		msg->data_len = 0;
+		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		break;
+	case PM8702_HBO_STATUS:
+		msg->data_len = 0;
+		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		break;
+	case CCI_PCIE_STATUS:
+		req_len = GET_PCIE_STATUS_LEN;
+		req_buf = (uint8_t *)malloc(req_len * sizeof(uint8_t));
+		resp_len = sizeof(cci_pcie_status_resp);
+
+		memset(req_buf, 0, req_len);
+		memset(&resp_buf, 0, sizeof(cci_pcie_status_resp));
+		ret = pal_pm8702_command_handler(pcie_card_id, CCI_PCIE_STATUS, req_buf, req_len,
+						 (uint8_t *)&resp_buf, &resp_len);
+		if (ret) {
+			msg->data_len = 2;
+			msg->data[0] = resp_buf.link_width;
+			msg->data[1] = resp_buf.link_speed;
+			msg->completion_code = CC_SUCCESS;
+
+		} else {
+			LOG_ERR("cxl%d requeust link status fail", cxl_id);
+			msg->data_len = 0;
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+		}
+		SAFE_FREE(req_buf);
+		break;
+	default:
+		LOG_ERR("Unknown cci command");
+	}
+
+	return;
+}
