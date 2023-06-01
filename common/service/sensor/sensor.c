@@ -323,7 +323,7 @@ uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sen
 	switch (read_mode) {
 	case GET_FROM_SENSOR:
 		if (cfg->pre_sensor_read_hook) {
-			if (cfg->pre_sensor_read_hook(sensor_num, cfg->pre_sensor_read_args) ==
+			if (cfg->pre_sensor_read_hook((void *)cfg, cfg->pre_sensor_read_args) ==
 			    false) {
 				LOG_ERR("Failed to do pre sensor read function, sensor number: 0x%x",
 					sensor_num);
@@ -344,7 +344,7 @@ uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sen
 			cfg->retry = 0;
 			if (cfg->post_sensor_read_hook) { // makesure post hook function be called
 				post_ret = cfg->post_sensor_read_hook(
-					sensor_num, cfg->post_sensor_read_args, reading);
+					(void *)cfg, cfg->post_sensor_read_args, reading);
 			}
 
 			if (cfg->access_checker(sensor_num) !=
@@ -377,7 +377,7 @@ uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sen
        * reading whether is NULL to do the corresponding thing. (Ex: mutex_unlock)
        */
 			if (cfg->post_sensor_read_hook) {
-				if (cfg->post_sensor_read_hook(sensor_num,
+				if (cfg->post_sensor_read_hook((void *)cfg,
 							       cfg->post_sensor_read_args,
 							       NULL) == false) {
 					LOG_ERR("Sensor number 0x%x reading and post_read fail",
@@ -517,9 +517,10 @@ void sensor_poll_handler(void *arug0, void *arug1, void *arug2)
 					}
 				}
 			}
+
+			k_yield();
 		}
 
-		k_yield();
 		is_sensor_ready_flag = true;
 		k_msleep(sensor_poll_interval_ms);
 	}
@@ -666,6 +667,7 @@ void init_sensor_monitor_table()
 			sensor_monitor_count * sizeof(sensor_monitor_table_info));
 		if (sensor_monitor_table == NULL) {
 			LOG_ERR("Fail to allocate memory to store sensor monitor table");
+			return;
 		}
 
 		if (sensor_config != NULL) {
@@ -698,7 +700,7 @@ static inline bool init_drive_type(sensor_cfg *p, uint16_t current_drive)
 	}
 
 	if (p->pre_sensor_read_hook) {
-		if (p->pre_sensor_read_hook(p->num, p->pre_sensor_read_args) == false) {
+		if (p->pre_sensor_read_hook((void *)p, p->pre_sensor_read_args) == false) {
 			LOG_ERR("Sensor 0x%x pre sensor read failed!", p->num);
 			return false;
 		}
@@ -710,7 +712,7 @@ static inline bool init_drive_type(sensor_cfg *p, uint16_t current_drive)
 	}
 
 	if (p->post_sensor_read_hook) {
-		if (p->post_sensor_read_hook(p->num, p->post_sensor_read_args, NULL) == false) {
+		if (p->post_sensor_read_hook((void *)p, p->post_sensor_read_args, NULL) == false) {
 			LOG_ERR("Sensor 0x%x post sensor read failed!", p->num);
 		}
 	}
@@ -873,9 +875,11 @@ void control_sensor_polling(uint8_t sensor_num, uint8_t optional, uint8_t cache_
 	config->cache_status = cache_status;
 }
 
-bool check_reading_pointer_null_is_allowed(uint8_t sensor_num)
+bool check_reading_pointer_null_is_allowed(sensor_cfg *cfg)
 {
-	uint8_t sensor_retry_count = sensor_config[sensor_config_index_map[sensor_num]].retry;
+	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
+
+	uint8_t sensor_retry_count = cfg->retry;
 
 	/* Reading pointer NULL is allowed in sensor initial stage and sensor reading fail */
 	/* Sensor retry count will be set to zero when the sensor read success */

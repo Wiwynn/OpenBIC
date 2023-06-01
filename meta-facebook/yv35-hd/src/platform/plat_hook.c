@@ -128,18 +128,21 @@ ddr5_init_power_arg ddr5_init_power_args[] = {
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
 
-bool pre_nvme_read(uint8_t sensor_num, void *args)
+bool pre_nvme_read(void *arg0, void *arg1)
 {
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
-	return tca9548_select_chan(sensor_num, (struct tca9548 *)args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
+
+	return tca9548_select_chan(arg0, (struct tca9548 *)arg1);
 }
 
-bool pre_vr_read(uint8_t sensor_num, void *args)
+bool pre_vr_read(void *arg0, void *arg1)
 {
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 
-	vr_pre_proc_arg *pre_proc_args = (vr_pre_proc_arg *)args;
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	vr_pre_proc_arg *pre_proc_args = (vr_pre_proc_arg *)arg1;
 	uint8_t retry = 5;
 	I2C_MSG msg;
 
@@ -150,17 +153,20 @@ bool pre_vr_read(uint8_t sensor_num, void *args)
 	msg.data[0] = 0x00;
 	msg.data[1] = pre_proc_args->vr_page;
 	if (i2c_master_write(&msg, retry)) {
-		LOG_ERR("Failed to set VR page, sensor_num 0x%x", sensor_num);
+		LOG_ERR("Failed to set VR page, sensor_num 0x%x", cfg->num);
 		return false;
 	}
 	return true;
 }
 
-bool pre_vol_bat3v_read(uint8_t sensor_num, void *args)
+bool pre_vol_bat3v_read(void *arg0, void *arg1)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
-	if (sensor_num == SENSOR_NUM_VOL_P3V_BAT) {
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (cfg->num == SENSOR_NUM_VOL_P3V_BAT) {
 		gpio_set(P3V_BAT_SCALED_EN_R, GPIO_HIGH);
 		k_msleep(1);
 	}
@@ -168,12 +174,15 @@ bool pre_vol_bat3v_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading)
+bool post_vol_bat3v_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 	ARG_UNUSED(reading);
 
-	if (sensor_num == SENSOR_NUM_VOL_P3V_BAT) {
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (cfg->num == SENSOR_NUM_VOL_P3V_BAT) {
 		gpio_set(P3V_BAT_SCALED_EN_R, GPIO_LOW);
 		k_msleep(1);
 	}
@@ -181,11 +190,14 @@ bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_adm1278_cur_read(uint8_t sensor_num, void *args, int *reading)
+bool post_adm1278_cur_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -197,11 +209,14 @@ bool post_adm1278_cur_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_adm1278_pwr_read(uint8_t sensor_num, void *args, int *reading)
+bool post_adm1278_pwr_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -213,11 +228,14 @@ bool post_adm1278_pwr_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_ltc4282_cur_read(uint8_t sensor_num, void *args, int *reading)
+bool post_ltc4282_cur_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -229,11 +247,14 @@ bool post_ltc4282_cur_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_ltc4282_pwr_read(uint8_t sensor_num, void *args, int *reading)
+bool post_ltc4282_pwr_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -245,11 +266,14 @@ bool post_ltc4282_pwr_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_mp5990_cur_read(uint8_t sensor_num, void *args, int *reading)
+bool post_mp5990_cur_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -261,11 +285,14 @@ bool post_mp5990_cur_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool post_mp5990_pwr_read(uint8_t sensor_num, void *args, int *reading)
+bool post_mp5990_pwr_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	sensor_val *sval = (sensor_val *)reading;
@@ -300,14 +327,16 @@ void apml_report_result_check(apml_msg *msg)
 	}
 }
 
-bool post_ddr5_pwr_read(uint8_t sensor_num, void *args, int *reading)
+bool post_ddr5_pwr_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
 	ddr5_init_power_arg *init_arg = cfg->init_args;
 	CHECK_NULL_ARG_WITH_RETURN(init_arg, false);
 
@@ -404,14 +433,16 @@ void check_dram_throttle(uint8_t sensor_num, int *const reading)
 	}
 }
 
-bool post_ddr5_temp_read(uint8_t sensor_num, void *args, int *const reading)
+bool post_ddr5_temp_read(void *arg0, void *arg1, int *const reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
 	ddr5_init_temp_arg *init_arg = cfg->init_args;
 	CHECK_NULL_ARG_WITH_RETURN(init_arg, false);
 
@@ -458,15 +489,18 @@ bool post_ddr5_temp_read(uint8_t sensor_num, void *args, int *const reading)
 	data_in->dimm_temp = temp & 0x7FF;
 	apml_read(&mailbox_msg);
 
-	check_dram_throttle(sensor_num, reading);
+	check_dram_throttle(cfg->num, reading);
 	return true;
 }
 
-bool post_amd_tsi_read(uint8_t sensor_num, void *args, int *const reading)
+bool post_amd_tsi_read(void *arg0, void *arg1, int *const reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
+		return check_reading_pointer_null_is_allowed(cfg);
 	}
 
 	static bool is_cpu_throttle_assert = false;

@@ -58,18 +58,18 @@ extern dimm_post_proc_arg dimm_post_proc_args[];
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
-bool pre_isl69259_read(uint8_t sensor_num, void *args);
-bool pre_nvme_read(uint8_t sensor_num, void *args);
-bool pre_pmic_read(uint8_t sensor_num, void *args);
-bool pre_vol_bat3v_read(uint8_t sensor_num, void *args);
-bool pre_intel_peci_dimm_read(uint8_t sensor_num, void *args);
-bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading);
-bool post_cpu_margin_read(uint8_t sensor_num, void *args, int *reading);
-bool post_adm1278_power_read(uint8_t sensor_num, void *args, int *reading);
-bool post_adm1278_current_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ltc4286_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ltc4282_read(uint8_t sensor_num, void *args, int *reading);
-bool pre_intel_dimm_i3c_read(uint8_t sensor_num, void *args);
-bool post_intel_dimm_i3c_read(uint8_t sensor_num, void *args, int *reading);
+bool pre_isl69259_read(void *arg0, void *arg1);
+bool pre_nvme_read(void *arg0, void *arg1);
+bool pre_pmic_read(void *arg0, void *arg1);
+bool pre_vol_bat3v_read(void *arg0, void *arg1);
+bool pre_intel_peci_dimm_read(void *arg0, void *arg1);
+bool post_vol_bat3v_read(void *arg0, void *arg1, int *reading);
+bool post_cpu_margin_read(void *arg0, void *arg1, int *reading);
+bool post_adm1278_power_read(void *arg0, void *arg1, int *reading);
+bool post_adm1278_current_read(void *arg0, void *arg1, int *reading);
+bool post_ltc4286_read(void *arg0, void *arg1, int *reading);
+bool post_ltc4282_read(void *arg0, void *arg1, int *reading);
+bool pre_intel_dimm_i3c_read(void *arg0, void *arg1);
+bool post_intel_dimm_i3c_read(void *arg0, void *arg1, int *reading);
 
 #endif

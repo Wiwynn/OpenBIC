@@ -36,7 +36,7 @@ extern isl28022_init_arg isl28022_init_args[];
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
-bool pre_ina233_read(uint8_t sensor_num, void *args);
-bool pre_isl69254iraz_t_read(uint8_t sensor_num, void *args);
+bool pre_ina233_read(void *arg0, void *arg1);
+bool pre_isl69254iraz_t_read(void *arg0, void *arg1);
 
 #endif

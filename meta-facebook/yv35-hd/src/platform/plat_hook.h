@@ -57,18 +57,18 @@ extern vr_pre_proc_arg vr_pre_read_args[];
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
-bool pre_nvme_read(uint8_t sensor_num, void *args);
-bool pre_vr_read(uint8_t sensor_num, void *args);
-bool pre_vol_bat3v_read(uint8_t sensor_num, void *args);
-bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading);
-bool post_adm1278_cur_read(uint8_t sensor_num, void *args, int *reading);
-bool post_adm1278_pwr_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ltc4282_cur_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ltc4282_pwr_read(uint8_t sensor_num, void *args, int *reading);
-bool post_mp5990_cur_read(uint8_t sensor_num, void *args, int *reading);
-bool post_mp5990_pwr_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ddr5_pwr_read(uint8_t sensor_num, void *args, int *reading);
-bool post_ddr5_temp_read(uint8_t sensor_num, void *args, int *const reading);
-bool post_amd_tsi_read(uint8_t sensor_num, void *args, int *const reading);
+bool pre_nvme_read(void *arg0, void *arg1);
+bool pre_vr_read(void *arg0, void *arg1);
+bool pre_vol_bat3v_read(void *arg0, void *arg1);
+bool post_vol_bat3v_read(void *arg0, void *arg1, int *reading);
+bool post_adm1278_cur_read(void *arg0, void *arg1, int *reading);
+bool post_adm1278_pwr_read(void *arg0, void *arg1, int *reading);
+bool post_ltc4282_cur_read(void *arg0, void *arg1, int *reading);
+bool post_ltc4282_pwr_read(void *arg0, void *arg1, int *reading);
+bool post_mp5990_cur_read(void *arg0, void *arg1, int *reading);
+bool post_mp5990_pwr_read(void *arg0, void *arg1, int *reading);
+bool post_ddr5_pwr_read(void *arg0, void *arg1, int *reading);
+bool post_ddr5_temp_read(void *arg0, void *arg1, int *const reading);
+bool post_amd_tsi_read(void *arg0, void *arg1, int *const reading);
 
 #endif

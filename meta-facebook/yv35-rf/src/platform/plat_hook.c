@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "libutil.h"
 #include "ast_adc.h"
 #include "sensor.h"
 #include "hal_i2c.h"
@@ -129,20 +130,20 @@ ina230_init_arg SQ5220x_init_args[] = {
  * @retval true if setting mux and page is successful.
  * @retval false if setting mux or page fails.
  */
-bool pre_vr_read(uint8_t sensor_num, void *args)
+bool pre_vr_read(void *arg0, void *arg1)
 {
-	if (args == NULL) {
-		return false;
-	}
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 
-	vr_pre_proc_arg *vr_page_sel = (vr_pre_proc_arg *)args;
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	vr_pre_proc_arg *vr_page_sel = (vr_pre_proc_arg *)arg1;
 	uint8_t retry = 5;
 	I2C_MSG msg;
 	int ret = 0;
 
 	/* set page */
-	msg.bus = sensor_config[sensor_config_index_map[sensor_num]].port;
-	msg.target_addr = sensor_config[sensor_config_index_map[sensor_num]].target_addr;
+	msg.bus = cfg->port;
+	msg.target_addr = cfg->target_addr;
 	msg.tx_len = 2;
 	msg.data[0] = 0x00;
 	msg.data[1] = vr_page_sel->vr_page;
@@ -156,22 +157,21 @@ bool pre_vr_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool pre_isl69254iraz_t_read(uint8_t sensor_num, void *args)
+bool pre_isl69254iraz_t_read(void *arg0, void *arg1)
 {
-	if (args == NULL) {
-		LOG_ERR("Input args is NULL");
-		return false;
-	}
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 
-	isl69254iraz_t_pre_arg *pre_args = (isl69254iraz_t_pre_arg *)args;
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	isl69254iraz_t_pre_arg *pre_args = (isl69254iraz_t_pre_arg *)arg1;
 	uint8_t retry = 5;
 	int ret = 0;
 	I2C_MSG msg;
 	memset(&msg, 0, sizeof(I2C_MSG));
 
 	/* set page */
-	msg.bus = sensor_config[sensor_config_index_map[sensor_num]].port;
-	msg.target_addr = sensor_config[sensor_config_index_map[sensor_num]].target_addr;
+	msg.bus = cfg->port;
+	msg.target_addr = cfg->target_addr;
 	msg.tx_len = 2;
 	msg.data[0] = VR_PAGE_OFFSET;
 	msg.data[1] = pre_args->vr_page;
@@ -184,13 +184,18 @@ bool pre_isl69254iraz_t_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool post_isl69254iraz_t_read(uint8_t sensor_num, void *args, int *reading)
+bool post_isl69254iraz_t_read(void *arg0, void *arg1, int *reading)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
 	sensor_val *sval = (sensor_val *)reading;
 	uint8_t cur_sensor;
 	uint8_t vol_sensor;
 
-	switch (sensor_num) {
+	switch (cfg->num) {
 	case SENSOR_NUM_PWR_VR0V9A:
 		cur_sensor = SENSOR_NUM_CUR_VR0V9A;
 		vol_sensor = SENSOR_NUM_VOL_VR0V9A;
@@ -212,16 +217,16 @@ bool post_isl69254iraz_t_read(uint8_t sensor_num, void *args, int *reading)
 		vol_sensor = SENSOR_NUM_VOL_VRVDDQCD;
 		break;
 	default:
-		LOG_ERR("Sensor 0x%x was not supported by this post reading function", sensor_num);
+		LOG_ERR("Sensor 0x%x was not supported by this post reading function", cfg->num);
 		return false;
 		break;
 	}
-	int16_t IOUT_INT = sensor_config[sensor_config_index_map[cur_sensor]].cache & 0xFFFF;
-	int16_t IOUT_FRAC = sensor_config[sensor_config_index_map[cur_sensor]].cache >> 16;
+	int16_t IOUT_INT = cfg->cache & 0xFFFF;
+	int16_t IOUT_FRAC = cfg->cache >> 16;
 	float I_OUT = IOUT_INT + (IOUT_FRAC * 0.001);
 
-	int16_t VOUT_INT = sensor_config[sensor_config_index_map[vol_sensor]].cache & 0xFFFF;
-	int16_t VOUT_FRAC = sensor_config[sensor_config_index_map[vol_sensor]].cache >> 16;
+	int16_t VOUT_INT = cfg->cache & 0xFFFF;
+	int16_t VOUT_FRAC = cfg->cache >> 16;
 	float V_OUT = VOUT_INT + (VOUT_FRAC * 0.001);
 
 	float P_OUT = V_OUT * I_OUT;
@@ -232,8 +237,11 @@ bool post_isl69254iraz_t_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool pre_pm8702_read(uint8_t sensor_num, void *args)
+bool pre_pm8702_read(void *arg0, void *arg1)
 {
+	ARG_UNUSED(arg0);
+	ARG_UNUSED(arg1);
+
 	if (k_mutex_lock(&wait_pm8702_mutex, K_MSEC(3000))) {
 		LOG_WRN("pm8702 mutex is locked over 3000 ms!!\n");
 		return false;
@@ -242,8 +250,12 @@ bool pre_pm8702_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool post_pm8702_read(uint8_t sensor_num, void *args, int *reading)
+bool post_pm8702_read(void *arg0, void *arg1, int *reading)
 {
+	ARG_UNUSED(arg0);
+	ARG_UNUSED(arg1);
+	ARG_UNUSED(reading);
+
 	k_mutex_unlock(&wait_pm8702_mutex);
 	return true;
 }

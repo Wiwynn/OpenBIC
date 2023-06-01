@@ -40,8 +40,8 @@ extern struct k_mutex i2c_hub_mutex;
 #define I2C_HUB_CHANNEL_4 0x10
 #define I2C_HUB_CHANNEL_5 0x20
 
-bool pre_i2c_bus_read(uint8_t sensor_num, void *args);
-bool post_i2c_bus_read(uint8_t sensor_num, void *args, int *reading);
-bool pre_retimer_read(uint8_t sensor_num, void *args);
+bool pre_i2c_bus_read(void *arg0, void *arg1);
+bool post_i2c_bus_read(void *arg0, void *arg1, int *reading);
+bool pre_retimer_read(void *arg0, void *arg1);
 
 #endif

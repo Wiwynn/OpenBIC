@@ -60,19 +60,21 @@ xdpe12284c_pre_arg xdpe12284c_pre_read_args[] = {
 	[1] = { 0x1 },
 };
 
-bool pre_xdpe12284c_read(uint8_t sensor_num, void *args)
+bool pre_xdpe12284c_read(void *arg0, void *arg1)
 {
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 
-	xdpe12284c_pre_arg *page_selection = (xdpe12284c_pre_arg *)args;
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	xdpe12284c_pre_arg *page_selection = (xdpe12284c_pre_arg *)arg1;
 	uint8_t retry = 5;
 	I2C_MSG i2c_msg;
 	int ret = 0;
 
 	// Set page
 	memset(&i2c_msg, 0, sizeof(I2C_MSG));
-	i2c_msg.bus = sensor_config[sensor_config_index_map[sensor_num]].port;
-	i2c_msg.target_addr = sensor_config[sensor_config_index_map[sensor_num]].target_addr;
+	i2c_msg.bus = cfg->port;
+	i2c_msg.target_addr = cfg->target_addr;
 	i2c_msg.tx_len = 2;
 	i2c_msg.data[0] = VR_PAGE_OFFSET;
 	i2c_msg.data[1] = page_selection->vr_page;

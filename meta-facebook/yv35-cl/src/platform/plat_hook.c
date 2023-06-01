@@ -32,10 +32,9 @@
 #include "intel_dimm.h"
 #include "hal_peci.h"
 #include "power_status.h"
+#include "libutil.h"
 
 #include "i2c-mux-tca9548.h"
-
-#include <logging/log.h>
 
 LOG_MODULE_REGISTER(plat_hook);
 
@@ -130,19 +129,20 @@ dimm_post_proc_arg dimm_post_proc_args[] = {
  * @retval true if setting mux and page is successful.
  * @retval false if setting mux or page fails.
  */
-bool pre_isl69259_read(uint8_t sensor_num, void *args)
+bool pre_isl69259_read(void *arg0, void *arg1)
 {
-	if (args == NULL) {
-		return false;
-	}
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 
-	isl69259_pre_proc_arg *pre_proc_args = (isl69259_pre_proc_arg *)args;
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	isl69259_pre_proc_arg *pre_proc_args = (isl69259_pre_proc_arg *)arg1;
 	uint8_t retry = 5;
 	I2C_MSG msg;
 
 	/* set page */
-	msg.bus = sensor_config[sensor_config_index_map[sensor_num]].port;
-	msg.target_addr = sensor_config[sensor_config_index_map[sensor_num]].target_addr;
+	msg.bus = cfg->port;
+	msg.target_addr = cfg->target_addr;
 	msg.tx_len = 2;
 	msg.data[0] = 0x00;
 	msg.data[1] = pre_proc_args->vr_page;
@@ -163,11 +163,13 @@ bool pre_isl69259_read(uint8_t sensor_num, void *args)
  * @retval true if setting mux is successful.
  * @retval false if setting mux fails.
  */
-bool pre_nvme_read(uint8_t sensor_num, void *args)
+bool pre_nvme_read(void *arg0, void *arg1)
 {
-	if (!args)
-		return false;
-	if (!tca9548_select_chan(sensor_num, (struct tca9548 *)args))
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	if (!tca9548_select_chan(cfg, (struct tca9548 *)arg1))
 		return false;
 
 	return true;
@@ -183,11 +185,14 @@ bool pre_nvme_read(uint8_t sensor_num, void *args)
  * @retval true always.
  * @retval false NULL
  */
-bool pre_vol_bat3v_read(uint8_t sensor_num, void *args)
+bool pre_vol_bat3v_read(void *arg0, void *arg1)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
-	if (sensor_num == SENSOR_NUM_VOL_BAT3V) {
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (cfg->num == SENSOR_NUM_VOL_BAT3V) {
 		gpio_set(A_P3V_BAT_SCALED_EN_R, GPIO_HIGH);
 		k_msleep(1);
 	}
@@ -195,22 +200,25 @@ bool pre_vol_bat3v_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool pre_intel_peci_dimm_read(uint8_t sensor_num, void *args)
+bool pre_intel_peci_dimm_read(void *arg0, void *arg1)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (get_post_status() == false) {
 		// BIC can't check DIMM temperature by ME, return true to keep do sensor initial
 		return true;
 	}
 
-	dimm_pre_proc_arg *pre_proc_args = (dimm_pre_proc_arg *)args;
+	dimm_pre_proc_arg *pre_proc_args = (dimm_pre_proc_arg *)arg1;
 	if (pre_proc_args->is_present_checked == true) {
 		return true;
 	}
 
 	bool ret = false;
 	uint8_t dimm_present_result = 0;
-	sensor_cfg cfg = sensor_config[sensor_config_index_map[sensor_num]];
-	switch (cfg.offset) {
+	switch (cfg->offset) {
 	case PECI_TEMP_CHANNEL0_DIMM0:
 		ret = check_dimm_present(DIMM_CHANNEL_NUM_0, DIMM_NUMBER_0, &dimm_present_result);
 		break;
@@ -230,8 +238,7 @@ bool pre_intel_peci_dimm_read(uint8_t sensor_num, void *args)
 		ret = check_dimm_present(DIMM_CHANNEL_NUM_7, DIMM_NUMBER_0, &dimm_present_result);
 		break;
 	default:
-		LOG_ERR("Input sensor 0x%x offset is invalid, offset: 0x%x",
-		        sensor_num, cfg.offset);
+		LOG_ERR("Input sensor 0x%x offset is invalid, offset: 0x%x", cfg->num, cfg->offset);
 		return ret;
 	}
 
@@ -241,7 +248,7 @@ bool pre_intel_peci_dimm_read(uint8_t sensor_num, void *args)
 
 	// Check dimm temperature result, report 0xFF if dimm not present
 	if (dimm_present_result == DIMM_NOT_PRESENT) {
-		ret = disable_dimm_pmic_sensor(sensor_num);
+		ret = disable_dimm_pmic_sensor(cfg->num);
 	}
 
 	pre_proc_args->is_present_checked = true;
@@ -258,12 +265,15 @@ bool pre_intel_peci_dimm_read(uint8_t sensor_num, void *args)
  * @retval true always.
  * @retval false NULL
  */
-bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading)
+bool post_vol_bat3v_read(void *arg0, void *arg1, int *reading)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 	ARG_UNUSED(reading);
 
-	if (sensor_num == SENSOR_NUM_VOL_BAT3V)
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (cfg->num == SENSOR_NUM_VOL_BAT3V)
 		gpio_set(A_P3V_BAT_SCALED_EN_R, GPIO_LOW);
 
 	return true;
@@ -280,11 +290,15 @@ bool post_vol_bat3v_read(uint8_t sensor_num, void *args, int *reading)
  * @retval false if reading get NULL
  */
 
-bool post_cpu_margin_read(uint8_t sensor_num, void *args, int *reading)
+bool post_cpu_margin_read(void *arg0, void *arg1, int *reading)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
 	if (!reading)
-		return check_reading_pointer_null_is_allowed(sensor_num);
-	ARG_UNUSED(args);
+		return check_reading_pointer_null_is_allowed(cfg);
 
 	sensor_val *sval = (sensor_val *)reading;
 	sval->integer = -sval->integer; /* for BMC minus */
@@ -301,11 +315,15 @@ bool post_cpu_margin_read(uint8_t sensor_num, void *args, int *reading)
  * @retval true if no error
  * @retval false if reading get NULL
  */
-bool post_adm1278_power_read(uint8_t sensor_num, void *args, int *reading)
+bool post_adm1278_power_read(void *arg0, void *arg1, int *reading)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
 	if (!reading)
-		return check_reading_pointer_null_is_allowed(sensor_num);
-	ARG_UNUSED(args);
+		return check_reading_pointer_null_is_allowed(cfg);
 
 	sensor_val *sval = (sensor_val *)reading;
 	float val = (float)sval->integer + (sval->fraction / 1000.0);
@@ -326,11 +344,15 @@ bool post_adm1278_power_read(uint8_t sensor_num, void *args, int *reading)
  * @retval true if no error
  * @retval false if reading get NULL
  */
-bool post_adm1278_current_read(uint8_t sensor_num, void *args, int *reading)
+bool post_adm1278_current_read(void *arg0, void *arg1, int *reading)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
 	if (!reading)
-		return check_reading_pointer_null_is_allowed(sensor_num);
-	ARG_UNUSED(args);
+		return check_reading_pointer_null_is_allowed(cfg);
 
 	sensor_val *sval = (sensor_val *)reading;
 	float val = (float)sval->integer + (sval->fraction / 1000.0);
@@ -351,14 +373,16 @@ bool post_adm1278_current_read(uint8_t sensor_num, void *args, int *reading)
  * @retval true if no error
  * @retval false if reading get NULL or the offset is unknown
  */
-bool post_ltc4286_read(uint8_t sensor_num, void *args, int *reading)
+bool post_ltc4286_read(void *arg0, void *arg1, int *reading)
 {
-	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
-	}
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (!reading) {
+		return check_reading_pointer_null_is_allowed(cfg);
+	}
 
 	sensor_val *sval = (sensor_val *)reading;
 	float val = (float)sval->integer + (sval->fraction / 1000.0);
@@ -394,14 +418,16 @@ bool post_ltc4286_read(uint8_t sensor_num, void *args, int *reading)
  * @retval true if no error
  * @retval false if reading get NULL
  */
-bool post_ltc4282_read(uint8_t sensor_num, void *args, int *reading)
+bool post_ltc4282_read(void *arg0, void *arg1, int *reading)
 {
-	if (!reading) {
-		return check_reading_pointer_null_is_allowed(sensor_num);
-	}
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	if (!reading) {
+		return check_reading_pointer_null_is_allowed(cfg);
+	}
 
 	sensor_val *sval = (sensor_val *)reading;
 	float val = (float)sval->integer + (sval->fraction / 1000.0);
@@ -424,16 +450,18 @@ bool post_ltc4282_read(uint8_t sensor_num, void *args, int *reading)
 	return true;
 }
 
-bool pre_intel_dimm_i3c_read(uint8_t sensor_num, void *args)
+bool pre_intel_dimm_i3c_read(void *arg0, void *arg1)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (get_post_status() == false) {
 		// BIC can't check DIMM present status, return true to keep do sensor initial
 		return true;
 	}
 
-	dimm_pre_proc_arg *pre_proc_args = (dimm_pre_proc_arg *)args;
+	dimm_pre_proc_arg *pre_proc_args = (dimm_pre_proc_arg *)arg1;
 	if (pre_proc_args->is_present_checked == true) {
 		return true;
 	}
@@ -441,7 +469,7 @@ bool pre_intel_dimm_i3c_read(uint8_t sensor_num, void *args)
 	uint8_t dimm_id = DIMM_ID_UNKNOWN;
 	bool ret = false;
 
-	dimm_id = sensor_num_map_dimm_id(sensor_num);
+	dimm_id = sensor_num_map_dimm_id(cfg->num);
 	if (dimm_id == DIMM_ID_UNKNOWN) {
 		return ret;
 	}
@@ -451,7 +479,7 @@ bool pre_intel_dimm_i3c_read(uint8_t sensor_num, void *args)
 	}
 
 	if (!is_dimm_present(dimm_id)) {
-		ret = disable_dimm_pmic_sensor(sensor_num);
+		ret = disable_dimm_pmic_sensor(cfg->num);
 	} else {
 		ret = true;
 	}
@@ -460,16 +488,18 @@ bool pre_intel_dimm_i3c_read(uint8_t sensor_num, void *args)
 	return ret;
 }
 
-bool post_intel_dimm_i3c_read(uint8_t sensor_num, void *args, int *reading)
+bool post_intel_dimm_i3c_read(void *arg0, void *arg1, int *reading)
 {
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 	CHECK_NULL_ARG_WITH_RETURN(reading, false);
 
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 	if (get_post_status() == false) {
 		return true;
 	}
 
-	dimm_post_proc_arg *post_proc_args = (dimm_post_proc_arg *)args;
+	dimm_post_proc_arg *post_proc_args = (dimm_post_proc_arg *)arg1;
 	sensor_val *sval = (sensor_val *)reading;
 
 	uint8_t addr = 0, write_len = 0, read_len = 0, cmd = 0, read_buf = 0;

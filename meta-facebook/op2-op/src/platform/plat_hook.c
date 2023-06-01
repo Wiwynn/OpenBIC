@@ -127,16 +127,19 @@ pt5161l_init_arg pt5161l_init_args[] = { [0] = { .is_init = false,
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
 
-bool pre_i2c_bus_read(uint8_t sensor_num, void *args)
+bool pre_i2c_bus_read(void *arg0, void *arg1)
 {
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
+
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
 
 	if (k_mutex_lock(&i2c_hub_mutex, K_MSEC(I2C_HUB_MUTEX_TIMEOUT_MS))) {
-		LOG_ERR("sensor number 0x%x mutex lock fail", sensor_num);
+		LOG_ERR("sensor number 0x%x mutex lock fail", cfg->num);
 		return false;
 	}
 
-	i2c_proc_arg *pre_proc_args = (i2c_proc_arg *)args;
+	i2c_proc_arg *pre_proc_args = (i2c_proc_arg *)arg1;
 
 	if (!rg3mxxb12_select_slave_port_connect(pre_proc_args->bus, pre_proc_args->channel)) {
 		k_mutex_unlock(&i2c_hub_mutex);
@@ -146,12 +149,15 @@ bool pre_i2c_bus_read(uint8_t sensor_num, void *args)
 	return true;
 }
 
-bool post_i2c_bus_read(uint8_t sensor_num, void *args, int *reading)
+bool post_i2c_bus_read(void *arg0, void *arg1, int *reading)
 {
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	CHECK_NULL_ARG_WITH_RETURN(arg1, false);
 	ARG_UNUSED(reading);
-	CHECK_NULL_ARG_WITH_RETURN(args, false);
 
-	i2c_proc_arg *post_proc_args = (i2c_proc_arg *)args;
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+
+	i2c_proc_arg *post_proc_args = (i2c_proc_arg *)arg1;
 
 	/**
        * close all channels after the sensor read to avoid conflict with 
@@ -165,18 +171,21 @@ bool post_i2c_bus_read(uint8_t sensor_num, void *args, int *reading)
 	}
 
 	if (k_mutex_unlock(&i2c_hub_mutex)) {
-		LOG_ERR("sensor num 0x%x mutex unlock failed!", sensor_num);
+		LOG_ERR("sensor num 0x%x mutex unlock failed!", cfg->num);
 		return false;
 	}
 
 	return true;
 }
 
-bool pre_retimer_read(uint8_t sensor_num, void *args)
+bool pre_retimer_read(void *arg0, void *arg1)
 {
-	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(arg0, false);
+	ARG_UNUSED(arg1);
 
-	sensor_cfg *cfg = &sensor_config[sensor_config_index_map[sensor_num]];
+	sensor_cfg *cfg = (sensor_cfg *)arg0;
+	CHECK_NULL_ARG_WITH_RETURN(cfg->init_args, false);
+
 	pt5161l_init_arg *init_arg = (pt5161l_init_arg *)cfg->init_args;
 	static uint8_t check_init_count = 0;
 	bool ret = true;
