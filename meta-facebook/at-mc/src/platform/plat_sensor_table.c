@@ -39,6 +39,8 @@
 #include "cci.h"
 #include "plat_mctp.h"
 #include "plat_class.h"
+#include "xdpe12284c.h"
+#include "util_sys.h"
 
 LOG_MODULE_REGISTER(plat_sensor_table);
 
@@ -51,6 +53,9 @@ LOG_MODULE_REGISTER(plat_sensor_table);
 #define CARD_14_E1S_1_MUX_CFG_INDEX 7
 #define PCIE_CARD_INIT_CFG_OFFSET_0 0
 #define PCIE_CARD_INIT_CFG_OFFSET_1 1
+#define VR_A0V8_INIT_OFFSET 0
+#define VR_D0V8_INIT_OFFSET 1
+#define VR_VDDQCD_INIT_OFFSET 2
 
 struct k_mutex i2c_2_pca9548a_mutex;
 struct k_mutex i2c_3_pca9546a_mutex;
