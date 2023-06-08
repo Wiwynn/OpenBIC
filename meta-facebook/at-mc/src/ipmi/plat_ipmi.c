@@ -98,7 +98,7 @@ uint8_t fw_update_pm8702(uint8_t cxl_id, uint8_t pcie_card_id, uint8_t next_acti
 {
 	CHECK_NULL_ARG_WITH_RETURN(msg_buf, FWUPDATE_UPDATE_FAIL);
 
-	/* PM8702 image size maximum 1.3M */
+	/* PM8702 image size maximum 1.5M */
 	if (offset > PM8702_UPDATE_MAX_OFFSET) {
 		LOG_ERR("Offset: 0x%x is over PM8702 image size maximum", offset);
 		return FWUPDATE_ERROR_OFFSET;
