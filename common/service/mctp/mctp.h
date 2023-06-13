@@ -55,6 +55,7 @@ extern "C" {
 #define MCTP_HDR_HDR_VER 0x01
 #define MCTP_HDR_SEQ_MASK 0x03
 #define MCTP_HDR_TAG_MASK 0x07
+#define MCTP_MSG_TYPE_MASK 0x7F
 
 #define MCTP_POLL_TIME_MS 1
 

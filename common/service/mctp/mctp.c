@@ -378,6 +378,14 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 				LOG_WRN("mctp write data failed");
 				break;
 			}
+
+#ifdef PLATFORM_MCTP_CCI_PACKAGE_DELAY_US
+			uint8_t msg_type = mctp_msg.buf[0] & MCTP_MSG_TYPE_MASK;
+
+			if (msg_type == MCTP_MSG_TYPE_CCI) {
+				k_usleep(PLATFORM_MCTP_CCI_PACKAGE_DELAY_US);
+			}
+#endif
 		}
 
 		free(mctp_msg.buf);

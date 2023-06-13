@@ -20,10 +20,12 @@
 #include <stdint.h>
 #include "sensor.h"
 #include "cci.h"
+#include "pm8702.h"
 
 typedef struct _pm8702_dev_info {
 	bool is_init;
 	cci_fw_info_resp dev_info;
+	pm8702_device_info_resp config_info;
 } pm8702_dev_info;
 
 typedef struct _cxl_vr_fw_info {

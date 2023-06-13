@@ -21,4 +21,10 @@
 #define ENABLE_CCI
 #define ENABLE_PM8702
 
+/* Modify CCI message timeout from 3s to 6s according to the PM8702 definition */
+#define PLATFORM_CCI_MSG_TIMEOUT_MS 6000
+
+/* Add 2.5 ms delay between MCTP CCI package according to the vendor suggestions */
+#define PLATFORM_MCTP_CCI_PACKAGE_DELAY_US 2500
+
 #endif
