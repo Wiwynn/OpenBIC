@@ -22,6 +22,7 @@
 #include <logging/log.h>
 #include "power_status.h"
 #include "sdr.h"
+#include "pdr.h"
 #include "hal_i2c.h"
 #include "plat_sensor_table.h"
 #include "plat_sdr_table.h"
@@ -578,6 +579,8 @@ void check_init_sensor_size()
 	uint8_t extend_sdr_size = pal_get_extend_sdr();
 	uint8_t extend_sensor_config_size = pal_get_extend_sensor_config();
 
+	uint8_t init_pdr_size = plat_get_pdr_size();
+
 	init_sdr_size += extend_sdr_size;
 	init_sensor_config_size += extend_sensor_config_size;
 
@@ -589,6 +592,7 @@ void check_init_sensor_size()
 		return;
 	}
 	sensor_config_size = init_sdr_size;
+	pdr_config_size = init_pdr_size;
 }
 
 bool stby_access(uint8_t sensor_num)
@@ -815,6 +819,16 @@ bool sensor_init(void)
 	} else {
 		LOG_ERR("Init sensor size is zero");
 		return false;
+	}
+
+	if (pdr_config_size != 0) {
+		numeric_sensor_table =
+			(PDR_numeric_sensor *)malloc(pdr_config_size * sizeof(PDR_numeric_sensor));
+		if (numeric_sensor_table != NULL) {
+			pdr_init();
+		} else {
+			LOG_ERR("numeric_sensor_table == NULL");
+		}
 	}
 
 	if (sdr_count != 0) {

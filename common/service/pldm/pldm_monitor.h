@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include "pldm.h"
+#include "pdr.h"
 
 /* command number of pldm type 0x02 : PLDM for platform monitor and control */
 typedef enum pldm_platform_monitor_commands {
@@ -30,6 +31,8 @@ typedef enum pldm_platform_monitor_commands {
 	PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE = 0x0A,
 	PLDM_MONITOR_CMD_CODE_SET_STATE_EFFECTER_STATES = 0x39,
 	PLDM_MONITOR_CMD_CODE_GET_STATE_EFFECTER_STATES = 0x3A,
+	PLDM_MONITOR_CMD_CODE_GET_PDR_INFO = 0x50,
+	PLDM_MONITOR_CMD_CODE_GET_PDR = 0x51,
 } pldm_platform_monitor_commands_t;
 
 /* define size of request */
@@ -320,6 +323,42 @@ struct pldm_event_message_buffer_size_req {
 
 struct pldm_event_message_buffer_size_resp {
 	uint8_t completion_code;
+} __attribute__((packed));
+
+enum pldm_get_pdr_transfer_flag {
+	PLDM_TRANSFER_FLAG_START = 0x00,
+	PLDM_TRANSFER_FLAG_MIDDLE = 0x01,
+	PLDM_TRANSFER_FLAG_END = 0x04,
+	PLDM_TRANSFER_FLAG_START_AND_END = 0x05,
+};
+
+struct pldm_get_pdr_req {
+	uint32_t recordHandle;
+	uint32_t dataTransferHandle;
+	uint8_t transferOperationFlag;
+	uint16_t requestCount;
+	uint16_t recordChangeNumber;
+} __attribute__((packed));
+
+struct pldm_get_pdr_resp {
+	uint8_t completionCode;
+	uint32_t nextRecordHandle;
+	uint32_t nextDataTransferHandle;
+	uint8_t transferFlag;
+	uint16_t responseCount;
+	uint8_t recordData[108];
+	//uint8_t transferCRC;
+} __attribute__((packed));
+
+struct pldm_get_pdr_info_resp {
+	uint8_t completionCode;
+	uint8_t repositoryState;
+	uint8_t updateTime[13];
+	uint8_t OEMUpdateTime[13];
+	uint32_t recordCount;
+	uint32_t repositorySize;
+	uint32_t largestRecordSize;
+	uint8_t dataTransferHandleTimeout;
 } __attribute__((packed));
 
 uint8_t pldm_monitor_handler_query(uint8_t code, void **ret_fn);
