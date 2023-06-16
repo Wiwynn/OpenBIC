@@ -121,7 +121,6 @@ exit:
 uint8_t pldm_get_sensor_reading(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
 				uint8_t *resp, uint16_t *resp_len, void *ext_params)
 {
-	LOG_ERR("pldm_get_sensor_reading");
 	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
@@ -769,6 +768,28 @@ uint8_t pldm_get_state_effecter_states(void *mctp_inst, uint8_t *buf, uint16_t l
 	return plat_pldm_get_state_effecter_state_handler(buf, len, resp, resp_len);
 }
 
+uint8_t pldm_get_pdr_info(void *mctp_inst, uint8_t *buf, uint16_t len,
+				     uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
+				     void *ext_params)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(ext_params, PLDM_ERROR);
+
+	struct pldm_get_pdr_info_resp *res_p = (struct pldm_get_pdr_info_resp *)resp;
+
+	res_p->repositoryState = pdr_info->repositoryState;
+	res_p->recordCount = pdr_info->recordCount;
+	res_p->repositorySize = pdr_info->repositorySize;
+	res_p->largestRecordSize = pdr_info->largestRecordSize;
+	*resp_len = sizeof(struct pldm_get_pdr_info_resp);
+	res_p->completionCode = PLDM_SUCCESS;
+
+	return PLDM_SUCCESS;
+}
+
 uint8_t pldm_get_pdr(void *mctp_inst, uint8_t *buf, uint16_t len,
 				     uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
 				     void *ext_params)
@@ -791,7 +812,7 @@ uint8_t pldm_get_pdr(void *mctp_inst, uint8_t *buf, uint16_t len,
 		res_p->nextRecordHandle = req_p->recordHandle + 1;
 	}
 
-	res_p->transferFlag = 0x05;
+	res_p->transferFlag = PLDM_TRANSFER_FLAG_START_AND_END;
 	res_p->responseCount = sizeof(res_p->recordData);
 	*resp_len = sizeof(struct pldm_get_pdr_resp);
 	res_p->completionCode = PLDM_SUCCESS;
@@ -804,6 +825,7 @@ static pldm_cmd_handler pldm_monitor_cmd_tbl[] = {
 	{ PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE, pldm_platform_event_message },
 	{ PLDM_MONITOR_CMD_CODE_SET_STATE_EFFECTER_STATES, pldm_set_state_effecter_states },
 	{ PLDM_MONITOR_CMD_CODE_GET_STATE_EFFECTER_STATES, pldm_get_state_effecter_states },
+	{ PLDM_MONITOR_CMD_CODE_GET_PDR_INFO, pldm_get_pdr_info },
 	{ PLDM_MONITOR_CMD_CODE_GET_PDR, pldm_get_pdr },
 };
 

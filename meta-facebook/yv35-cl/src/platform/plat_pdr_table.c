@@ -14,13 +14,16 @@ LOG_MODULE_REGISTER(plat_pdr_table);
 
 PDR_numeric_sensor plat_pdr_table[] = {
 	{
+
 		// P12V STBY ADC voltage
 		/*** PDR common header***/
-		0x00000000, //uint32_t recordHandle
-		0x01, //uint8_t PDRHeaderVersion
-		0x02, //uint8_t PDRType
-		0x0000, //uint16_t recordChangeNumber
-		0x0000, //uint16_t dataLength
+		{
+			0x00000000, //uint32_t recordHandle
+			0x00, //uint8_t PDRHeaderVersion
+			0x00, //uint8_t PDRType
+			0x0000, //uint16_t recordChangeNumber
+			0x0000, //uint16_t dataLength
+		},
 
 		/***numeric sensor format***/
 		0x1000, //uint16_t PLDMTerminusHandle;
@@ -64,15 +67,19 @@ PDR_numeric_sensor plat_pdr_table[] = {
 		0x1BB0000A, //uint32_t criticalLow;
 		0x014D000E, //uint32_t fatalHigh;
 		0x005B000A, //uint32_t fatalLow;
+
 	},
 	{
+
 		// PVCCFA_EHV VR voltage
 		/*** PDR common header***/
-		0x00000000, //uint32_t recordHandle
-		0x01, //uint8_t PDRHeaderVersion
-		0x02, //uint8_t PDRType
-		0x0000, //uint16_t recordChangeNumber
-		0x0000, //uint16_t dataLength
+		{
+			0x00000000, //uint32_t recordHandle
+			0x00, //uint8_t PDRHeaderVersion
+			0x00, //uint8_t PDRType
+			0x0000, //uint16_t recordChangeNumber
+			0x0000, //uint16_t dataLength
+		},
 
 		/***numeric sensor format***/
 		0x1000, //uint16_t PLDMTerminusHandle;
@@ -120,11 +127,13 @@ PDR_numeric_sensor plat_pdr_table[] = {
 	{
 		// TMP75 on board temperature
 		/*** PDR common header***/
-		0x00000000, //uint32_t recordHandle
-		0x01, //uint8_t PDRHeaderVersion
-		0x02, //uint8_t PDRType
-		0x0000, //uint16_t recordChangeNumber
-		0x0000, //uint16_t dataLength
+		{
+			0x00000000, //uint32_t recordHandle
+			0x00, //uint8_t PDRHeaderVersion
+			0x00, //uint8_t PDRType
+			0x0000, //uint16_t recordChangeNumber
+			0x0000, //uint16_t dataLength
+		},
 
 		/***numeric sensor format***/
 		0x1000, //uint16_t PLDMTerminusHandle;

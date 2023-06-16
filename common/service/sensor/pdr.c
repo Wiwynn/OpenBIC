@@ -16,12 +16,11 @@ extern const int PDR_TABLE_SIZE;
 uint32_t pdr_count = 0;
 uint16_t pdr_config_size = 0;
 PDR_numeric_sensor *numeric_sensor_table;
+PDR_INFO *pdr_info;
 
 uint8_t pdr_init(void)
 {
 	load_pdr_table();
-	//sdr_info.start_ID = 0x0000;
-	//sdr_info.current_ID = sdr_info.start_ID;
 
 	if (numeric_sensor_table == NULL) {
 		LOG_ERR("numeric_sensor_table is NULL");
@@ -29,22 +28,18 @@ uint8_t pdr_init(void)
 	}
 
 	for (uint32_t i = 0; i < pdr_count; i++) {
-		numeric_sensor_table[i].recordHandle = i & 0xFFFFFFFF;
-		numeric_sensor_table[i].dataLength += (sizeof(PDR_numeric_sensor) - 10);
-
-		/*if (DEBUG_SENSOR) {
-			LOG_DBG("%s ID: 0x%x%x, size: %d, recordlen: %d",
-				log_strdup(full_sdr_table[i].ID_str), full_sdr_table[i].record_id_h,
-				full_sdr_table[i].record_id_l, full_sdr_table[i].ID_len,
-				full_sdr_table[i].record_len);
-		}*/
+		numeric_sensor_table[i].pdr_common_header.recordHandle = i & 0xFFFFFFFF;
+		numeric_sensor_table[i].pdr_common_header.PDRHeaderVersion = 0x01;
+		numeric_sensor_table[i].pdr_common_header.PDRType = 0x02; //numeric_sensor
+		numeric_sensor_table[i].pdr_common_header.dataLength +=
+			(sizeof(PDR_numeric_sensor) - sizeof(PDR_common_header));
 	}
 
-	// Record last SDR record ID to sdr_info
-	//sdr_info.last_ID = (full_sdr_table[sdr_count - 1].record_id_h << 8) |
-	//		   (full_sdr_table[sdr_count - 1].record_id_l);
+	pdr_info->repositoryState = PDR_STATE_AVAILABLE;
+	pdr_info->recordCount = pdr_count;
+	pdr_info->repositorySize = pdr_count * sizeof(PDR_numeric_sensor);
+	pdr_info->largestRecordSize = sizeof(PDR_numeric_sensor);
 
-	//is_sdr_not_init = false;
 	return true;
 }
 

@@ -31,6 +31,7 @@ typedef enum pldm_platform_monitor_commands {
 	PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE = 0x0A,
 	PLDM_MONITOR_CMD_CODE_SET_STATE_EFFECTER_STATES = 0x39,
 	PLDM_MONITOR_CMD_CODE_GET_STATE_EFFECTER_STATES = 0x3A,
+	PLDM_MONITOR_CMD_CODE_GET_PDR_INFO = 0x50,
 	PLDM_MONITOR_CMD_CODE_GET_PDR = 0x51,
 } pldm_platform_monitor_commands_t;
 
@@ -323,6 +324,13 @@ struct pldm_event_message_buffer_size_req {
 struct pldm_event_message_buffer_size_resp {
 	uint8_t completion_code;
 } __attribute__((packed));
+
+enum pldm_get_pdr_transfer_flag {
+	PLDM_TRANSFER_FLAG_START = 0x00,
+	PLDM_TRANSFER_FLAG_MIDDLE = 0x01,
+	PLDM_TRANSFER_FLAG_END = 0x04,
+	PLDM_TRANSFER_FLAG_START_AND_END = 0x05,
+};
 
 struct pldm_get_pdr_req {
 	uint32_t recordHandle;
