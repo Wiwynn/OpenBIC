@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include "sensor.h"
 #include "pldm.h"
+#include "pdr.h"
 #include "hal_gpio.h"
 
 #ifndef PLDM_MONITOR_EVENT_QUEUE_MSG_NUM_MAX
@@ -781,11 +782,17 @@ uint8_t pldm_get_pdr(void *mctp_inst, uint8_t *buf, uint16_t len,
 	struct pldm_get_pdr_req *req_p = (struct pldm_get_pdr_req *)buf;
 	struct pldm_get_pdr_resp *res_p = (struct pldm_get_pdr_resp *)resp;
 
-	res_p->nextRecordHandle = req_p->recordHandle;
-	res_p->nextDataTransferHandle = 0x02;
-	res_p->transferFlag = 0x03;
-	res_p->responseCount = 0x04;
-	res_p->transferCRC = 0x05;
+	uint8_t *pdr_table = (uint8_t *)&numeric_sensor_table[req_p->recordHandle];
+	memcpy(&res_p->recordData[0], pdr_table, sizeof(PDR_numeric_sensor));
+
+	if (req_p->recordHandle + 1 >= pdr_count) {
+		res_p->nextRecordHandle = 0x00000000;
+	} else {
+		res_p->nextRecordHandle = req_p->recordHandle + 1;
+	}
+
+	res_p->transferFlag = 0x05;
+	res_p->responseCount = sizeof(res_p->recordData);
 	*resp_len = sizeof(struct pldm_get_pdr_resp);
 	res_p->completionCode = PLDM_SUCCESS;
 	return PLDM_SUCCESS;

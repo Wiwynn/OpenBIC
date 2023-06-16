@@ -22,6 +22,7 @@
 #include <logging/log.h>
 #include "power_status.h"
 #include "sdr.h"
+#include "pdr.h"
 #include "hal_i2c.h"
 #include "plat_sensor_table.h"
 #include "plat_sdr_table.h"
@@ -116,7 +117,6 @@ const char *const sensor_type_name[] = {
 	sensor_name_to_num(mp2985)
 	sensor_name_to_num(m88rt51632)
 	sensor_name_to_num(mpro)
-	sensor_name_to_num(bmr351)
 };
 // clang-format on
 
@@ -170,7 +170,6 @@ SENSOR_DRIVE_INIT_DECLARE(m88rt51632);
 #ifdef ENABLE_MPRO
 SENSOR_DRIVE_INIT_DECLARE(mpro);
 #endif
-SENSOR_DRIVE_INIT_DECLARE(bmr351);
 
 struct sensor_drive_api {
 	enum SENSOR_DEV dev;
@@ -226,7 +225,6 @@ struct sensor_drive_api {
 #ifdef ENABLE_MPRO
 	SENSOR_DRIVE_TYPE_INIT_MAP(mpro),
 #endif
-	SENSOR_DRIVE_TYPE_INIT_MAP(bmr351),
 };
 
 static void init_sensor_num(void)
@@ -339,8 +337,7 @@ uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sen
 				cfg->cache_status = SENSOR_PRE_READ_ERROR;
 				return cfg->cache_status;
 			}
-			if ((cfg->cache_status == SENSOR_NOT_PRESENT) ||
-			    (cfg->cache_status == SENSOR_NOT_ACCESSIBLE)) {
+			if (cfg->cache_status == SENSOR_NOT_PRESENT) {
 				return cfg->cache_status;
 			}
 		}
@@ -578,6 +575,8 @@ void check_init_sensor_size()
 	uint8_t extend_sdr_size = pal_get_extend_sdr();
 	uint8_t extend_sensor_config_size = pal_get_extend_sensor_config();
 
+	uint8_t init_pdr_size = plat_get_pdr_size();
+
 	init_sdr_size += extend_sdr_size;
 	init_sensor_config_size += extend_sensor_config_size;
 
@@ -589,6 +588,7 @@ void check_init_sensor_size()
 		return;
 	}
 	sensor_config_size = init_sdr_size;
+	pdr_config_size = init_pdr_size;
 }
 
 bool stby_access(uint8_t sensor_num)
@@ -815,6 +815,16 @@ bool sensor_init(void)
 	} else {
 		LOG_ERR("Init sensor size is zero");
 		return false;
+	}
+
+	if (pdr_config_size != 0) {
+		numeric_sensor_table =
+			(PDR_numeric_sensor *)malloc(pdr_config_size * sizeof(PDR_numeric_sensor));
+		if (numeric_sensor_table != NULL) {
+			pdr_init();
+		} else {
+			LOG_ERR("numeric_sensor_table == NULL");
+		}
 	}
 
 	if (sdr_count != 0) {
