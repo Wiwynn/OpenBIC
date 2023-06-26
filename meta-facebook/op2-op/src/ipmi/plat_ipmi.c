@@ -285,28 +285,6 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 	return;
 }
 
-void OEM_1S_PRE_POWER_OFF_CONTROL(ipmi_msg *msg)
-{
-	CHECK_NULL_ARG(msg);
-
-	if (msg->data_len != 0) {
-		msg->data_len = 0;
-		msg->completion_code = CC_INVALID_LENGTH;
-		return;
-	}
-
-	if (gpio_get(FM_EXP_MAIN_PWR_EN) == GPIO_HIGH) {
-		abort_power_thread();
-		init_power_off_thread();
-		msg->completion_code = CC_SUCCESS;
-	} else {
-		LOG_ERR("Already power off");
-		msg->data_len = 0;
-		msg->completion_code = CC_INVALID_LENGTH;
-	}
-	return;
-}
-
 /* Request:
  * Byte 0: E1.S device ID
  * Byte 1: Target address (8 bits)
