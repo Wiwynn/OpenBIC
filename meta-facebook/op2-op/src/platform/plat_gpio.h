@@ -265,7 +265,7 @@
 	gpio_name_to_num(OPB_PWRGD_P3V3_E1S_0_R) \
 	gpio_name_to_num(OPB_BOARD_REV_0) \
 	gpio_name_to_num(OPB_BOARD_REV_1) \
-	gpio_name_to_num(OPB_BOARD_REV_2)
+	gpio_name_to_num(OPB_LED_E1S_3_ATTN_R) \
 
 #define OPB_name_gpioD \
 	gpio_name_to_num(OPB_PWRGD_P12V_MAIN) \
@@ -304,7 +304,7 @@
 	gpio_name_to_num(OPB_SMB_E1S_1_INA233_ALT_N) \
 	gpio_name_to_num(OPB_SMB_E1S_0_INA233_ALT_N) \
 	gpio_name_to_num(OPB_LED_E1S_4_ATTN_R) \
-	gpio_name_to_num(OPB_LED_E1S_3_ATTN_R) \
+	gpio_name_to_num(OPB_BIC_MAIN_PWR_EN_R) \
 	gpio_name_to_num(OPB_LED_E1S_2_ATTN_R)
 
 #define OPB_name_gpioH \
@@ -400,7 +400,7 @@
 #define OPB_name_gpioQ \
 	gpio_name_to_num(OPB_FM_EXP_MAIN_PWR_EN) \
 	gpio_name_to_num(OPB_RESERVE_GPIOQ1) \
-	gpio_name_to_num(OPB_BIC_MAIN_PWR_EN_R) \
+	gpio_name_to_num(OPB_RESERVE_GPIOQ2) \
 	gpio_name_to_num(OPB_SMB_BIC_ALERT_N_R) \
 	gpio_name_to_num(OPB_RST_CPLD_PERST1_N) \
 	gpio_name_to_num(OPB_RESERVE_GPIOQ5) \
