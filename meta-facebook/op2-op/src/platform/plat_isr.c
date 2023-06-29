@@ -191,9 +191,22 @@ void ISR_E1S_P12V_MAIN_INA233_ALERT()
 
 void ISR_E1S_0_PRSNT_N()
 {
-	//OPA_E1S_0_PRSNT_N is the same as OPB_E1S_0_PRSNT_N
-	notify_cpld_e1s_present(E1S_0, gpio_get(OPB_E1S_0_PRSNT_N));
-	if (gpio_get(OPB_E1S_0_PRSNT_N) == GPIO_LOW) {
+	uint8_t gpio_num;
+	uint8_t card_type = get_card_type();
+
+	switch (card_type) {
+	case CARD_TYPE_OPA:
+		gpio_num = OPA_E1S_0_PRSNT_N;
+		break;
+	case CARD_TYPE_OPB:
+		gpio_num = OPB_E1S_0_PRSNT_N;
+		break;
+	default:
+		return;
+	}
+
+	notify_cpld_e1s_present(E1S_0, gpio_get(gpio_num));
+	if (gpio_get(gpio_num) == GPIO_LOW) {
 		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
 					 IPMI_EVENT_OFFSET_STS_E1S_PRESENT, E1S_0);
 
@@ -210,9 +223,22 @@ void ISR_E1S_0_PRSNT_N()
 
 void ISR_E1S_1_PRSNT_N()
 {
-	//OPA_E1S_1_PRSNT_N is the same as OPB_E1S_1_PRSNT_N
-	notify_cpld_e1s_present(E1S_1, gpio_get(OPB_E1S_1_PRSNT_N));
-	if (gpio_get(OPB_E1S_1_PRSNT_N) == GPIO_LOW) {
+	uint8_t gpio_num;
+	uint8_t card_type = get_card_type();
+
+	switch (card_type) {
+	case CARD_TYPE_OPA:
+		gpio_num = OPA_E1S_1_PRSNT_N;
+		break;
+	case CARD_TYPE_OPB:
+		gpio_num = OPB_E1S_1_PRSNT_N;
+		break;
+	default:
+		return;
+	}
+
+	notify_cpld_e1s_present(E1S_1, gpio_get(gpio_num));
+	if (gpio_get(gpio_num) == GPIO_LOW) {
 		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
 					 IPMI_EVENT_OFFSET_STS_E1S_PRESENT, E1S_1);
 
@@ -229,9 +255,22 @@ void ISR_E1S_1_PRSNT_N()
 
 void ISR_E1S_2_PRSNT_N()
 {
-	//OPA_E1S_2_PRSNT_N is the same as OPB_E1S_2_PRSNT_N
-	notify_cpld_e1s_present(E1S_2, gpio_get(OPB_E1S_2_PRSNT_N));
-	if (gpio_get(OPB_E1S_2_PRSNT_N) == GPIO_LOW) {
+	uint8_t gpio_num;
+	uint8_t card_type = get_card_type();
+
+	switch (card_type) {
+	case CARD_TYPE_OPA:
+		gpio_num = OPA_E1S_2_PRSNT_N;
+		break;
+	case CARD_TYPE_OPB:
+		gpio_num = OPB_E1S_2_PRSNT_N;
+		break;
+	default:
+		return;
+	}
+
+	notify_cpld_e1s_present(E1S_2, gpio_get(gpio_num));
+	if (gpio_get(gpio_num) == GPIO_LOW) {
 		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
 					 IPMI_EVENT_OFFSET_STS_E1S_PRESENT, E1S_2);
 
