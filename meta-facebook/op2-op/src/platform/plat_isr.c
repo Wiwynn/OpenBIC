@@ -54,7 +54,7 @@ static bool is_e1s_P3V3_fault_assert[MAX_E1S_IDX] = { false, false, false, false
 			is_e1s_##power##_fault_assert[E1S_##device] = true;                        \
 		} else {                                                                           \
 			if ((gpio_get(OPB_##power##_E1S_##device##_EN_R) == POWER_ON) &&           \
-			    (gpio_get(OPB_##power##_E1S_##device##_EN_R) == POWER_ON)) {           \
+			    (gpio_get(OPB_PWRGD_##power##_E1S_##device##_R) == POWER_ON)) {           \
 				if (is_e1s_##power##_fault_assert[E1S_##device]) {                 \
 					send_system_status_event(                                  \
 						IPMI_OEM_EVENT_TYPE_DEASSERT,                      \

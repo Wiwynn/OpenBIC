@@ -274,13 +274,13 @@
 	gpio_name_to_num(OPB_RST_SMBRST_BIC_E1S_2) \
 	gpio_name_to_num(OPB_RST_SMBRST_BIC_E1S_1) \
 	gpio_name_to_num(OPB_RST_SMBRST_BIC_E1S_0) \
-	gpio_name_to_num(OPB_RST_E1S_4_PERST) \
-	gpio_name_to_num(OPB_RST_E1S_3_PERST)
+	gpio_name_to_num(OPB_RST_E1S_1_PERST) \
+	gpio_name_to_num(OPB_RST_E1S_0_PERST)
 
 #define OPB_name_gpioE \
+	gpio_name_to_num(OPB_RST_E1S_4_PERST) \
+	gpio_name_to_num(OPB_RST_E1S_3_PERST) \
 	gpio_name_to_num(OPB_RST_E1S_2_PERST) \
-	gpio_name_to_num(OPB_RST_E1S_1_PERST) \
-	gpio_name_to_num(OPB_RST_E1S_0_PERST) \
 	gpio_name_to_num(OPB_P12V_E1S_4_EN_R) \
 	gpio_name_to_num(OPB_P12V_E1S_3_EN_R) \
 	gpio_name_to_num(OPB_P12V_E1S_2_EN_R) \
