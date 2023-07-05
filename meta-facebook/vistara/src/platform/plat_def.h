@@ -22,6 +22,8 @@
 #define BMC_USB_PORT "CDC_ACM_0"
 
 #define ENABLE_APML
+#define ENABLE_CCI
+#define ENABLE_PM8702
 
 #define WORKER_STACK_SIZE 4096
 

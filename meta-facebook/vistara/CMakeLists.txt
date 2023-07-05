@@ -40,6 +40,7 @@ target_include_directories(app PRIVATE ${common_path}/service/sensor)
 target_include_directories(app PRIVATE ${common_path}/service/usb)
 target_include_directories(app PRIVATE ${common_path}/shell/commands)
 target_include_directories(app PRIVATE ${common_path}/shell)
+target_include_directories(app PRIVATE ${common_path}/service/cci)
 
 # Platform Specific Includes
 target_include_directories(app PRIVATE src/ipmi/include)

@@ -331,6 +331,7 @@ bool cci_get_chip_fw_version(void *mctp_p, mctp_ext_params ext_params, uint8_t *
 
 	memset(resp_buf, 0, sizeof(cci_fw_info_resp));
 
+	LOG_WRN("===== %s", __func__);
 	if (mctp_cci_read(mctp_p, &msg, resp_buf, resp_len) != resp_len) {
 		LOG_ERR("Get chip fw version fail");
 		return false;

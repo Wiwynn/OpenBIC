@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <logging/log.h>
 #include "ipmi.h"
+#include "oem_1s_handler.h"
+#include "hal_gpio.h"
 #include "plat_ipmi.h"
 #include "plat_ipmb.h"
 #include "plat_class.h"
@@ -26,8 +28,11 @@
 #include "util_spi.h"
 #include "plat_spi.h"
 #include "plat_sensor_table.h"
+#include "plat_dev.h"
+#include "plat_mctp.h"
 #include "sensor.h"
 #include "pmbus.h"
+#include "pm8702.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
 
@@ -384,5 +389,251 @@ void OEM_1S_GET_HSC_STATUS(ipmi_msg *msg)
 	msg->data_len = 2;
 	msg->data[0] = hsc_type;
 	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+uint8_t fw_update_pm8702(uint8_t cxl_id, uint8_t pcie_card_id, uint8_t next_active_slot,
+			 uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, bool sector_end)
+{
+	CHECK_NULL_ARG_WITH_RETURN(msg_buf, FWUPDATE_UPDATE_FAIL);
+
+	if (offset > PM8702_UPDATE_MAX_OFFSET) {
+		LOG_ERR("Offset: 0x%x is over PM8702 image size maximum", offset);
+		return FWUPDATE_ERROR_OFFSET;
+	}
+
+	if (msg_len > PM8702_TRANSFER_FW_DATA_LEN) {
+		LOG_ERR("Transfer data len over maximum, msg_len: 0x%x", msg_len);
+		return FWUPDATE_OVER_LENGTH;
+	}
+
+	int req_len = 0;
+	uint8_t resp_len = 0;
+	pm8702_hbo_status_resp hbo_status = { 0 };
+
+	k_msleep(PM8702_TRANSFER_DELAY_MS);
+	if (pal_get_pm8702_hbo_status(pcie_card_id, (uint8_t *)&hbo_status, &resp_len) != true) {
+		LOG_ERR("Fail to get HBO status");
+		return FWUPDATE_UPDATE_FAIL;
+	}
+
+	if (hbo_status.bo_run != PM8702_NO_HBO_RUN_VAL) {
+		LOG_ERR("PM8702 HBO bo_run");
+		return FWUPDATE_UPDATE_FAIL;
+	}
+
+	if (hbo_status.return_code != PM8702_RETURN_SUCCESS) {
+		LOG_ERR("PM8702 HBO return code: 0x%x, vendor status: 0x%x", hbo_status.return_code,
+			hbo_status.vendor_status);
+		return FWUPDATE_UPDATE_FAIL;
+	}
+
+	cci_transfer_fw_req update_fw_req = { 0 };
+	req_len = PM8702_TRANSFER_FW_HEADER_LEN + msg_len;
+
+	if (offset == PM8702_INITIATE_FW_OFFSET) {
+		update_fw_req.action = INITIATE_FW_TRANSFER;
+	} else if (sector_end == true) {
+		update_fw_req.action = END_TRANSFER;
+	} else {
+		update_fw_req.action = CONTINUE_FW_TRANSFER;
+	}
+
+	update_fw_req.slot = next_active_slot;
+	update_fw_req.offset = offset / PM8702_TRANSFER_FW_DATA_LEN;
+	memcpy(update_fw_req.data, msg_buf, sizeof(uint8_t) * msg_len);
+
+	k_msleep(PM8702_TRANSFER_DELAY_MS);
+
+	if (pal_pm8702_transfer_fw(pcie_card_id, (uint8_t *)&update_fw_req, req_len) != true) {
+		LOG_ERR("Fail to transfer PM8702 firmware");
+		return FWUPDATE_UPDATE_FAIL;
+	}
+
+	return FWUPDATE_SUCCESS;
+}
+
+void OEM_1S_FW_UPDATE(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+	if (msg->data_len < 8) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t target = msg->data[0];
+	uint8_t status = -1;
+	uint32_t offset =
+		((msg->data[4] << 24) | (msg->data[3] << 16) | (msg->data[2] << 8) | msg->data[1]);
+	uint16_t length = ((msg->data[6] << 8) | msg->data[5]);
+
+	if ((length == 0) || (length != msg->data_len - 7)) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	if (target == BIOS_UPDATE || (target == (BIOS_UPDATE | IS_SECTOR_END_MASK))) {
+		// BIOS size maximum 64M bytes
+		if (offset > BIOS_UPDATE_MAX_OFFSET) {
+			msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+			return;
+		}
+		int pos = pal_get_bios_flash_position();
+		if (pos == -1) {
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+
+		// Switch GPIO(BIOS SPI Selection Pin) to BIC
+		bool ret = pal_switch_bios_spi_mux(GPIO_HIGH);
+		if (!ret) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+		status = fw_update(offset, length, &msg->data[7], (target & IS_SECTOR_END_MASK),
+				   pos);
+
+		// Switch GPIO(BIOS SPI Selection Pin) to PCH
+		ret = pal_switch_bios_spi_mux(GPIO_LOW);
+		if (!ret) {
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+		}
+
+	} else if ((target == BIC_UPDATE) || (target == (BIC_UPDATE | IS_SECTOR_END_MASK))) {
+		// Expect BIC firmware size not bigger than 320k
+		if (offset > BIC_UPDATE_MAX_OFFSET) {
+			msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+			return;
+		}
+		status = fw_update(offset, length, &msg->data[7], (target & IS_SECTOR_END_MASK),
+				   DEVSPI_FMC_CS0);
+
+	} else if (target == CXL_UPDATE || (target == (CXL_UPDATE | IS_SECTOR_END_MASK))) {
+		LOG_INF("%s target0x%x offset0x%x len0x%x", __func__, target, offset, length);
+
+		uint8_t cxl_id = 0;
+
+		if (pm8702_table[cxl_id].is_init != true) {
+			bool ret = pal_init_pm8702_info(cxl_id);
+			if (ret == false) {
+				LOG_ERR("Initial cxl id: 0x%x info fail", cxl_id);
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+		}
+
+		uint8_t next_active_slot =
+			pm8702_table[cxl_id].dev_info.fw_slot_info.fields.NEXT_ACTIVE_FW_SLOT;
+		if (next_active_slot == PM8702_DEFAULT_NEXT_ACTIVE_SLOT) {
+			uint8_t index = 0;
+			uint8_t support_fw_slot = pm8702_table[cxl_id].dev_info.fw_slot_supported;
+
+			for (index = 1; index <= support_fw_slot; ++index) {
+				if (index != pm8702_table[cxl_id]
+						     .dev_info.fw_slot_info.fields.ACTIVE_FW_SLOT) {
+					next_active_slot = index;
+				}
+			}
+
+			if (next_active_slot == PM8702_DEFAULT_NEXT_ACTIVE_SLOT) {
+				LOG_ERR("Fail to find next active slot");
+				msg->completion_code = CC_UNSPECIFIED_ERROR;
+				return;
+			}
+
+			pm8702_table[cxl_id].dev_info.fw_slot_info.fields.NEXT_ACTIVE_FW_SLOT =
+				next_active_slot;
+		}
+
+		status = fw_update_pm8702(cxl_id, 0, next_active_slot, offset, length,
+					  &msg->data[7], (target & IS_SECTOR_END_MASK));
+
+	} else if (target == PRoT_FLASH_UPDATE ||
+		   (target == (PRoT_FLASH_UPDATE | IS_SECTOR_END_MASK))) {
+		if (offset > BIOS_UPDATE_MAX_OFFSET) {
+			msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+			return;
+		}
+
+		int pos = pal_get_prot_flash_position();
+		if (pos == -1) {
+			msg->completion_code = CC_INVALID_PARAM;
+			return;
+		}
+
+		status = fw_update(offset, length, &msg->data[7], (target & IS_SECTOR_END_MASK),
+				   pos);
+
+	} else {
+		msg->completion_code = CC_INVALID_DATA_FIELD;
+		return;
+	}
+
+	msg->data_len = 0;
+
+	switch (status) {
+	case FWUPDATE_SUCCESS:
+		msg->completion_code = CC_SUCCESS;
+		break;
+	case FWUPDATE_OUT_OF_HEAP:
+		msg->completion_code = CC_LENGTH_EXCEEDED;
+		break;
+	case FWUPDATE_OVER_LENGTH:
+		msg->completion_code = CC_OUT_OF_SPACE;
+		break;
+	case FWUPDATE_REPEATED_UPDATED:
+		msg->completion_code = CC_INVALID_DATA_FIELD;
+		break;
+	case FWUPDATE_UPDATE_FAIL:
+		msg->completion_code = CC_TIMEOUT;
+		break;
+	case FWUPDATE_ERROR_OFFSET:
+		msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+		break;
+	case FWUPDATE_NOT_SUPPORT:
+		msg->completion_code = CC_INVALID_PARAM;
+		break;
+	default:
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		break;
+	}
+	if (status != FWUPDATE_SUCCESS) {
+		LOG_ERR("firmware (0x%02X) update failed cc: %x", target, msg->completion_code);
+	}
+
+	return;
+}
+
+void pal_get_cxl_version(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	int ret = 0;
+	mctp *mctp_inst = NULL;
+	mctp_ext_params ext_params = { 0 };
+	uint8_t read_len = 0;
+	uint8_t resp_buf[GET_FW_INFO_REVISION_LEN] = { 0 };
+
+	if (get_mctp_info_by_eid(MCTP_EID_CXL, &mctp_inst, &ext_params) == false) {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		LOG_WRN("===== %s MCTP_EID_CXL", __func__);
+		return;
+	}
+
+	// CHECK_NULL_ARG(mctp_inst);
+
+	ret = cci_get_chip_fw_version(mctp_inst, ext_params, resp_buf, &read_len);
+	LOG_WRN("===== cci_get_chip_fw_version ret%d read_len%d", ret, read_len);
+	if (ret == false) {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+	} else {
+		LOG_HEXDUMP_WRN(resp_buf, read_len, "===== resp_buf");
+		memcpy(&msg->data[0], resp_buf, read_len);
+		msg->data_len = read_len;
+		msg->completion_code = CC_SUCCESS;
+	}
+
 	return;
 }

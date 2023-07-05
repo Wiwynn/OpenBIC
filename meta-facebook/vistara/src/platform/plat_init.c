@@ -78,6 +78,10 @@ void pal_set_sys_status()
 		read_cpuid();
 	}
 	gpio_set(BIC_JTAG_SEL_R, gpio_get(FM_DBP_PRESENT_N));
+
+	// Switch SMBUS MUX to access Vistara
+	enable_vistara_smbus_mux();
+
 	set_sys_ready_pin(BIC_READY);
 }
 
