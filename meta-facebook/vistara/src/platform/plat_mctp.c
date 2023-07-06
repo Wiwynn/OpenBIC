@@ -46,7 +46,7 @@ static mctp_smbus_port smbus_port[] = {
 };
 
 static mctp_route_entry mctp_route_tbl[] = {
-	{ MCTP_EID_CXL, I2C_BUS_CXL, I2C_ADDR_CXL },
+	{ .endpoint = MCTP_EID_CXL, .bus = I2C_BUS_CXL, .addr = I2C_ADDR_CXL },
 };
 
 mctp *find_mctp_by_smbus(uint8_t bus)
@@ -59,7 +59,7 @@ mctp *find_mctp_by_smbus(uint8_t bus)
 			return NULL;
 		}
 		if (bus == p->conf.smbus_conf.bus) {
-			LOG_WRN("===== %s Get success", __func__);
+			LOG_WRN("===== %s Get success bus%d addr0x%x", __func__, p->conf.smbus_conf.bus, p->conf.smbus_conf.addr);
 			return p->mctp_inst;
 		}
 	}
@@ -79,7 +79,7 @@ static void set_endpoint_resp_timeout(void *args)
 {
 	CHECK_NULL_ARG(args);
 	mctp_route_entry *p = (mctp_route_entry *)args;
-	printk("[%s] Endpoint 0x%x set endpoint failed on bus %d \n", __func__, p->endpoint,
+	LOG_WRN("===== [%s] Endpoint 0x%x set endpoint failed on bus %d \n", __func__, p->endpoint,
 	       p->bus);
 }
 
@@ -94,7 +94,7 @@ static void set_dev_endpoint(void)
 			if (p->bus != smbus_port[j].conf.smbus_conf.bus) {
 				continue;
 			}
-			printk("Prepare send endpoint bus 0x%x, addr 0x%x\n", p->bus, p->addr);
+			LOG_WRN("=====Prepare send endpoint bus 0x%x, addr 0x%x\n", p->bus, p->addr);
 			struct _set_eid_req req = { 0 };
 			req.op = SET_EID_REQ_OP_SET_EID;
 			req.eid = p->endpoint;
@@ -215,7 +215,7 @@ void plat_mctp_init()
 			return;
 		}
 		/* init the mctp/cci instance */
-		LOG_DBG("bus = %x, addr = %x", p->conf.smbus_conf.bus, p->conf.smbus_conf.addr);
+		LOG_WRN("===== %s bus = 0x%x, addr = 0x%x", __func__, p->conf.smbus_conf.bus, p->conf.smbus_conf.addr);
 
 		p->mctp_inst = mctp_init();
 		if (!p->mctp_inst) {

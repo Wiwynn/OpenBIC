@@ -17,7 +17,8 @@
 #ifndef _PLAT_MCTP_h
 #define _PLAT_MCTP_h
 
-#include "storage_handler.h"
+#include "mctp.h"
+
 #define MCTP_MSG_TYPE_SHIFT 0
 #define MCTP_MSG_TYPE_MASK 0x7F
 #define MCTP_IC_SHIFT 7
@@ -25,11 +26,11 @@
 
 /* i2c 8 bit address */
 #define I2C_ADDR_BIC 0x20
-#define I2C_ADDR_CXL 0x32
+#define I2C_ADDR_CXL 0x64
 /* i2c dev bus */
 #define I2C_BUS_CXL 0x08
 /* mctp endpoint */
-#define MCTP_EID_CXL 0x2E
+#define MCTP_EID_CXL 0x32
 
 typedef struct _mctp_smbus_port {
 	mctp *mctp_inst;
