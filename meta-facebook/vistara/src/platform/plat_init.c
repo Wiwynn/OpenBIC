@@ -17,6 +17,7 @@
 #include "hal_gpio.h"
 #include "power_status.h"
 #include "util_sys.h"
+#include "hal_i2c_target.h"
 #include "plat_gpio.h"
 #include "plat_class.h"
 #include "snoop.h"
@@ -62,6 +63,14 @@ void pal_pre_init()
 	pcc_init();
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+
+	// init i2c target
+	for (int index = 0; index < MAX_TARGET_NUM; index++) {
+		if (I2C_TARGET_ENABLE_TABLE[index])
+			i2c_target_control(
+				index, (struct _i2c_target_config *)&I2C_TARGET_CONFIG_TABLE[index],
+				1);
+	}
 }
 
 void pal_post_init()
