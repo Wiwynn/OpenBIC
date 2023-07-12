@@ -358,6 +358,8 @@ bool cci_get_chip_fw_version(void *mctp_p, mctp_ext_params ext_params, uint8_t *
 		return false;
 	};
 
+	 LOG_WRN("===== %s active_slot%d", __func__, active_slot);
+
 	CHECK_NULL_ARG_WITH_RETURN(fw_version_ptr, false);
 	memcpy(fw_version, fw_version_ptr, sizeof(uint8_t) * GET_FW_INFO_REVISION_LEN);
 	*return_len = GET_FW_INFO_REVISION_LEN;
