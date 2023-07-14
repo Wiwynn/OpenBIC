@@ -41,6 +41,15 @@ const EEPROM_CFG plat_fru_config[] = {
 		FRU_START,
 		FRU_SIZE,
 	},
+	{
+		MICROCHIP_24LC512_I,
+		VISTARA_FRU_ID,
+		VISTARA_FRU_PORT,
+		VISTARA_FRU_ADDR,
+		FRU_DEV_ACCESS_BYTE,
+		FRU_START,
+		FRU_SIZE,
+	},
 };
 
 // BIOS version is stored in MB EEPROM, but the location of EEPROM is different from fru information

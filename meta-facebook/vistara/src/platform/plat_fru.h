@@ -23,6 +23,7 @@
 enum {
 	MB_FRU_ID,
 	DPV2_FRU_ID,
+	VISTARA_FRU_ID,
 	// OTHER_FRU_ID,
 	MAX_FRU_ID,
 };
@@ -35,6 +36,9 @@ enum {
 
 #define DPV2_FRU_PORT 0x08
 #define DPV2_FRU_ADDR 0x51
+
+#define VISTARA_FRU_PORT 0x08 // I2C bus 8
+#define VISTARA_FRU_ADDR 0x54
 
 #define BIOS_FW_VERSION_START 0x0A00
 #define BIOS_FW_VERSION_MAX_SIZE 34
