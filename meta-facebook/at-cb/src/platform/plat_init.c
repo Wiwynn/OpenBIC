@@ -56,11 +56,15 @@ void pal_device_init()
 void pal_set_sys_status()
 {
 	get_acb_power_status();
-	gpio_set(ACB_BIC_READY_N, GPIO_LOW);
+	gpio_set(BIC_READY_PIN_NUM, GPIO_LOW);
 	return;
 }
 
+#define DEF_PLAT_CONFIG_PRIORITY 77
 #define DEF_PROJ_GPIO_PRIORITY 78
+
+DEVICE_DEFINE(PRE_DEF_PLAT_CONFIG, "PRE_DEF_PLATFOMR", &init_platform_config, NULL, NULL, NULL,
+	      POST_KERNEL, DEF_PLAT_CONFIG_PRIORITY, NULL);
 
 DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,
 	      POST_KERNEL, DEF_PROJ_GPIO_PRIORITY, NULL);

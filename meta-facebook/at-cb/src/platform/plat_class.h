@@ -46,8 +46,15 @@
 #define PEX_ACCL_DEV_PRESENT_REG 0x2A080048
 #define PEX_ACCL_PRESENT_MAP_VAL 0x07
 
-#define HSC_MODULE_PIN_NUM BOARD_ID2
-#define POWER_BRICK_MODULE_PIN_NUM BOARD_ID1
+#define BOARD_REV_0_PIN_NUM PRE_DVT_REV_ID0
+#define BOARD_REV_1_PIN_NUM PRE_DVT_REV_ID1
+#define BOARD_REV_2_PIN_NUM PRE_DVT_REV_ID2
+#define HSC_MODULE_PIN_NUM PRE_DVT_BOARD_ID2
+#define POWER_BRICK_MODULE_PIN_NUM PRE_DVT_BOARD_ID1
+#define BIC_READY_PIN_NUM PRE_DVT_ACB_BIC_READY_N
+#define SPI_ROM0_SEL_PIN_NUM PRE_DVT_SPI_ROM0_SEL
+#define SPI_ROM1_SEL_PIN_NUM PRE_DVT_SPI_ROM1_SEL
+#define FIO_PRSNT_PIN_NUM PRE_DVT_PRSNT_FIO_N
 
 #define CPLD_ADDR (0xA0 >> 1)
 #define CPLD_PWRGD_1_OFFSET 0x05
@@ -141,7 +148,7 @@ struct ASIC_CARD_INFO {
 extern struct ASIC_CARD_INFO asic_card_info[ASIC_CARD_COUNT];
 
 void check_accl_device_presence_status_via_ioexp();
-void init_platform_config();
+int init_platform_config();
 uint8_t get_board_revision();
 uint8_t get_hsc_module();
 uint8_t get_pwr_brick_module();

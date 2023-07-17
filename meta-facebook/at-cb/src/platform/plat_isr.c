@@ -30,7 +30,7 @@ K_WORK_DELAYABLE_DEFINE(fio_power_button_work, fio_power_button_work_handler);
 void fio_power_button_work_handler()
 {
 	int ret = 0;
-	uint8_t gpio_num = FIO_PWRBTN_N_R;
+	uint8_t gpio_num = PRE_DVT_FIO_PWRBTN_N_R;
 	uint8_t button_status = gpio_get(gpio_num);
 
 	/* Check FIO button press time for power control */

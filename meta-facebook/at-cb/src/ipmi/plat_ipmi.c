@@ -41,11 +41,11 @@ LOG_MODULE_REGISTER(plat_ipmi);
 
 struct SWITCH_MUX_INFO pcie_switch_mux_info[PEX_MAX_NUMBER] = {
 	[0] = { .device = DEVSPI_SPI1_CS0,
-		.control_gpio = SPI_ROM0_SEL,
+		.control_gpio = SPI_ROM0_SEL_PIN_NUM,
 		.sw_to_flash_value = GPIO_HIGH,
 		.bic_to_flash_value = GPIO_LOW },
 	[1] = { .device = DEVSPI_SPI2_CS0,
-		.control_gpio = SPI_ROM1_SEL,
+		.control_gpio = SPI_ROM1_SEL_PIN_NUM,
 		.sw_to_flash_value = GPIO_HIGH,
 		.bic_to_flash_value = GPIO_LOW },
 };
@@ -235,7 +235,7 @@ void OEM_1S_GET_PCIE_CARD_STATUS(ipmi_msg *msg)
 	case FIO_FRU_ID:
 		switch (pcie_device_id) {
 		case PCIE_DEVICE_ID1:
-			if (gpio_get(PRSNT_FIO_N) == LOW_ACTIVE) {
+			if (gpio_get(FIO_PRSNT_PIN_NUM) == LOW_ACTIVE) {
 				msg->data[0] = FIO_PRESENT;
 			} else {
 				msg->data[0] = FIO_NOT_PRESENT;
