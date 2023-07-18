@@ -22,7 +22,17 @@
 
 LOG_MODULE_REGISTER(plat_fru);
 
-const EEPROM_CFG plat_fru_config[] = {};
+const EEPROM_CFG plat_fru_config[] = {
+    {
+        NV_ATMEL_24C128,
+        FF_FRU_ID,
+        FF_FRU_PORT,
+        FF_FRU_ADDR,
+        FRU_DEV_ACCESS_BYTE,
+        FRU_START,
+        FRU_SIZE,
+    },
+};
 
 void pal_load_fru_config(void)
 {

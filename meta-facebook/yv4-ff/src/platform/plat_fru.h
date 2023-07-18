@@ -17,7 +17,15 @@
 #ifndef PLAT_FRU_H
 #define PLAT_FRU_H
 
-#define MAX_FRU_ID 0
+#include "plat_i2c.h"
+
+#define FF_FRU_PORT I2C_BUS3
+#define FF_FRU_ADDR (0xA8 >> 1)
 #define FRU_CFG_NUM MAX_FRU_ID
+
+enum {
+    FF_FRU_ID,
+    MAX_FRU_ID,
+};
 
 #endif
