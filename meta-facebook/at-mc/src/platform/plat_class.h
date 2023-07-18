@@ -33,12 +33,18 @@
 
 #define PCIE_CARD_POWER_GOOD_BIT BIT(0)
 
+#define BOARD_REV_0_PIN_NUM REV_ID0
+#define BOARD_REV_1_PIN_NUM REV_ID1
+#define BOARD_REV_2_PIN_NUM REV_ID2
+
 enum BOARD_REVERSION {
 	REV_EVT1,
 	REV_EVT2,
 	REV_DVT,
 	REV_PVT,
 	REV_MP,
+	REV_PRE_DVT,
+	REV_UNKNOWN = 0xFF,
 };
 
 enum CARD_INFO_INDEX {
@@ -97,5 +103,6 @@ int cxl_id_to_pcie_card_id(uint8_t cxl_id, uint8_t *pcie_card_id);
 bool is_cxl_present();
 uint8_t get_board_revision();
 int get_pcie_card_power_status(uint8_t pcie_card_id);
+int init_platform_config();
 
 #endif
