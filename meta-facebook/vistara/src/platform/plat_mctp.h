@@ -25,12 +25,12 @@
 #define MCTP_IC_MASK 0x80
 
 /* i2c 8 bit address */
-#define I2C_ADDR_BIC 0x20
+#define I2C_ADDR_BIC 0x40
 #define I2C_ADDR_CXL 0x64
 /* i2c dev bus */
 #define I2C_BUS_CXL 0x08
 /* mctp endpoint */
-#define MCTP_EID_CXL 0x2E
+#define MCTP_EID_CXL 0xA
 
 typedef struct _mctp_smbus_port {
 	mctp *mctp_inst;

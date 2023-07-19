@@ -233,7 +233,7 @@ void plat_mctp_init()
 		mctp_start(p->mctp_inst);
 	}
 	// Only send command to device when DC on
-	if (gpio_get(FM_BIOS_POST_CMPLT_BIC_N) == POWER_ON) {
+	if (gpio_get(PWRGD_CPU_LVC3) == POWER_ON) {
 		k_timer_start(&send_cmd_timer, K_MSEC(3000), K_NO_WAIT);
 	}
 }

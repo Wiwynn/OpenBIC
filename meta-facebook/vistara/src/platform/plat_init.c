@@ -64,6 +64,9 @@ void pal_pre_init()
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
 
+	// Switch SMBUS MUX to access Vistara
+	enable_vistara_smbus_mux();
+
 	// init i2c target
 	for (int index = 0; index < MAX_TARGET_NUM; index++) {
 		if (I2C_TARGET_ENABLE_TABLE[index])
@@ -89,9 +92,6 @@ void pal_set_sys_status()
 		read_cpuid();
 	}
 	gpio_set(BIC_JTAG_SEL_R, gpio_get(FM_DBP_PRESENT_N));
-
-	// Switch SMBUS MUX to access Vistara
-	enable_vistara_smbus_mux();
 
 	set_sys_ready_pin(BIC_READY);
 }

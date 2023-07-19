@@ -300,8 +300,6 @@ uint8_t mctp_ctrl_send_msg(void *mctp_p, mctp_ctrl_msg *msg)
 	memcpy(buf, &msg->hdr, sizeof(msg->hdr));
 	memcpy(buf + sizeof(msg->hdr), msg->cmd_data, msg->cmd_data_len);
 
-	LOG_HEXDUMP_DBG(buf, len, __func__);
-
 	if (msg->hdr.rq) {
 		p = (wait_msg *)malloc(sizeof(*p));
 		if (!p) {
@@ -319,6 +317,10 @@ uint8_t mctp_ctrl_send_msg(void *mctp_p, mctp_ctrl_msg *msg)
 		sys_slist_append(&wait_recv_resp_list, &p->node);
 		k_mutex_unlock(&wait_recv_resp_mutex);
 	}
+
+	LOG_HEXDUMP_WRN(&msg->hdr, sizeof(msg->hdr), "============mctp_ctrl_send_msg hdr");
+	LOG_HEXDUMP_WRN(msg->cmd_data, msg->cmd_data_len, "============mctp_ctrl_send_msg cmd_data");
+	LOG_HEXDUMP_WRN(buf, len, "============mctp_ctrl_send_msg buf");
 
 	uint8_t rc = mctp_send_msg(mctp_inst, buf, len, msg->ext_params);
 	if (rc == MCTP_ERROR) {
