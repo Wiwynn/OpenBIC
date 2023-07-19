@@ -56,10 +56,14 @@
 #define TEMP_HSC_ADDR (0x98 >> 1)
 #define MP5990_ADDR 0x20
 
+#define VISTARA_TMP75_ADDR 0x48
+#define VISTARA_CXL_ADDR 0x4C
+
 /* define sensors offset */
 #define TMP75_TEMP_OFFSET 0x00
 #define SSD_TEMP_OFFSET 0x00
 #define CPU_PWR_OFFSET 0x01
+#define TMP461_TEMP_OFFSET 0x01
 
 /*  threshold sensor number, 1 based  */
 #define SENSOR_NUM_TEMP_TMP75_IN 0x1
@@ -120,6 +124,9 @@
 #define SENSOR_NUM_PWR_DIMM_A7 0x38
 #define SENSOR_NUM_PWR_DIMM_A8 0x39
 #define SENSOR_NUM_PWR_DIMM_A10 0x3A
+// Vistara sensor number
+#define SENSOR_NUM_TEMP_VISTARA_TMP75 0x44
+#define SENSOR_NUM_TEMP_VISTARA_CXL 0x45
 
 #define POLL_TIME_BAT3V 3600 // second
 

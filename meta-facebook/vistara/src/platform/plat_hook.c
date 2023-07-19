@@ -93,6 +93,10 @@ g788p81u_init_arg g788p81u_init_args[] = { [0] = { .is_init = false,
 						   .remote_temp_therm_limit = 0x64,
 						   .local_temp_therm_limit = 0x64 } };
 
+tmp461_init_arg tmp461_init_args[] = {
+	[0] = { false },
+};
+
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
  **************************************************************************************************/
@@ -166,6 +170,32 @@ bool pre_vol_bat3v_read(sensor_cfg *cfg, void *args)
 	if (cfg->num == SENSOR_NUM_VOL_P3V_BAT) {
 		gpio_set(P3V_BAT_SCALED_EN_R, GPIO_HIGH);
 		k_msleep(1);
+	}
+
+	return true;
+}
+
+bool pre_tmp461_read(sensor_cfg *cfg, void *args)
+{
+	ARG_UNUSED(args);
+	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
+	CHECK_NULL_ARG_WITH_RETURN(cfg->init_args, false);
+
+	tmp461_init_arg *tmp461_init_args = (tmp461_init_arg *)cfg->init_args;
+
+	if (get_DC_status() == false) {
+		// TMP461's sensor need to be initialize after DC on
+		return true;
+	}
+
+	// Initialize TMP461 after DC on
+	if (tmp461_init_args->is_init == false) {
+		bool ret = init_drive_type_delayed(cfg);
+		if (ret == false) {
+			return ret;
+		}
+
+		tmp461_init_args->is_init = true;
 	}
 
 	return true;

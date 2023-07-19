@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "libutil.h"
+#include "common_i2c_mux.h"
 #include "plat_gpio.h"
 #include "plat_i2c.h"
 #include "plat_sensor_table.h"
@@ -349,4 +350,18 @@ void init_platform_config()
 	}
 
 	SAFE_FREE(data);
+}
+
+void enable_vistara_smbus_mux()
+{
+	bool ret = true;
+	mux_config cxl_mux = { 0 };
+
+	cxl_mux.bus = I2C_BUS9;
+	cxl_mux.target_addr = CXL_SMBUS_MMUX_ADDR;
+	cxl_mux.channel = CXL_SMBUS_MUX_CHANNEL;
+	ret = set_mux_channel(cxl_mux, MUTEX_LOCK_DISENABLE);
+	if (!ret) {
+		LOG_ERR("switch cxl mux failed");
+	}
 }

@@ -645,6 +645,10 @@ typedef struct _cx7_init_arg {
 	uint16_t sensor_id;
 } cx7_init_arg;
 
+typedef struct _tmp461_init_arg_ {
+	bool is_init;
+} tmp461_init_arg;
+
 extern bool enable_sensor_poll_thread;
 extern sensor_cfg *sensor_config;
 // Mapping sensor number to sensor config index

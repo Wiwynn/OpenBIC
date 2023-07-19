@@ -47,6 +47,7 @@ extern ddr5_init_temp_arg ddr5_init_temp_args[];
 extern ddr5_init_power_arg ddr5_init_power_args[];
 extern nct7718w_init_arg nct7718w_init_args[];
 extern g788p81u_init_arg g788p81u_init_args[];
+extern tmp461_init_arg tmp461_init_args[];
 
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
@@ -60,6 +61,7 @@ extern vr_pre_proc_arg vr_pre_read_args[];
 bool pre_nvme_read(sensor_cfg *cfg, void *args);
 bool pre_vr_read(sensor_cfg *cfg, void *args);
 bool pre_vol_bat3v_read(sensor_cfg *cfg, void *args);
+bool pre_tmp461_read(sensor_cfg *cfg, void *args);
 bool post_vol_bat3v_read(sensor_cfg *cfg, void *args, int *reading);
 bool post_adm1278_cur_read(sensor_cfg *cfg, void *args, int *reading);
 bool post_adm1278_pwr_read(sensor_cfg *cfg, void *args, int *reading);
