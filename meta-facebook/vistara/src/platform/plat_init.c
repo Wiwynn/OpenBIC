@@ -61,6 +61,7 @@ void pal_pre_init()
 	pcc_init();
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+	enable_vistara_smbus_mux(); // Switch SMBUS MUX to access Vistara
 }
 
 void pal_post_init()
@@ -78,6 +79,7 @@ void pal_set_sys_status()
 		read_cpuid();
 	}
 	gpio_set(BIC_JTAG_SEL_R, gpio_get(FM_DBP_PRESENT_N));
+
 	set_sys_ready_pin(BIC_READY);
 }
 

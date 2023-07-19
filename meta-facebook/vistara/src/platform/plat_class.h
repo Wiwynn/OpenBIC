@@ -23,6 +23,9 @@
 #define SYS_CLASS_1 1
 #define SYS_CLASS_2 2
 
+#define CXL_SMBUS_MMUX_ADDR 0x70
+#define CXL_SMBUS_MUX_CHANNEL 0x01
+
 enum BIC_BOARD_STAGE {
 	SYS_BOARD_POC = 0x0,
 	SYS_BOARD_EVT = 0x1,
@@ -87,5 +90,6 @@ uint8_t get_board_revision();
 uint8_t get_hsc_module();
 bool get_adc_voltage(int channel, float *voltage);
 void init_platform_config();
+void enable_vistara_smbus_mux();
 
 #endif
