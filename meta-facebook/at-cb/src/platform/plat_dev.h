@@ -67,5 +67,6 @@ extern freya_info accl_freya_info[];
 
 void clear_freya_cache_flag(uint8_t card_id);
 int get_freya_fw_info(uint8_t bus, uint8_t addr, freya_fw_info *fw_info);
+bool get_pex_heartbeat(char *label);
 
 #endif

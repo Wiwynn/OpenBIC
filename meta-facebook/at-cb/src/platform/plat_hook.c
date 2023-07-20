@@ -319,9 +319,9 @@ sq52205_init_arg sq52205_init_args[] = {
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
  **************************************************************************************************/
-mux_config tca9543_configs[] = {
-	[0] = { .target_addr = 0x70, .channel = TCA9543A_CHANNEL_1 },
-	[1] = { .target_addr = 0x71, .channel = TCA9543A_CHANNEL_1 },
+pex_switch_pre_proc_arg pex_switch_pre_proc_args[] = {
+	[0] = { .device_label = "HB0" },
+	[1] = { .device_label = "HB1" },
 };
 
 pwr_monitor_pre_proc_arg pwr_monitor_pre_proc_args[] = {
@@ -533,28 +533,16 @@ bool pre_pex89000_read(sensor_cfg *cfg, void *args)
 	pex89000_init_arg *pex_init_arg = (pex89000_init_arg *)cfg->init_args;
 
 	bool ret = true;
-	int mutex_status = 0;
 	static uint8_t check_init_count = 0;
-	mux_config *pre_args = (mux_config *)args;
-	pre_args->bus = cfg->port;
+	pex_switch_pre_proc_arg *pre_args = (pex_switch_pre_proc_arg *)args;
 
-	struct k_mutex *mutex = get_i2c_mux_mutex(pre_args->bus);
-	mutex_status = k_mutex_lock(mutex, K_MSEC(MUTEX_LOCK_INTERVAL_MS));
-	if (mutex_status != 0) {
-		LOG_ERR("Mutex lock fail, status: %d", mutex_status);
-		return false;
-	}
-
-	ret = set_mux_channel(*pre_args, MUTEX_LOCK_ENABLE);
-	if (ret == false) {
-		LOG_ERR("pex switch mux fail");
-		k_mutex_unlock(mutex);
+	// check if switch is ready
+	if (!get_pex_heartbeat(pre_args->device_label)) {
 		return false;
 	}
 
 	if (pex_init_arg->is_init == false) {
 		if (check_init_count >= PEX_SWITCH_INIT_RETRY_COUNT) {
-			post_pex89000_read(cfg, cfg->post_sensor_read_args, NULL);
 			return false;
 		}
 
@@ -562,34 +550,11 @@ bool pre_pex89000_read(sensor_cfg *cfg, void *args)
 		ret = init_drive_type_delayed(cfg);
 		if (ret == false) {
 			LOG_ERR("pex initial fail");
-			post_pex89000_read(cfg, cfg->post_sensor_read_args, NULL);
 			return ret;
 		}
 	}
 
 	return ret;
-}
-
-bool post_pex89000_read(sensor_cfg *cfg, void *args, int *reading)
-{
-	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
-	ARG_UNUSED(reading);
-	ARG_UNUSED(args);
-
-	int unlock_status = 0;
-	uint8_t bus = cfg->port;
-
-	struct k_mutex *mutex = get_i2c_mux_mutex(bus);
-	if (mutex->lock_count != 0) {
-		unlock_status = k_mutex_unlock(mutex);
-	}
-
-	if (unlock_status != 0) {
-		LOG_ERR("Mutex unlock fail, status: %d", unlock_status);
-		return false;
-	}
-
-	return true;
 }
 
 bool pre_accl_nvme_read(sensor_cfg *cfg, void *args)

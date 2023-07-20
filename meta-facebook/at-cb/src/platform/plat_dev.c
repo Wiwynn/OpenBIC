@@ -16,6 +16,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <drivers/sensor.h>
+#include <drivers/pwm.h>
 #include <logging/log.h>
 #include "sensor.h"
 #include "pmbus.h"
@@ -115,4 +117,35 @@ int get_freya_fw_info(uint8_t bus, uint8_t addr, freya_fw_info *fw_info)
 	memcpy(&fw_info->major_version, &read_buf[FREYA_FIRMWARE_VERSION_OFFSET],
 	       FREYA_FIRMWARE_VERSION_LENGTH);
 	return 0;
+}
+
+bool get_pex_heartbeat(char *label)
+{
+	const struct device *heartbeat;
+	struct sensor_value sensor_value;
+	int ret = 0;
+
+	heartbeat = device_get_binding(label);
+	if (heartbeat == NULL) {
+		LOG_ERR("%s device not found", label);
+		return false;
+	}
+
+	ret = sensor_sample_fetch(heartbeat);
+	if (ret < 0) {
+		LOG_ERR("Failed to read %s due to sensor_sample_fetch failed, ret: %d", label, ret);
+		return false;
+	}
+
+	ret = sensor_channel_get(heartbeat, SENSOR_CHAN_RPM, &sensor_value);
+	if (ret < 0) {
+		LOG_ERR("Failed to read %s due to sensor_channel_get failed, ret: %d", label, ret);
+		return false;
+	}
+
+	if (sensor_value.val1 <= 0) {
+		return false;
+	}
+
+	return true;
 }

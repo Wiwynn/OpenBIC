@@ -39,6 +39,7 @@ void pal_pre_init()
 	}
 
 	init_platform_config();
+	init_i2c_bus_mux();
 	check_accl_device_presence_status_via_ioexp();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
 }

@@ -37,6 +37,10 @@ typedef struct _accl_card_sensor_info {
 	uint8_t start_sensor_num;
 } accl_card_sensor_info;
 
+typedef struct _pex_switch_pre_proc_arg {
+	char *device_label;
+} pex_switch_pre_proc_arg;
+
 /**************************************************************************************************
  * INIT ARGS
 **************************************************************************************************/
@@ -50,13 +54,13 @@ extern sq52205_init_arg sq52205_init_args[];
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK ARGS
  **************************************************************************************************/
-extern mux_config tca9543_configs[];
 extern vr_page_cfg xdpe15284_page[];
 extern mux_config pca9548_configs[];
 extern mux_config pca9546_configs[];
 extern uint8_t plat_monitor_table_arg[];
 extern pwr_monitor_pre_proc_arg pwr_monitor_pre_proc_args[];
 extern accl_card_info accl_card_info_args[];
+extern pex_switch_pre_proc_arg pex_switch_pre_proc_args[];
 
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK FUNC
@@ -64,7 +68,6 @@ extern accl_card_info accl_card_info_args[];
 bool pre_ina233_read(sensor_cfg *cfg, void *args);
 bool post_ina233_read(sensor_cfg *cfg, void *args, int *reading);
 bool pre_pex89000_read(sensor_cfg *cfg, void *args);
-bool post_pex89000_read(sensor_cfg *cfg, void *args, int *reading);
 bool pre_xdpe15284_read(sensor_cfg *cfg, void *args);
 bool post_xdpe15284_read(sensor_cfg *cfg, void *args, int *reading);
 bool pre_accl_nvme_read(sensor_cfg *cfg, void *args);

@@ -327,3 +327,27 @@ bool get_acb_power_good_flag()
 {
 	return is_power_good;
 }
+
+void init_i2c_bus_mux()
+{
+	bool ret;
+	mux_config mux_cfg;
+
+	mux_cfg.bus = I2C_BUS2;
+	mux_cfg.target_addr = 0x70;
+	//enable channel 0 and channel 1
+	mux_cfg.channel = 0x3;
+	ret = set_mux_channel(mux_cfg, MUTEX_LOCK_ENABLE);
+	if (ret == false) {
+		LOG_ERR("Enable bus 2 i2c mux fail");
+	}
+
+	mux_cfg.bus = I2C_BUS3;
+	mux_cfg.target_addr = 0x71;
+	//enable channel 0 and channel 1
+	mux_cfg.channel = 0x3;
+	ret = set_mux_channel(mux_cfg, MUTEX_LOCK_ENABLE);
+	if (ret == false) {
+		LOG_ERR("Enable bus 3 i2c mux fail");
+	}
+}
