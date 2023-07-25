@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <logging/log.h>
 #include "hal_gpio.h"
 #include "hal_peci.h"
 #include "power_status.h"
@@ -28,6 +29,7 @@
 #include "mctp_ctrl.h"
 #include "plat_mctp.h"
 #include "plat_i2c_target.h"
+#include "plat_pldm_monitor.h"
 
 void pal_pre_init()
 {
@@ -43,4 +45,11 @@ void pal_pre_init()
 void pal_post_init()
 {
 	plat_mctp_init();
+
+	plat_pldm_assign_gpio_effecter_id();
 }
+
+#define DEF_PROJ_GPIO_PRIORITY 78
+
+DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,
+	      POST_KERNEL, DEF_PROJ_GPIO_PRIORITY, NULL);

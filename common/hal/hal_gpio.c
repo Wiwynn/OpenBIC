@@ -261,7 +261,6 @@ __weak bool pal_load_gpio_config(void)
 int gpio_init(const struct device *args)
 {
 	uint8_t i;
-
 	pal_load_gpio_config();
 	init_gpio_dev();
 	gpio_index_to_num();

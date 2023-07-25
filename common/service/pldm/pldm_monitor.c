@@ -604,7 +604,7 @@ void set_effecter_state_gpio_handler(const uint8_t *buf, uint16_t len, uint8_t *
 	/* Not support change GPIO direction and GPIO direciton value doesn't mater */
 	if ((gpio_dir_state->set_request != PLDM_NO_CHANGE) ||
 	    (gpio_val_state->set_request >= PLDM_SET_REQUEST_MAX)) {
-		LOG_ERR("Unsupport GPIO effecter set request, direction (%d) value (%d)",
+		  LOG_ERR("Unsupport GPIO effecter set request, direction (%d) value (%d)",
 			gpio_dir_state->set_request, gpio_val_state->set_request);
 		*completion_code_p = PLDM_PLATFORM_UNSUPPORTED_EFFECTERSTATE;
 		return;
@@ -612,7 +612,7 @@ void set_effecter_state_gpio_handler(const uint8_t *buf, uint16_t len, uint8_t *
 
 	if ((gpio_dir_state->effecter_state >= EFFECTER_STATE_GPIO_DIRECTION_MAX) ||
 	    (gpio_val_state->effecter_state >= EFFECTER_STATE_GPIO_VALUE_MAX)) {
-		LOG_ERR("Unsupport GPIO effecter state, direction (%d) value (%d)",
+		  LOG_ERR("Unsupport GPIO effecter state, direction (%d) value (%d)",
 			gpio_dir_state->effecter_state, gpio_val_state->effecter_state);
 		*completion_code_p = PLDM_PLATFORM_INVALID_STATE_VALUE;
 		return;
