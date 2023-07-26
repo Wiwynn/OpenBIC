@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -24,6 +24,8 @@
 #include "plat_class.h"
 #include "plat_gpio.h"
 #include "plat_i2c.h"
+#include "plat_i3c.h"
+#include "plat_dimm.h"
 #include "plat_sensor_table.h"
 #include "plat_hook.h"
 
@@ -228,9 +230,39 @@ sensor_cfg plat_sensor_config[] = {
 	  post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT, ENABLE_SENSOR_POLLING, 0,
 	  SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
 
-	/* TODO:
-	 * DIMM power sensors are pending because I3C hasn't be ready yet.
-	 */
+	// DIMM PMIC power
+	{ SENSOR_NUM_MB_VR_DIMMA_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_A_E_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMB_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_B_F_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMC_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_C_G_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMD_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_D_H_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMME_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_A_E_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMF_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_B_F_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMG_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_C_G_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
+	{ SENSOR_NUM_MB_VR_DIMMH_PMIC_PWR_W, sensor_dev_i3c_dimm, I3C_BUS4, PMIC_D_H_ADDR,
+	  DIMM_PMIC_SWA_PWR, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
+	  NULL },
 };
 
 sensor_cfg adm1278_sensor_config_table[] = {

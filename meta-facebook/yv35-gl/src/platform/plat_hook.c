@@ -146,7 +146,7 @@ bool pre_intel_peci_dimm_read(sensor_cfg *cfg, void *args)
 		return true;
 	}
 
-	if (!is_dimm_inited()) {
+	if (!is_dimm_prsnt_inited()) {
 		return true;
 	}
 

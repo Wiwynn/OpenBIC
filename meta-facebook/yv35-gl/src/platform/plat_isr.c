@@ -29,6 +29,7 @@
 #include "plat_isr.h"
 #include "plat_gpio.h"
 #include "plat_ipmb.h"
+#include "plat_dimm.h"
 #include "plat_sensor_table.h"
 
 LOG_MODULE_REGISTER(plat_isr);
@@ -227,6 +228,17 @@ void ISR_PLTRST()
 {
 	vw_gpio_reset();
 	send_gpio_interrupt(RST_PLTRST_BUF_N);
+
+	// Switch I3C mux to cpu when host reset or host DC on
+	if (k_mutex_lock(&i3c_dimm_mux_mutex, K_MSEC(I3C_DIMM_MUX_MUTEX_TIMEOUT_MS))) {
+		LOG_ERR("Failed to lock I3C dimm MUX");
+	}
+
+	switch_i3c_dimm_mux(I3C_MUX_TO_CPU);
+
+	if (k_mutex_unlock(&i3c_dimm_mux_mutex)) {
+		LOG_ERR("Failed to unlock I3C dimm MUX");
+	}
 }
 
 void ISR_DBP_PRSNT()
@@ -474,6 +486,19 @@ void ISR_POST_COMPLETE(uint8_t gpio_value)
 {
 	bool is_post_completed = (gpio_value == VW_GPIO_HIGH) ? true : false;
 	set_post_complete(is_post_completed);
+
+	if (is_post_completed) {
+		// Switch I3C mux to bic after post complete
+		if (k_mutex_lock(&i3c_dimm_mux_mutex, K_MSEC(I3C_DIMM_MUX_MUTEX_TIMEOUT_MS))) {
+			LOG_ERR("Failed to lock I3C dimm MUX");
+		}
+
+		switch_i3c_dimm_mux(I3C_MUX_TO_BIC);
+
+		if (k_mutex_unlock(&i3c_dimm_mux_mutex)) {
+			LOG_ERR("Failed to unlock I3C dimm MUX");
+		}
+	}
 
 	post_complete.gpio_value = gpio_value;
 	k_work_init_delayable(&post_complete.work, post_complete_handler);
