@@ -87,6 +87,10 @@ ipmb_error notify_ipmi_client(ipmi_msg_cfg *msg_cfg)
 				}
 				k_mutex_unlock(&mutex_purge_msgq);
 			}
+			LOG_INF("Sean, netfn(0x%x) cmd(0x%x) InfS(%d)",
+							msg_cfg->buffer.netfn,
+							msg_cfg->buffer.cmd,
+							msg_cfg->buffer.InF_source);
 			LOG_INF("Retry to send message to IPMI message queue, ret = %d", ret);
 			ret = k_msgq_put(&ipmi_msgq, msg_cfg, K_NO_WAIT);
 			retry--;
@@ -442,7 +446,7 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 				      K_THREAD_STACK_SIZEOF(IPMI_handle_thread_stack),
 				      ipmi_cmd_handle, (void *)&msg_cfg, NULL, NULL,
 				      CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
-		if (k_thread_join(tid, K_SECONDS(5)) == -EAGAIN) { // timeout
+		if (k_thread_join(tid, K_SECONDS(10)) == -EAGAIN) { // timeout
 			k_thread_abort(tid);
 			LOG_ERR("%s(): abort the handler due to timeout. netfn: %x, cmd: %x",
 				__func__, msg_cfg.buffer.netfn, msg_cfg.buffer.cmd);
