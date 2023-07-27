@@ -61,6 +61,7 @@ void pal_pre_init()
 	pcc_init();
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+	enable_vistara_smbus_mux();
 }
 
 void pal_post_init()
