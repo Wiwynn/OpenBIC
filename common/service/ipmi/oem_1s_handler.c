@@ -74,6 +74,11 @@ __weak int pal_extend_msg_out_interface_handler(ipmi_msg *msg)
 	return -1;
 }
 
+__weak void pal_get_cxl_version(ipmi_msg *msg)
+{
+	return;
+}
+
 __weak void OEM_1S_MSG_OUT(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
@@ -589,6 +594,10 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		}
 		break;
 #endif
+	case COMPNT_CXL:
+		LOG_WRN("===== %s COMPNT_CXL", __func__);
+		pal_get_cxl_version(msg);
+		break;
 	default:
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		break;

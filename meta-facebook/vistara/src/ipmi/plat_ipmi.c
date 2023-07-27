@@ -18,13 +18,17 @@
 #include <stdlib.h>
 #include <logging/log.h>
 #include "ipmi.h"
+#include "mctp.h"
+#include "cci.h"
+#include "libutil.h"
+#include "util_spi.h"
+#include "hal_gpio.h"
 #include "plat_ipmi.h"
 #include "plat_ipmb.h"
 #include "plat_class.h"
-#include "libutil.h"
 #include "plat_fru.h"
-#include "util_spi.h"
 #include "plat_spi.h"
+#include "plat_mctp.h"
 #include "plat_sensor_table.h"
 #include "sensor.h"
 #include "pmbus.h"
@@ -384,5 +388,36 @@ void OEM_1S_GET_HSC_STATUS(ipmi_msg *msg)
 	msg->data_len = 2;
 	msg->data[0] = hsc_type;
 	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void pal_get_cxl_version(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	int ret = 0;
+	mctp *mctp_inst = NULL;
+	mctp_ext_params ext_params = { 0 };
+	uint8_t read_len = 0;
+	uint8_t resp_buf[GET_FW_INFO_REVISION_LEN] = { 0 };
+
+	if (get_mctp_info_by_eid(CXL_EID, &mctp_inst, &ext_params) == false) {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	// CHECK_NULL_ARG(mctp_inst);
+
+	ret = cci_get_chip_fw_version(mctp_inst, ext_params, resp_buf, &read_len);
+	LOG_WRN("===== cci_get_chip_fw_version ret%d read_len%d", ret, read_len);
+	if (ret == false) {
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+	} else {
+		LOG_HEXDUMP_WRN(resp_buf, read_len, "===== resp_buf");
+		memcpy(&msg->data[0], resp_buf, read_len);
+		msg->data_len = read_len;
+		msg->completion_code = CC_SUCCESS;
+	}
+
 	return;
 }
