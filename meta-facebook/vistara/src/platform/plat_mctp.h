@@ -30,7 +30,7 @@
 /* i2c dev bus */
 #define I2C_BUS_CXL 8
 /* mctp endpoint */
-#define CXL_EID 0x2E
+#define CXL_EID 0x00
 
 typedef struct _mctp_smbus_port {
 	mctp *mctp_inst;

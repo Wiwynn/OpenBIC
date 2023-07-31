@@ -105,7 +105,7 @@ static void mctp_smbus_read_hook(uint8_t *data, uint16_t *len)
 	smbus_hdr *hdr = (smbus_hdr *)data;
 
 	if (hdr->byte_count != *len - sizeof(smbus_hdr)) {
-		LOG_HEXDUMP_DBG(data, *len, "Data before move:");
+		LOG_HEXDUMP_WRN(data, *len, "=====Data before move:");
 		if (hdr->byte_count == 0x0F) {
 			LOG_INF("Data length (%d) move 1 byte.....", *len);
 			*len -= 1;
@@ -115,7 +115,7 @@ static void mctp_smbus_read_hook(uint8_t *data, uint16_t *len)
 			*len -= 2;
 			memcpy(data, data + 2, *len);
 		}
-		LOG_HEXDUMP_DBG(data, *len, "Data after move:");
+		LOG_HEXDUMP_WRN(data, *len, "======Data after move:");
 	}
 	return;
 }
@@ -149,6 +149,8 @@ static uint16_t mctp_smbus_read(void *mctp_p, uint8_t *buf, uint32_t len,
 
 	smbus_hdr *hdr = (smbus_hdr *)rdata;
 
+	LOG_WRN("===== hdr->cmd_code %d", hdr->cmd_code);
+
 	/**
    * Does read data include pec?
    * rlen = 1(mctp cmd code 0x0F) + 1(byte count) + N(byte count) + 1(*pec, if exist)
@@ -161,8 +163,10 @@ static uint16_t mctp_smbus_read(void *mctp_p, uint8_t *buf, uint32_t len,
 			return 0;
 	}
 
-	if (hdr->cmd_code != MCTP_SMBUS_CMD_CODE)
+	if (hdr->cmd_code != MCTP_SMBUS_CMD_CODE) {
+		LOG_WRN("===== hdr->cmd_code %d", hdr->cmd_code);
 		return 0;
+	}
 
 	extra_data->type = MCTP_MEDIUM_TYPE_SMBUS;
 	extra_data->smbus_ext_params.addr = hdr->src_addr - 1;
