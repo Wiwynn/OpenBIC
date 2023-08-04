@@ -157,6 +157,7 @@ enum SENSOR_DEV {
 	sensor_dev_mpro = 0x2C,
 	sensor_dev_bmr351 = 0x2D,
 	sensor_dev_cx7 = 0x2E,
+	sensor_dev_adc128 = 0x2F,
 	sensor_dev_max
 };
 
@@ -644,6 +645,19 @@ typedef struct _cx7_init_arg {
 	uint8_t endpoint;
 	uint16_t sensor_id;
 } cx7_init_arg;
+
+typedef struct _adc128_init_arg {
+	bool is_init;
+	uint8_t channel_disable_setting;
+	union {
+		int value;
+		struct {
+			uint8_t EXTERNAL_REF_ENABLE : 1;
+			uint8_t MODE_SELECT : 2;
+			uint8_t RESV : 5;
+		} fields;
+	} advanced_cfg;
+} adc128_init_arg;
 
 extern bool enable_sensor_poll_thread;
 extern sensor_cfg *sensor_config;

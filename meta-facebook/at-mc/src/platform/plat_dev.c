@@ -79,6 +79,17 @@ cxl_vr_fw_info cxl_vr_info_table[] = {
 	{ .is_init = false }, { .is_init = false }, { .is_init = false }, { .is_init = false },
 };
 
+cxl_cfg_info cxl_cfg_info_table[] = {
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+	{ .ee_source = CXL_EE_UNKNOWN_SOURCE, .pwr_source = CXL_PWR_UNKNOWN_SOURCE },
+};
+
 void clear_cxl_card_cache_value(uint8_t cxl_id)
 {
 	if (cxl_id >= ARRAY_SIZE(pm8702_table)) {
@@ -95,6 +106,47 @@ void clear_cxl_card_cache_value(uint8_t cxl_id)
 	for (index = 0; index < CXL_CARD_VR_COUNT; ++index) {
 		offset = cxl_id * CXL_CARD_VR_COUNT + index;
 		memset(&cxl_vr_info_table[offset], 0, sizeof(cxl_vr_fw_info));
+	}
+}
+
+uint8_t get_cxl_ee_source(uint8_t cxl_id)
+{
+	return cxl_cfg_info_table[cxl_id].ee_source;
+}
+
+uint8_t get_cxl_pwr_source(uint8_t cxl_id)
+{
+	return cxl_cfg_info_table[cxl_id].pwr_source;
+}
+
+void get_cxl_board_id(uint8_t cxl_id)
+{
+	int ret = 0;
+	I2C_MSG msg = { 0 };
+
+	msg.bus = MEB_CXL_BUS;
+	msg.target_addr = CXL_IOEXP_U15_ADDR;
+	msg.rx_len = 1;
+	msg.tx_len = 1;
+	msg.data[0] = TCA9555_INPUT_PORT_REG_1;
+
+	ret = i2c_master_read(&msg, 5);
+	if (ret != 0) {
+		LOG_ERR("Unable to read ioexp to get cxl board id, bus: 0x%x addr: 0x%x", msg.bus,
+			msg.target_addr);
+		return false;
+	}
+
+	if (msg.data[0] & CXL_BOARD_ID_0_BIT) {
+		cxl_cfg_info_table[cxl_id].pwr_source = CXL_PWR_SECOND_SOURCE;
+	} else {
+		cxl_cfg_info_table[cxl_id].pwr_source = CXL_PWR_MAIN_SOURCE;
+	}
+
+	if (msg.data[0] & CXL_BOARD_ID_1_BIT) {
+		cxl_cfg_info_table[cxl_id].ee_source = CXL_EE_SECOND_SOURCE;
+	} else {
+		cxl_cfg_info_table[cxl_id].ee_source = CXL_EE_MAIN_SOURCE;
 	}
 }
 
@@ -340,7 +392,7 @@ bool cxl_single_ioexp_config_init(uint8_t ioexp_name)
 	return true;
 }
 
-int cxl_ioexp_init(uint8_t cxl_channel)
+int cxl_ioexp_init(uint8_t cxl_id, uint8_t cxl_channel)
 {
 	bool ret = false;
 	mux_config meb_mux = { 0 };
@@ -388,6 +440,8 @@ int cxl_ioexp_init(uint8_t cxl_channel)
 	cxl_single_ioexp_alert_reset(IOEXP_U16, MUTEX_LOCK_ENABLE);
 	cxl_single_ioexp_alert_reset(IOEXP_U17, MUTEX_LOCK_ENABLE);
 
+	get_cxl_board_id(cxl_id);
+
 	/** mutex unlock bus **/
 	k_mutex_unlock(meb_mutex);
 
@@ -408,7 +462,7 @@ void init_cxl_card_ioexp(uint8_t cxl_id)
 
 	for (retry_count = 0; retry_count < CXL_IOEXP_INIT_RETRY_COUNT; ++retry_count) {
 		if (gpio_get(gpio_alert_pin) != HIGH_ACTIVE) {
-			ret = cxl_ioexp_init(cxl_work_item[cxl_id].cxl_channel);
+			ret = cxl_ioexp_init(cxl_id, cxl_work_item[cxl_id].cxl_channel);
 			if (ret != 0) {
 				LOG_ERR("cxl: 0x%x ioexp initial fail", cxl_id);
 			}

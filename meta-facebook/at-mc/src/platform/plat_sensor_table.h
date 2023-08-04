@@ -107,6 +107,7 @@
 #define CXL_VR_VDDQAB_ADDR (0xB0 >> 1)
 #define CXL_VR_VDDQCD_ADDR (0xB4 >> 1)
 #define CXL_U8_LTC2991_ADDR (0x90 >> 1)
+#define CXL_U3_ADC128_ADDR (0x3E >> 1)
 #define CXL_DIMMA_TEMP_ADDR 0x18
 #define CXL_DIMMB_TEMP_ADDR 0x19
 #define CXL_DIMMC_TEMP_ADDR 0x1A
@@ -176,5 +177,6 @@ bool get_pcie_card_mux_config(uint8_t cxl_id, uint8_t sensor_num, mux_config *ca
 			      mux_config *cxl_mux_cfg);
 sensor_cfg *get_cxl_sensor_cfg_info(uint8_t cxl_id, uint8_t *cfg_count);
 sensor_cfg *get_common_sensor_cfg_info(uint8_t sensor_num);
+sensor_cfg *get_cxl_2nd_source_sensor_cfg(uint8_t cxl_id);
 
 #endif

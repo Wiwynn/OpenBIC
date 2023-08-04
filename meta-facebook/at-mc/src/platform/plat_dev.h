@@ -23,6 +23,21 @@
 
 #define CXL_IOEXP_INIT_RETRY_COUNT 5
 
+#define CXL_BOARD_ID_0_BIT BIT(1)
+#define CXL_BOARD_ID_1_BIT BIT(2)
+
+enum CXL_EE_SOURCE {
+	CXL_EE_MAIN_SOURCE,
+	CXL_EE_SECOND_SOURCE,
+	CXL_EE_UNKNOWN_SOURCE = 0xFF,
+};
+
+enum CXL_PWR_SOURCE {
+	CXL_PWR_MAIN_SOURCE,
+	CXL_PWR_SECOND_SOURCE,
+	CXL_PWR_UNKNOWN_SOURCE = 0xFF,
+};
+
 typedef struct _pm8702_dev_info {
 	bool is_init;
 	cci_fw_info_resp dev_info;
@@ -35,11 +50,16 @@ typedef struct _cxl_vr_fw_info {
 	bool is_init;
 } cxl_vr_fw_info;
 
+typedef struct _cxl_cfg_info {
+	uint8_t ee_source;
+	uint8_t pwr_source;
+} cxl_cfg_info;
+
 extern pm8702_dev_info pm8702_table[];
 extern cxl_vr_fw_info cxl_vr_info_table[];
 
 bool cxl_single_ioexp_alert_reset(uint8_t ioexp_name, bool is_mutex);
-int cxl_ioexp_init(uint8_t cxl_channel);
+int cxl_ioexp_init(uint8_t cxl_id, uint8_t cxl_channel);
 void cxl_mb_status_init(uint8_t cxl_id);
 bool pal_init_pm8702_info(uint8_t cxl_id);
 bool pal_pm8702_command_handler(uint8_t cxl_id, uint16_t opcode, uint8_t *data_buf, int data_len,
@@ -49,5 +69,7 @@ bool pal_pm8702_transfer_fw(uint8_t cxl_id, uint8_t *req_buf, int req_len);
 bool pal_set_pm8702_active_slot(uint8_t cxl_id, uint8_t *req_buf, int req_len);
 void init_cxl_card_ioexp(uint8_t cxl_id);
 void clear_cxl_card_cache_value(uint8_t cxl_id);
+uint8_t get_cxl_ee_source(uint8_t cxl_id);
+uint8_t get_cxl_pwr_source(uint8_t cxl_id);
 
 #endif

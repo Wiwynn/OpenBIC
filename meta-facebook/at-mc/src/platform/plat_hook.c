@@ -789,6 +789,169 @@ ina233_init_arg ina233_init_args[] = {
 	},
 };
 
+sq52205_init_arg cxl_sq52205_init_args[] = {
+	[0] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[1] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[2] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[3] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[4] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[5] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[6] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[7] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[8] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[9] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[10] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[11] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[12] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[13] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[14] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode =0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+	[15] = { .is_init = false, .current_lsb = 0.001, .r_shunt = 0.005,
+	.config = {
+		.operating_mode = 0b111,
+		.shunt_volt_time = 0b100,
+		.bus_volt_time = 0b100,
+		.aver_mode = 0b111, //set 1024 average times
+		.rsvd = 0b000,
+		.reset_bit = 0b0,
+	},
+	},
+};
+
 ltc2991_init_arg ltc2991_init_args[] = {
 	// JCN11
 	[0] = { .is_init = false,
@@ -822,6 +985,41 @@ ltc2991_init_arg ltc2991_init_args[] = {
 	[7] = { .is_init = false,
 		.v1_v4_control_operation.value = 0,
 		.v5_v8_control_operation.value = 0 },
+};
+
+adc128_init_arg cxl_adc128_init_args[] = {
+	[0] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[1] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[2] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[3] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[4] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[5] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[6] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
+	[7] = { .is_init = false,
+		.channel_disable_setting = 0x00,
+		.advanced_cfg.value = 0x02,
+	},
 };
 
 uint8_t plat_monitor_table_arg[] = { CXL_CARD_1, CXL_CARD_2, CXL_CARD_3, CXL_CARD_4,

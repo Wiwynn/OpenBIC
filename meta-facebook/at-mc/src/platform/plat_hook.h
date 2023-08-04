@@ -37,7 +37,9 @@ extern adc_asd_init_arg adc_asd_init_args[];
 extern sq52205_init_arg sq52205_init_args[];
 extern ina233_init_arg mc_ina233_init_args[];
 extern ina233_init_arg ina233_init_args[];
+extern sq52205_init_arg cxl_sq52205_init_args[];
 extern ltc2991_init_arg ltc2991_init_args[];
+extern adc128_init_arg cxl_adc128_init_args[];
 extern uint8_t plat_monitor_table_arg[];
 
 /**************************************************************************************************
