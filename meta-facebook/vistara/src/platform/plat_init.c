@@ -16,15 +16,18 @@
 
 #include "hal_gpio.h"
 #include "power_status.h"
+#include "hal_i2c_target.h"
 #include "util_sys.h"
 #include "plat_gpio.h"
 #include "plat_class.h"
 #include "snoop.h"
 #include "pcc.h"
+#include "mctp.h"
 #include "plat_i2c.h"
 #include "plat_pmic.h"
 #include "plat_apml.h"
 #include "plat_kcs.h"
+#include "plat_mctp.h"
 #include "rg3mxxb12.h"
 #include "util_worker.h"
 
@@ -61,12 +64,21 @@ void pal_pre_init()
 	pcc_init();
 	apml_init();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+
 	enable_vistara_smbus_mux(); // Switch SMBUS MUX to access Vistara
+
+	for (int index = 0; index < MAX_TARGET_NUM; index++) {
+		if (I2C_TARGET_ENABLE_TABLE[index])
+			i2c_target_control(
+				index, (struct _i2c_target_config *)&I2C_TARGET_CONFIG_TABLE[index],
+				1);
+	}
 }
 
 void pal_post_init()
 {
 	kcs_init();
+	plat_mctp_init();
 }
 
 void pal_set_sys_status()

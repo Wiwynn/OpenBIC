@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_I2C_SLAVE_H
+#define PLAT_I2C_SLAVE_H
 
-#include "plat_i2c.h"
+#include <drivers/i2c.h>
+#include "hal_i2c_target.h"
 
-#define BMC_USB_PORT "CDC_ACM_0"
-
-#define ENABLE_APML
-#define ENABLE_CCI
-
-#define WORKER_STACK_SIZE 4096
-
-#define ADC_CALIBRATION 1
+#define TARGET_ENABLE 1
+#define TARGET_DISABLE 0
 
 #endif

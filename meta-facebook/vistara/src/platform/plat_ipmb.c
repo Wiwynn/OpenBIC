@@ -53,10 +53,6 @@ bool pal_load_ipmb_config(void)
 #ifdef CONFIG_I2C_IPMB_SLAVE
 			pal_IPMB_config_table[EXP2_IPMB_IDX].channel = EXP3_IPMB;
 #endif
-		} else if ((_2ou_status.card_type & TYPE_2OU_DPV2_16) == TYPE_2OU_DPV2_16) {
-			// for dpv2 sku, disable ipmb and set i2c freq to 400Khz for slave devices reading
-			i2c_freq_set(pal_IPMB_config_table[EXP2_IPMB_IDX].bus, I2C_SPEED_FAST, 0);
-			pal_IPMB_config_table[EXP2_IPMB_IDX].enable_status = DISABLE;
 		} else {
 			pal_IPMB_config_table[EXP2_IPMB_IDX].enable_status = ENABLE;
 		}
