@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_SENSOR_TABLE_H
-#define PLAT_SENSOR_TABLE_H
+#ifndef PLAT_SDR_TABLE_H
+#define PLAT_SDR_TABLE_H
 
 #include <stdint.h>
 
