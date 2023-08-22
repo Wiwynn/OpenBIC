@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_PDR_TABLE_H
+#define PLAT_PDR_TABLE_H
 
-#define ENABLE_PLDM
+#include <stdint.h>
 
-#define HOST_KCS_PORT kcs3
-#define BMC_USB_PORT "CDC_ACM_0"
+#define MAX_SENSOR_SIZE 60
+
+uint8_t plat_get_pdr_size();
+void load_pdr_table(void);
 
 #endif
