@@ -23,6 +23,7 @@
 #include "plat_class.h"
 #include "plat_i2c_target.h"
 #include "util_worker.h"
+#include "plat_pldm_monitor.h"
 
 SCU_CFG scu_cfg[] = {
 	//register    value
@@ -48,6 +49,10 @@ void pal_pre_init()
 void pal_post_init()
 {
 	plat_mctp_init();
+	/* Send device presence log when the BIC is AC on */
+	if (is_ac_lost()) {
+		accl_present_check();
+	}
 }
 
 void pal_device_init()
