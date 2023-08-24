@@ -33,7 +33,7 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define I2C_ADDR_BMC 0x20
 
 /* i2c dev bus*/
-#define I2C_BUS_BMC 0x02
+#define I2C_BUS_BMC 0x06
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x09
