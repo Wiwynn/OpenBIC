@@ -175,50 +175,17 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 			return;
 		}
 
-		switch (get_vr_module()) {
-		case VR_XDPE15284D:
-			if (xdpe15284_get_checksum(I2C_BUS1, XDPE15284D_ADDR, &msg->data[2]) ==
-			    false) {
-				msg->completion_code = CC_UNSPECIFIED_ERROR;
-				return;
-			}
-			break;
-		case VR_MP2985H: {
-			sensor_cfg *vr_cfg =
-				&sensor_config[sensor_config_index_map[SENSOR_NUM_TEMP_P0V8_VDD_1]];
-			if (vr_cfg->pre_sensor_read_hook) {
-				if (vr_cfg->pre_sensor_read_hook(
-					    vr_cfg, vr_cfg->pre_sensor_read_args) == false) {
-					LOG_ERR("VR MP2985H pre-read fail");
-					msg->completion_code = CC_UNSPECIFIED_ERROR;
-					return;
-				}
-			}
-			if (mp2985_get_checksum(I2C_BUS1, XDPE15284D_ADDR, &msg->data[2]) ==
-			    false) {
-				msg->completion_code = CC_UNSPECIFIED_ERROR;
-				if (vr_cfg->post_sensor_read_hook) {
-					vr_cfg->post_sensor_read_hook(
-						vr_cfg, vr_cfg->post_sensor_read_args, NULL);
-				}
-				return;
-			}
-			if (vr_cfg->post_sensor_read_hook) {
-				if (vr_cfg->post_sensor_read_hook(
-					    vr_cfg, vr_cfg->post_sensor_read_args, NULL) == false) {
-					LOG_ERR("VR MP2985H post-read fail");
-				}
-			}
-			break;
-		}
-		default:
-			LOG_ERR("Unknown VR module: 0x%x, Fail to get VR version", get_vr_module());
-			msg->completion_code = CC_UNSPECIFIED_ERROR;
+		if (cb_vr_fw_info.is_init == false) {
+			LOG_ERR("VR firmware information not ready");
+			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
 			return;
 		}
 
 		msg->data[0] = component;
 		msg->data[1] = VR_FW_VERSION_LEN;
+		memcpy(&msg->data[2], &cb_vr_fw_info.checksum[0], 4);
+		memcpy(&msg->data[6], &cb_vr_fw_info.remaining_write, 1);
+		memcpy(&msg->data[7], &cb_vr_fw_info.vendor, 1);
 		msg->data_len = VR_FW_VERSION_LEN + 2;
 		msg->completion_code = CC_SUCCESS;
 		break;

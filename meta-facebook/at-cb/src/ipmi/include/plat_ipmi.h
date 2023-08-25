@@ -21,7 +21,7 @@
 #include "ipmi.h"
 
 #define BIC_FW_DATA_LENGTH 7
-#define VR_FW_VERSION_LEN 4
+#define VR_FW_VERSION_LEN 6
 #define IS_SECTOR_END_MASK 0x80
 #define WITHOUT_SECTOR_END_MASK 0x7F
 #define BIC_UPDATE_MAX_OFFSET 0x50000
