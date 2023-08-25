@@ -31,6 +31,18 @@ enum plat_pldm_event_sensor_num {
 	PLDM_EVENT_ACCL_10,
 	PLDM_EVENT_ACCL_11,
 	PLDM_EVENT_ACCL_12,
+	PLDM_EVENT_ACCL_PWR_CBL_1,
+	PLDM_EVENT_ACCL_PWR_CBL_2,
+	PLDM_EVENT_ACCL_PWR_CBL_3,
+	PLDM_EVENT_ACCL_PWR_CBL_4,
+	PLDM_EVENT_ACCL_PWR_CBL_5,
+	PLDM_EVENT_ACCL_PWR_CBL_6,
+	PLDM_EVENT_ACCL_PWR_CBL_7,
+	PLDM_EVENT_ACCL_PWR_CBL_8,
+	PLDM_EVENT_ACCL_PWR_CBL_9,
+	PLDM_EVENT_ACCL_PWR_CBL_10,
+	PLDM_EVENT_ACCL_PWR_CBL_11,
+	PLDM_EVENT_ACCL_PWR_CBL_12,
 };
 
 enum plat_pldm_device_state_set_offset {
@@ -39,5 +51,6 @@ enum plat_pldm_device_state_set_offset {
 };
 
 void accl_present_check();
+void accl_power_cable_present_check();
 
 #endif

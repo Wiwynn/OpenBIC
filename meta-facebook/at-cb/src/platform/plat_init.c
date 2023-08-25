@@ -48,10 +48,14 @@ void pal_pre_init()
 
 void pal_post_init()
 {
+	uint8_t board_revision = get_board_revision();
 	plat_mctp_init();
 	/* Send device presence log when the BIC is AC on */
 	if (is_ac_lost()) {
 		accl_present_check();
+		if (board_revision > EVT2_STAGE) {
+			accl_power_cable_present_check();
+		}
 	}
 }
 
