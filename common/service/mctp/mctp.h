@@ -76,6 +76,16 @@ typedef enum {
 	MCTP_MEDIUM_TYPE_MAX
 } MCTP_MEDIUM_TYPE;
 
+typedef enum {
+	MCTP_BINDING_TYPE_RESERVED = 0x00,
+	MCTP_BINDING_TYPE_SMBUS,
+	MCTP_BINDING_TYPE_PCIE_VDM,
+	MCTP_BINDING_TYPE_USB,
+	MCTP_BINDING_TYPE_KCS,
+	MCTP_BINDING_TYPE_SERIAL,
+	MCTP_BINDING_TYPE_VED_DEF = 0XFF,
+} MCTP_BINDING_TYPE;
+
 /* smbus extra medium data of endpoint */
 typedef struct _mctp_i3c_ext_params {
 	uint8_t addr; /* 8 bit address */
