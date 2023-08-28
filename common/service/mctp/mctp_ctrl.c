@@ -16,6 +16,7 @@
 
 #include "mctp.h"
 #include "mctp_ctrl.h"
+#include "plat_mctp.h"
 #include <logging/log.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -44,6 +45,23 @@ static K_MUTEX_DEFINE(wait_recv_resp_mutex);
 
 static sys_slist_t wait_recv_resp_list = SYS_SLIST_STATIC_INIT(&wait_recv_resp_list);
 
+__weak uint8_t plat_get_routing_entry_size()
+{
+	return 0;
+}
+
+__weak uint8_t plat_get_starting_eid()
+{
+	return 0;
+}
+
+__weak uint8_t plat_get_physical_address()
+{
+	return 0;
+}
+
+
+
 uint8_t mctp_ctrl_cmd_get_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
 				      uint16_t *resp_len, void *ext_params)
 {
@@ -65,6 +83,42 @@ uint8_t mctp_ctrl_cmd_get_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t le
 
 	*resp_len = (p->completion_code == MCTP_CTRL_CC_SUCCESS) ? sizeof(*p) : 1;
 
+	return MCTP_SUCCESS;
+}
+
+uint8_t mctp_ctrl_cmd_get_routing_table_entries(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
+				      uint16_t *resp_len, void *ext_params)
+{
+	ARG_UNUSED(ext_params);
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, MCTP_ERROR);
+
+	struct _get_routing_table_resp *p = (struct _get_routing_table_resp *)resp;
+
+	uint8_t plat_eid_range_size = plat_get_routing_entry_size();
+	if (plat_eid_range_size == 0) {
+		p->completion_code = MCTP_ERROR;
+	}
+
+	//support one entry
+	p->next_entry_handle = 0xff;
+	p->number_of_entries = 0x01;
+
+	p->entry.eid_range_size = plat_eid_range_size;
+	p->entry.starting_eid = plat_get_starting_eid();
+	p->entry.routing_entry_type.port_number = 0;
+	p->entry.routing_entry_type.dynamic_or_static_entry = STATIC_ENTRY;
+	p->entry.routing_entry_type.entry_type = EID_RANGE_NOT_INCLUDING_BRIDGE;
+	p->entry.phys_transport_binding_id = MCTP_BINDING_TYPE_SMBUS;
+	p->entry.phys_media_type_id = MCTP_MEDIUM_TYPE_SMBUS;
+	p->entry.phys_address_size = ADDRESS_SIZE;
+	p->entry.phys_address = plat_get_physical_address();
+
+	p->completion_code = MCTP_CTRL_CC_SUCCESS;
+
+	*resp_len = (p->completion_code == MCTP_CTRL_CC_SUCCESS) ? sizeof(*p) : 1;
 	return MCTP_SUCCESS;
 }
 
@@ -166,6 +220,7 @@ static uint8_t mctp_ctrl_cmd_resp_process(mctp *mctp_inst, uint8_t *buf, uint32_
 
 static mctp_ctrl_cmd_handler_t mctp_ctrl_cmd_tbl[] = {
 	{ MCTP_CTRL_CMD_GET_ENDPOINT_ID, mctp_ctrl_cmd_get_endpoint_id },
+	{ MCTP_CTRL_CMD_GET_ROUTING_TABLE_ENTRIES, mctp_ctrl_cmd_get_routing_table_entries },
 };
 
 uint8_t mctp_ctrl_cmd_handler(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)

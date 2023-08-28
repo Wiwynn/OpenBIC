@@ -34,5 +34,8 @@ void plat_mctp_init(void);
 void send_cmd_to_dev(struct k_timer *timer);
 void send_cmd_to_dev_handler(struct k_work *work);
 bool mctp_add_sel_to_ipmi(common_addsel_msg_t *sel_msg);
+uint8_t plat_get_routing_entry_size();
+uint8_t plat_get_starting_eid();
+uint8_t plat_get_physical_address();
 
 #endif /* _PLAT_MCTP_h */

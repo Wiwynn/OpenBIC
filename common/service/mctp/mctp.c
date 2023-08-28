@@ -26,6 +26,9 @@
 
 LOG_MODULE_REGISTER(mctp);
 
+mctp_route_entry *mctp_route_tbl = NULL;
+extern mctp_route_entry plat_mctp_route_tbl[];
+
 typedef struct __attribute__((packed)) {
 	uint8_t hdr_ver;
 	uint8_t dest_ep;

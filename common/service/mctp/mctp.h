@@ -41,7 +41,7 @@ extern "C" {
 #define MCTP_TX_TASK_STACK_SIZE 2048
 #define MCTP_TASK_NAME_LEN 32
 
-#define MCTP_DEFAULT_ENDPOINT 0x08
+#define MCTP_DEFAULT_ENDPOINT 0x0A
 #define MCTP_NULL_EID 0x00
 
 #define MCTP_DEFAULT_MSG_MAX_SIZE 64
@@ -75,6 +75,16 @@ typedef enum {
 	MCTP_MEDIUM_TYPE_I3C,
 	MCTP_MEDIUM_TYPE_MAX
 } MCTP_MEDIUM_TYPE;
+
+typedef enum {
+	MCTP_BINDING_TYPE_RESERVED = 0x00,
+	MCTP_BINDING_TYPE_SMBUS,
+	MCTP_BINDING_TYPE_PCIE_VDM,
+	MCTP_BINDING_TYPE_USB,
+	MCTP_BINDING_TYPE_KCS,
+	MCTP_BINDING_TYPE_SERIAL,
+	MCTP_BINDING_TYPE_VED_DEF = 0XFF,
+} MCTP_BINDING_TYPE;
 
 /* smbus extra medium data of endpoint */
 typedef struct _mctp_i3c_ext_params {
@@ -142,6 +152,13 @@ typedef struct __attribute__((aligned(4))) {
 	mctp_ext_params ext_params;
 	struct k_msgq *evt_msgq;
 } mctp_tx_msg;
+
+/* mctp route entry struct */
+typedef struct _mctp_route_entry {
+	uint8_t endpoint;
+	uint8_t bus; /* TODO: only consider smbus/i3c */
+	uint8_t addr; /* TODO: only consider smbus/i3c */
+} mctp_route_entry;
 
 /* mctp main struct */
 typedef struct _mctp {
