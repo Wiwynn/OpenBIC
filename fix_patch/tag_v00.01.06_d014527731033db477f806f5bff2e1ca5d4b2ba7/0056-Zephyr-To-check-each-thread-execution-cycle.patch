@@ -1,0 +1,139 @@
+From 44dcef6f9435dd800ef58c815731121bfd13a0a2 Mon Sep 17 00:00:00 2001
+From: SeanChuangWiwynn <Sean_Chuang@wiwynn.com>
+Date: Wed, 6 Sep 2023 09:25:29 +0800
+Subject: [PATCH] Zephyr: To check each thread execution cycle
+
+---
+ include/kernel.h                        |  2 +
+ include/kernel/thread.h                 |  3 +
+ kernel/thread.c                         | 73 +++++++++++++++++++++++++
+ lib/libc/minimal/source/stdlib/malloc.c |  2 +-
+ 4 files changed, 79 insertions(+), 1 deletion(-)
+
+diff --git a/include/kernel.h b/include/kernel.h
+index f3265d62b7..c56b5e15f5 100644
+--- a/include/kernel.h
++++ b/include/kernel.h
+@@ -98,6 +98,8 @@ typedef int (*_poller_cb_t)(struct k_poll_event *event, uint32_t state);
+ typedef void (*k_thread_user_cb_t)(const struct k_thread *thread,
+ 				   void *user_data);
+ 
++extern void k_thread_for_application_start();
++extern void k_thread_for_application_end();
+ /**
+  * @brief Iterate over all the threads in the system.
+  *
+diff --git a/include/kernel/thread.h b/include/kernel/thread.h
+index b615fda17f..eeed21e4fd 100644
+--- a/include/kernel/thread.h
++++ b/include/kernel/thread.h
+@@ -290,6 +290,9 @@ struct k_thread {
+ 
+ 	/** arch-specifics: must always be at the end */
+ 	struct _thread_arch arch;
++
++	k_thread_runtime_stats_t rt_stats_current;
++	k_thread_runtime_stats_t rt_stats_current_all;
+ };
+ 
+ typedef struct k_thread _thread_t;
+diff --git a/kernel/thread.c b/kernel/thread.c
+index 5236c0ca5c..4792b55a3b 100644
+--- a/kernel/thread.c
++++ b/kernel/thread.c
+@@ -46,6 +46,79 @@ static struct k_spinlock z_thread_monitor_lock;
+ #define _FOREACH_STATIC_THREAD(thread_data)              \
+ 	Z_STRUCT_SECTION_FOREACH(_static_thread_data, thread_data)
+ 
++static void shell_tdata_dump_forapplication(const struct k_thread *cthread)
++{
++	struct k_thread *thread = (struct k_thread *)cthread;
++	const char *tname;
++	int ret;
++
++	k_thread_runtime_stats_t rt_stats_thread;
++	k_thread_runtime_stats_t rt_stats_all;
++
++	tname = k_thread_name_get(thread);
++
++	ret = 0;
++
++	if (k_thread_runtime_stats_get(thread, &rt_stats_thread) != 0) {
++		ret++;
++	}
++	(void)memcpy(&thread->rt_stats_current, &rt_stats_thread,
++		     sizeof(rt_stats_thread));
++	if (k_thread_runtime_stats_all_get(&rt_stats_all) != 0) {
++		ret++;
++	}
++	(void)memcpy(&thread->rt_stats_current_all, &rt_stats_all,
++		     sizeof(rt_stats_all));
++
++}
++
++void k_thread_for_application_start()
++{
++	struct k_thread *thread;
++	k_spinlock_key_t key;
++
++	key = k_spin_lock(&z_thread_monitor_lock);
++	for (thread = _kernel.threads; thread; thread = thread->next_thread) {
++		shell_tdata_dump_forapplication(thread);
++	}
++	k_spin_unlock(&z_thread_monitor_lock, key);
++
++}
++
++void k_thread_for_application_end(k_thread_runtime_stats_t *rt_stats_all_diff)
++{
++	const char *tname;
++	struct k_thread *thread;
++	k_spinlock_key_t key;
++
++	k_thread_runtime_stats_t rt_stats_previous;
++	k_thread_runtime_stats_t rt_stats_previous_all;
++	k_thread_runtime_stats_t rt_stats_diff;
++
++	key = k_spin_lock(&z_thread_monitor_lock);
++	for (thread = _kernel.threads; thread; thread = thread->next_thread) {
++		tname = k_thread_name_get(thread);
++
++		(void)memcpy(&rt_stats_previous, &thread->rt_stats_current,
++		     sizeof(thread->rt_stats_current));
++		(void)memcpy(&rt_stats_previous_all, &thread->rt_stats_current_all,
++		     sizeof(thread->rt_stats_current_all));
++		shell_tdata_dump_forapplication(thread);
++
++		if (strcmp(tname, "IPMI_handle_thread") == 0) {
++			continue;
++		}
++		rt_stats_diff.execution_cycles = (uint32_t)thread->rt_stats_current.execution_cycles - (uint32_t)rt_stats_previous.execution_cycles;
++		rt_stats_all_diff->execution_cycles = (uint32_t)thread->rt_stats_current_all.execution_cycles - (uint32_t)rt_stats_previous_all.execution_cycles;
++		printk("\n\ttname: %s", tname);
++		printk("\n\tDifference of cycles: %u (%u %%)",
++				(uint32_t)rt_stats_diff.execution_cycles, (uint32_t)((rt_stats_diff.execution_cycles * 100U) / rt_stats_all_diff->execution_cycles));
++		printk("\n\tAll threads execution_cycles %u \n",
++			    (uint32_t)rt_stats_all_diff->execution_cycles);
++	}
++	k_spin_unlock(&z_thread_monitor_lock, key);
++}
++
+ void k_thread_foreach(k_thread_user_cb_t user_cb, void *user_data)
+ {
+ #if defined(CONFIG_THREAD_MONITOR)
+diff --git a/lib/libc/minimal/source/stdlib/malloc.c b/lib/libc/minimal/source/stdlib/malloc.c
+index 6a060e703b..0ac3eb6f7f 100644
+--- a/lib/libc/minimal/source/stdlib/malloc.c
++++ b/lib/libc/minimal/source/stdlib/malloc.c
+@@ -31,7 +31,7 @@ K_APPMEM_PARTITION_DEFINE(z_malloc_partition);
+ 
+ #define HEAP_BYTES CONFIG_MINIMAL_LIBC_MALLOC_ARENA_SIZE
+ 
+-Z_GENERIC_SECTION(POOL_SECTION) static struct sys_heap z_malloc_heap;
++Z_GENERIC_SECTION(POOL_SECTION) struct sys_heap z_malloc_heap;
+ Z_GENERIC_SECTION(POOL_SECTION) struct sys_mutex z_malloc_heap_mutex;
+ Z_GENERIC_SECTION(POOL_SECTION) static char z_malloc_heap_mem[HEAP_BYTES];
+ 
+-- 
+2.25.1
+

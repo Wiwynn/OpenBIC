@@ -48,8 +48,15 @@ LOG_MODULE_REGISTER(ipmi);
 
 #define IPMI_QUEUE_SIZE 5
 
+static k_thread_runtime_stats_t ipmi_handle_stats_1;
+static k_thread_runtime_stats_t ipmi_handle_stats_2;
+static k_thread_runtime_stats_t ipmi_handle_stats_all;
+
 struct k_thread IPMI_thread;
 K_KERNEL_STACK_MEMBER(IPMI_thread_stack, IPMI_THREAD_STACK_SIZE);
+
+struct k_thread analyzer_thread;
+K_KERNEL_STACK_MEMBER(analyzer_thread_stack, 2048);
 
 struct k_thread IPMI_handle_thread;
 K_KERNEL_STACK_MEMBER(IPMI_handle_thread_stack, IPMI_HANDLE_THREAD_STACK_SIZE);
@@ -280,7 +287,9 @@ void ipmi_cmd_handle(void *parameters, void *arvg0, void *arvg1)
 	CHECK_NULL_ARG(parameters);
 	ipmi_msg_cfg msg_cfg;
 	uint32_t iana = 0;
+	k_thread_name_set(&IPMI_handle_thread, "IPMI_handle_thread");
 
+	k_thread_runtime_stats_get(&IPMI_handle_thread, &ipmi_handle_stats_1);
 	memcpy(&msg_cfg, (ipmi_msg_cfg *)parameters, sizeof(ipmi_msg_cfg));
 
 	LOG_DBG("msg netfn: %x, cmd: %x, retry %x", ((ipmi_msg_cfg *)parameters)->buffer.netfn,
@@ -424,6 +433,10 @@ void ipmi_cmd_handle(void *parameters, void *arvg0, void *arvg1)
 		break;
 	}
 	}
+
+	k_thread_runtime_stats_get(&IPMI_handle_thread, &ipmi_handle_stats_2);
+	ipmi_handle_stats_all.execution_cycles += (uint32_t)ipmi_handle_stats_2.execution_cycles;
+	ipmi_handle_stats_all.execution_cycles -= (uint32_t)ipmi_handle_stats_1.execution_cycles;
 }
 
 void IPMI_handler(void *arug0, void *arug1, void *arug2)
@@ -447,7 +460,24 @@ void IPMI_handler(void *arug0, void *arug1, void *arug2)
 			LOG_ERR("%s(): abort the handler due to timeout. netfn: %x, cmd: %x",
 				__func__, msg_cfg.buffer.netfn, msg_cfg.buffer.cmd);
 		}
-		k_thread_name_set(&IPMI_handle_thread, "IPMI_handle_thread");
+	}
+}
+
+void analyzer_handler(void *arug0, void *arug1, void *arug2)
+{
+	k_thread_runtime_stats_t rt_stats_all_diff;
+
+	while (1) {
+		k_thread_for_application_start();
+		printk("\n\n\t5 seconds...\n\n");
+		k_msleep(5000);
+		k_thread_for_application_end(&rt_stats_all_diff);
+		printk("\n\ttname: IPMI_handle_thread");
+		printk("\n\tDifference of cycles: %u (%u %%)",
+			    (uint32_t)ipmi_handle_stats_all.execution_cycles, (uint32_t)((ipmi_handle_stats_all.execution_cycles * 100U) / rt_stats_all_diff.execution_cycles));
+		printk("\n\tAll threads execution_cycles %u\n\n",
+			    (uint32_t)rt_stats_all_diff.execution_cycles);
+		ipmi_handle_stats_all.execution_cycles = 0;
 	}
 }
 
@@ -464,6 +494,10 @@ void ipmi_init(void)
 	k_thread_create(&IPMI_thread, IPMI_thread_stack, K_THREAD_STACK_SIZEOF(IPMI_thread_stack),
 			IPMI_handler, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
 	k_thread_name_set(&IPMI_thread, "IPMI_thread");
+
+	k_thread_create(&analyzer_thread, analyzer_thread_stack, K_THREAD_STACK_SIZEOF(analyzer_thread_stack),
+			analyzer_handler, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+	k_thread_name_set(&analyzer_thread, "Analyzer_thread");
 
 #if MAX_IPMB_IDX
 	ipmb_init();
