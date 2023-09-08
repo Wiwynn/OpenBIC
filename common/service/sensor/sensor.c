@@ -175,10 +175,7 @@ SENSOR_DRIVE_INIT_DECLARE(mpro);
 SENSOR_DRIVE_INIT_DECLARE(bmr351);
 SENSOR_DRIVE_INIT_DECLARE(cx7);
 
-struct sensor_drive_api {
-	enum SENSOR_DEV dev;
-	uint8_t (*init)(sensor_cfg *);
-} sensor_drive_tbl[] = {
+sensor_drive_api sensor_drive_tbl[] = {
 	SENSOR_DRIVE_TYPE_INIT_MAP(tmp75),
 	SENSOR_DRIVE_TYPE_INIT_MAP(ast_adc),
 	SENSOR_DRIVE_TYPE_INIT_MAP(isl69259),

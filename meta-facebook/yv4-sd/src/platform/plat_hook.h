@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_HOOK_H
+#define PLAT_HOOK_H
 
-#define ENABLE_PLDM
-#define ENABLE_PLDM_SENSOR
+#include "sensor.h"
 
-#define HOST_KCS_PORT kcs3
-#define BMC_USB_PORT "CDC_ACM_0"
+typedef struct _isl69259_pre_proc_arg {
+	uint8_t vr_page;
+} isl69259_pre_proc_arg;
+
+extern adc_asd_init_arg adc_asd_init_args[];
+extern isl69259_pre_proc_arg isl69259_pre_read_args[];
+
+bool pre_isl69259_read(sensor_cfg *cfg, void *args);
 
 #endif

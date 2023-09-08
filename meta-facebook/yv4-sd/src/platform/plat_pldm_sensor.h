@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_PLDM_SENSOR_H
+#define PLAT_PLDM_SENSOR_H
 
-#define ENABLE_PLDM
-#define ENABLE_PLDM_SENSOR
-
-#define HOST_KCS_PORT kcs3
-#define BMC_USB_PORT "CDC_ACM_0"
+enum SENSOR_THREAD_LIST {
+	ADC_SENSOR_THREAD_ID = 0,
+	VR_SENSOR_THREAD_ID,
+	MAX_SENSOR_THREAD_ID,
+};
 
 #endif

@@ -22,6 +22,21 @@
 
 #define MAX_SENSOR_SIZE 60
 
+#define UPDATE_INTERVAL_1S 1
+#define UPDATE_INTERVAL_3S 3
+
+enum PDR_SENSOR_INIT_VAL
+{
+	PDR_SENSOR_NO_INIT = 0,
+	PDR_SENSOR_USEINIT_PDR,
+	PDR_SENSOR_ENABLE,
+	PDR_SENSOR_DISABLE,
+};
+
+extern PDR_numeric_sensor pdr_numeric_adc_table[];
+extern PDR_numeric_sensor pdr_numeric_vr_table[];
+
+
 uint16_t plat_get_pdr_size();
 void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table);
 
