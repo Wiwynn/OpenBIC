@@ -6,6 +6,7 @@
 
 extern uint32_t pdr_count;
 extern uint16_t pdr_config_size;
+
 uint8_t pdr_init(void);
 
 enum pdr_repository_state {
@@ -20,7 +21,7 @@ typedef struct _PDR_common_header_ {
 	uint8_t PDR_type;
 	uint16_t record_change_number;
 	uint16_t data_length;
-} PDR_common_header;
+} __attribute__((__packed__)) PDR_common_header;
 
 typedef struct _PDR_numeric_sensor_ {
 	/*** PDR common header***/
@@ -45,16 +46,16 @@ typedef struct _PDR_numeric_sensor_ {
 	uint8_t aux_oem_unit_handle;
 	uint8_t is_linear;
 	uint8_t sensor_data_size;
-	int32_t resolution;
-	int32_t offset;
+	float resolution;
+	float offset;
 	uint16_t accuracy;
 	uint8_t plus_tolerance;
 	uint8_t minus_tolerance;
-	uint8_t hysteresis;
+	uint32_t hysteresis;
 	uint8_t supported_thresholds;
 	uint8_t threshold_and_hysteresis_volatility;
-	int32_t state_transition_interval;
-	int32_t update_interval;
+	float state_transition_interval;
+	float update_interval;
 	uint32_t max_readable;
 	uint32_t min_readable;
 	uint8_t range_field_format;
@@ -68,7 +69,7 @@ typedef struct _PDR_numeric_sensor_ {
 	uint32_t critical_low;
 	uint32_t fatal_high;
 	uint32_t fatal_low;
-} PDR_numeric_sensor;
+} __attribute__((__packed__)) PDR_numeric_sensor;
 
 typedef struct _PDR_INFO_ {
 	uint8_t repository_state;
@@ -78,7 +79,7 @@ typedef struct _PDR_INFO_ {
 	uint32_t repository_size;
 	uint32_t largest_record_size;
 	uint8_t data_transfer_handle_timeout;
-} PDR_INFO;
+} __attribute__((__packed__)) PDR_INFO;
 
 extern PDR_numeric_sensor *numeric_sensor_table;
 extern PDR_INFO *pdr_info;
