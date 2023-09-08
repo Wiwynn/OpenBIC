@@ -175,10 +175,7 @@ SENSOR_DRIVE_INIT_DECLARE(mpro);
 SENSOR_DRIVE_INIT_DECLARE(bmr351);
 SENSOR_DRIVE_INIT_DECLARE(cx7);
 
-struct sensor_drive_api {
-	enum SENSOR_DEV dev;
-	uint8_t (*init)(sensor_cfg *);
-} sensor_drive_tbl[] = {
+sensor_drive_api sensor_drive_tbl[] = {
 	SENSOR_DRIVE_TYPE_INIT_MAP(tmp75),
 	SENSOR_DRIVE_TYPE_INIT_MAP(ast_adc),
 	SENSOR_DRIVE_TYPE_INIT_MAP(isl69259),
@@ -289,6 +286,8 @@ sensor_cfg *find_sensor_cfg_via_sensor_num(sensor_cfg *cfg_table, uint8_t cfg_co
 bool access_check(uint8_t sensor_num)
 {
 	bool (*access_checker)(uint8_t);
+
+	LOG_INF("%s", __func__);
 
 	access_checker = sensor_config[sensor_config_index_map[sensor_num]].access_checker;
 	return (access_checker)(sensor_config[sensor_config_index_map[sensor_num]].num);
@@ -809,13 +808,6 @@ bool sensor_init(void)
 	init_sensor_num();
 	// Check init SDR size is equal to sensor config size
 	check_init_sensor_size();
-	// TODO: move to PLDM PDR sensor service
-	uint16_t pdr_size = plat_get_pdr_size();
-	if (pdr_size != 0) {
-		pdr_init();
-	} else {
-		LOG_ERR("Platform PDR table not configured");
-	}
 
 	if (sensor_config_size != 0) {
 		full_sdr_table =

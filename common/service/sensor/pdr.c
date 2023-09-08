@@ -17,6 +17,7 @@ PDR_numeric_sensor *numeric_sensor_table = NULL;
 uint8_t pdr_init(void)
 {
 	pdr_count = plat_get_pdr_size();
+
 	numeric_sensor_table =
 		(PDR_numeric_sensor *)malloc(pdr_count * sizeof(PDR_numeric_sensor));
 	plat_load_pdr_table(numeric_sensor_table);
