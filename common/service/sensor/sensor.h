@@ -657,6 +657,7 @@ extern const char *const sensor_type_name[];
 void clear_unaccessible_sensor_cache(sensor_cfg *cfg);
 uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sensor_num,
 			   int *reading, uint8_t read_mode);
+uint8_t get_pldm_sensor_reading_from_cache(uint8_t sensor_num, int *reading, uint8_t *sensor_operational_state);
 void pal_set_sensor_poll_interval(int *interval_ms);
 bool stby_access(uint8_t sensor_num);
 bool dc_access(uint8_t sensor_num);

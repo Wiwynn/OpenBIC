@@ -47,7 +47,7 @@ PDR_numeric_sensor plat_pdr_table[] = {
 		0x00, //uint8_t sensor_init;
 		0x00, //uint8_t sensor_auxiliary_names_pdr;
 		0x02, //uint8_t base_unit;
-		0x00, //int8_t unit_modifier;
+		-3, //int8_t unit_modifier;
 		0x00, //uint8_t rate_unit;
 		0x00, //uint8_t base_oem_unit_handle;
 		0x00, //uint8_t aux_unit;
@@ -57,8 +57,8 @@ PDR_numeric_sensor plat_pdr_table[] = {
 		0x00, //uint8_t aux_oem_unit_handle;
 		0x00, //uint8_t is_linear;
 		0x04, //uint8_t sensor_data_size;
-		-12.25, //float resolution;
-		10, //float offset;
+		2.47, //float resolution;
+		10.25, //float offset;
 		0x0000, //uint16_t accuracy;
 		0x00, //uint8_t plus_tolerance;
 		0x00, //uint8_t minus_tolerance;

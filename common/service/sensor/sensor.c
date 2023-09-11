@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <logging/log.h>
 #include "power_status.h"
 #include "sdr.h"
@@ -302,6 +303,27 @@ void clear_unaccessible_sensor_cache(sensor_cfg *cfg)
 		cfg->cache = SENSOR_FAIL;
 		cfg->cache_status = SENSOR_INIT_STATUS;
 	}
+}
+
+uint8_t get_pldm_sensor_reading_from_cache(uint8_t sensor_num, int *reading, uint8_t *sensor_operational_state) {
+	float sensor_reading_bic = 20.5678;
+	float resolution = 2.47;
+	float offset = 10.25;
+	int unit_modifier = -3;
+	*sensor_operational_state = 0;
+
+	// TODO: Use sensor_num to get PDR table.
+	// check if resolution from numeric sensor pdr is 0
+
+	// TODO: Use sensor_num to get sensor cache reading and sensor_operational_state.
+
+	// Y = converted reading in Units in BMC
+	// X = reading from sensor
+	// Y = (X * resolution + offset ) * power (10, unit_modifier)
+	// X = (Y * power (10, -1 * unit_modifier) - offset ) / resolution
+	*reading = (int)((sensor_reading_bic * power(10, -1 * unit_modifier) - offset ) / resolution);
+
+	return 0;
 }
 
 uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sensor_num,

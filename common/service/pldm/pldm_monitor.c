@@ -144,8 +144,14 @@ uint8_t pldm_get_sensor_reading(void *mctp_inst, uint8_t *buf, uint16_t len, uin
 
 	uint8_t sensor_number = (uint8_t)req_p->sensor_id;
 	uint8_t status;
+	uint8_t sensor_operational_state;
 	int reading = 0;
 
+#ifdef ENABLE_PLDM_SENSOR
+	status = get_pldm_sensor_reading_from_cache(sensor_number, &reading, &sensor_operational_state);
+	res_p->completion_code = status;
+	res_p->sensor_operational_state = sensor_operational_state;
+#else
 	status = get_sensor_reading(sensor_config, sensor_config_count, sensor_number, &reading,
 				    GET_FROM_CACHE);
 
@@ -177,6 +183,7 @@ uint8_t pldm_get_sensor_reading(void *mctp_inst, uint8_t *buf, uint16_t len, uin
 		res_p->sensor_operational_state = PLDM_SENSOR_FAILED;
 		break;
 	}
+#endif
 
 ret:
 	/* Only support 4-bytes unsinged sensor data */
