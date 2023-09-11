@@ -31,6 +31,7 @@
 enum {
 	BMC_IPMB_IDX,
 	EXP1_IPMB_IDX,
+	EXP2_IPMB_IDX,
 };
 
 extern IPMB_config pal_IPMB_config_table[];
