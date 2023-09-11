@@ -48,13 +48,6 @@ typedef struct _mctp_smbus_port {
 	uint8_t user_idx;
 } mctp_smbus_port;
 
-/* mctp route entry struct */
-typedef struct _mctp_route_entry {
-	uint8_t endpoint;
-	uint8_t bus; /* TODO: only consider smbus/i3c */
-	uint8_t addr; /* TODO: only consider smbus/i3c */
-} mctp_route_entry;
-
 typedef struct _mctp_msg_handler {
 	MCTP_MSG_TYPE type;
 	mctp_fn_cb msg_handler_cb;
@@ -64,7 +57,7 @@ static mctp_smbus_port smbus_port[] = {
 	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I2C_BUS_BMC },
 };
 
-mctp_route_entry mctp_route_tbl[] = {
+mctp_route_entry plat_mctp_route_tbl[] = {
 	{ MCTP_EID_BMC, I2C_BUS_BMC, I2C_ADDR_BMC },
 };
 
@@ -100,8 +93,8 @@ static void set_endpoint_resp_timeout(void *args)
 
 static void set_dev_endpoint(void)
 {
-	for (uint8_t i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
-		mctp_route_entry *p = mctp_route_tbl + i;
+	for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
+		mctp_route_entry *p = plat_mctp_route_tbl + i;
 
 		/* skip BMC */
 		if (p->bus == I2C_BUS_BMC && p->addr == I2C_ADDR_BMC)
@@ -168,8 +161,8 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 	uint8_t rc = MCTP_ERROR;
 	uint32_t i;
 
-	for (i = 0; i < ARRAY_SIZE(mctp_route_tbl); i++) {
-		mctp_route_entry *p = mctp_route_tbl + i;
+	for (i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
+		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		if (p->endpoint == dest_endpoint) {
 			*mctp_inst = find_mctp_by_smbus(p->bus);
 			ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
@@ -295,6 +288,8 @@ void plat_mctp_init(void)
 {
 	int ret = 0;
 
+	tbl_size = ARRAY_SIZE(plat_mctp_route_tbl);
+
 	/* init the mctp/pldm instance */
 	for (uint8_t i = 0; i < ARRAY_SIZE(smbus_port); i++) {
 		mctp_smbus_port *p = smbus_port + i;
@@ -317,4 +312,22 @@ void plat_mctp_init(void)
 
 		ret = mctp_start(p->mctp_inst);
 	}
+}
+
+uint8_t plat_get_routing_entry_size()
+{
+	// TODO: add routing entry table
+	return 0;
+}
+
+uint8_t plat_get_starting_eid()
+{
+	// TODO: add routing entry table
+	return 0;
+}
+
+uint8_t plat_get_physical_address()
+{
+	// TODO: add routing entry table
+	return 0;
 }

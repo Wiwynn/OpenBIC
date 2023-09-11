@@ -143,6 +143,14 @@ typedef struct __attribute__((aligned(4))) {
 	struct k_msgq *evt_msgq;
 } mctp_tx_msg;
 
+/* mctp route entry struct */
+typedef struct _mctp_route_entry {
+	uint8_t endpoint;
+	uint8_t bus; /* TODO: only consider smbus/i3c */
+	uint8_t addr; /* TODO: only consider smbus/i3c */
+	uint8_t dev_present_pin;
+} mctp_route_entry;
+
 /* mctp main struct */
 typedef struct _mctp {
 	uint8_t is_servcie_start;
