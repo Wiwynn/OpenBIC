@@ -26,8 +26,15 @@
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
+static uint8_t test_debug_pre_update_1(void *fw_update_param);
+static uint8_t test_debug_pre_update_2(void *fw_update_param);
+static uint8_t test_debug_pos_update_1(void *fw_update_param);
+static uint8_t test_debug_pos_update_2(void *fw_update_param);
+
 enum FIRMWARE_COMPONENT {
 	SD_COMPNT_BIC,
+	SD_COMPNT_VR_0,
+	SD_COMPNT_VR_1,
 };
 
 uint8_t MCTP_SUPPORTED_MESSAGES_TYPES[] = {
@@ -47,7 +54,33 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 		.pos_update_func = NULL,
 		.inf = COMP_UPDATE_VIA_SPI,
 		.activate_method = COMP_ACT_SELF,
-		.self_act_func = pldm_bic_activate,
+		.self_act_func = NULL,
+		.get_fw_version_fn = NULL,
+	},
+	{
+		.enable = true,
+		.comp_classification = COMP_CLASS_TYPE_DOWNSTREAM,
+		.comp_identifier = SD_COMPNT_VR_0,
+		.comp_classification_index = 0x00,
+		.pre_update_func = test_debug_pre_update_1,
+		.update_func = pldm_vr_update,
+		.pos_update_func = test_debug_pos_update_1,
+		.inf = COMP_UPDATE_VIA_SPI,
+		.activate_method = COMP_ACT_SELF,
+		.self_act_func = NULL,
+		.get_fw_version_fn = NULL,
+	},
+	{
+		.enable = true,
+		.comp_classification = COMP_CLASS_TYPE_DOWNSTREAM,
+		.comp_identifier = SD_COMPNT_VR_1,
+		.comp_classification_index = 0x00,
+		.pre_update_func = test_debug_pre_update_2,
+		.update_func = pldm_vr_update,
+		.pos_update_func = test_debug_pos_update_2,
+		.inf = COMP_UPDATE_VIA_SPI,
+		.activate_method = COMP_ACT_SELF,
+		.self_act_func = NULL,
 		.get_fw_version_fn = NULL,
 	},
 };
@@ -114,4 +147,24 @@ int load_mctp_support_types(uint8_t *type_len, uint8_t *types)
 	*type_len = sizeof(MCTP_SUPPORTED_MESSAGES_TYPES);
 	memcpy(types, MCTP_SUPPORTED_MESSAGES_TYPES, sizeof(MCTP_SUPPORTED_MESSAGES_TYPES));
 	return MCTP_SUCCESS;
+}
+
+static uint8_t test_debug_pre_update_1(void *fw_update_param) {
+	LOG_ERR("PRE_UPDATE_1_DEBUG");
+	return 0;
+}
+
+static uint8_t test_debug_pre_update_2(void *fw_update_param) {
+	LOG_ERR("PRE_UPDATE_2_DEBUG");
+	return 0;
+}
+
+static uint8_t test_debug_pos_update_1(void *fw_update_param) {
+	LOG_ERR("POS_UPDATE_1_DEBUG");
+	return 0;
+}
+
+static uint8_t test_debug_pos_update_2(void *fw_update_param) {
+	LOG_ERR("POS_UPDATE_2_DEBUG");
+	return 0;
 }

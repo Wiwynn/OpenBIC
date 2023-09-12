@@ -157,6 +157,10 @@ uint8_t pldm_vr_update(void *fw_update_param)
 			    ARRAY_SIZE(KEYWORD_VR_MP2971) - 1)) {
 		if (mp2971_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
+        } else if (!strncmp(p->comp_version_str, KEYWORD_VR_MP2856,
+                            ARRAY_SIZE(KEYWORD_VR_MP2856) - 1)) {
+                if (mp2856_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
+                        goto exit;
 	} else {
 		LOG_ERR("Non-support VR detected with component string %s!",
 			log_strdup(p->comp_version_str));
