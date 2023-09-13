@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_PDR_TABLE_H
-#define PLAT_PDR_TABLE_H
+#ifndef PLAT_PLDM_SENSOR_H
+#define PLAT_PLDM_SENSOR_H
 
-#include <stdint.h>
 #include "pdr.h"
 
-#define MAX_SENSOR_SIZE 60
+#define UPDATE_INTERVAL_1S 1
+#define UPDATE_INTERVAL_3S 3
 
-uint16_t plat_get_pdr_size();
+enum SENSOR_THREAD_LIST {
+	ADC_SENSOR_THREAD_ID = 0,
+	VR_SENSOR_THREAD_ID,
+	MB_TEMP_SENSOR_THREAD_ID,
+	MAX_SENSOR_THREAD_ID,
+};
+
+int plat_get_pldm_sensor_count(int thread_id);
+void get_pdr_numeric_sesnor(int thread_id, int sensor_num,
+			    PDR_numeric_sensor *numeric_sensor_table);
 
 #endif
