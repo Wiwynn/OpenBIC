@@ -142,16 +142,16 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 	/* first byte is message type */
 	uint8_t msg_type = (buf[0] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
 
-	LOG_ERR("mctp msg recv! buf: %u %u %u, len: %u", buf[0], buf[1], buf[2], len);
+	// LOG_ERR("mctp msg recv! buf: %u %u %u, len: %u", buf[0], buf[1], buf[2], len);
 
 	switch (msg_type) {
 	case MCTP_MSG_TYPE_CTRL:
-		LOG_ERR("type: mctp_ctrl");
+		// LOG_ERR("type: mctp_ctrl");
 		mctp_ctrl_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
 	case MCTP_MSG_TYPE_PLDM:
-		LOG_ERR("type: mctp_pldm");
+		// LOG_ERR("type: mctp_pldm");
 		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
@@ -243,7 +243,8 @@ bool mctp_add_sel_to_ipmi(common_addsel_msg_t *sel_msg)
 
 	if ((resp->header.completion_code != MCTP_SUCCESS) ||
 	    (resp->header.ipmi_comp_code != CC_SUCCESS)) {
-		LOG_ERR("Check reponse completion code fail %x %x", resp->header.completion_code, resp->header.ipmi_comp_code);
+		LOG_ERR("Check reponse completion code fail %x %x", resp->header.completion_code,
+			resp->header.ipmi_comp_code);
 		return false;
 	}
 
@@ -254,13 +255,13 @@ int pal_get_medium_type(uint8_t interface)
 {
 	int medium_type = -1;
 
-	switch(interface) {
-		case BMC_IPMB:
-		case MCTP:
-		case PLDM:
+	switch (interface) {
+	case BMC_IPMB:
+	case MCTP:
+	case PLDM:
 		medium_type = MCTP_MEDIUM_TYPE_SMBUS;
 		break;
-		default:
+	default:
 		medium_type = -1;
 		break;
 	}
@@ -268,18 +269,17 @@ int pal_get_medium_type(uint8_t interface)
 	return medium_type;
 }
 
-
 int pal_get_target(uint8_t interface)
 {
 	int target = -1;
 
-	switch(interface) {
-		case BMC_IPMB:
-		case MCTP:
-		case PLDM:
+	switch (interface) {
+	case BMC_IPMB:
+	case MCTP:
+	case PLDM:
 		target = I2C_BUS_BMC;
 		break;
-		default:
+	default:
 		target = -1;
 		break;
 	}
@@ -290,9 +290,9 @@ int pal_get_target(uint8_t interface)
 mctp *pal_get_mctp(uint8_t mctp_medium_type, uint8_t bus)
 {
 	switch (mctp_medium_type) {
-		case MCTP_MEDIUM_TYPE_SMBUS:
+	case MCTP_MEDIUM_TYPE_SMBUS:
 		return find_mctp_by_smbus(bus);
-		default:
+	default:
 		return NULL;
 	}
 }
@@ -311,7 +311,8 @@ void plat_mctp_init(void)
 			continue;
 		}
 
-		uint8_t rc = mctp_set_medium_configure(p->mctp_inst, MCTP_MEDIUM_TYPE_SMBUS, p->conf);
+		uint8_t rc =
+			mctp_set_medium_configure(p->mctp_inst, MCTP_MEDIUM_TYPE_SMBUS, p->conf);
 		if (rc != MCTP_SUCCESS) {
 			LOG_INF("mctp set medium configure failed");
 		}
@@ -324,3 +325,57 @@ void plat_mctp_init(void)
 	}
 }
 
+struct write_file_io {
+	uint8_t cmd_code;
+	uint32_t data_length;
+	uint8_t message[0];
+} __attribute__((packed));
+
+struct write_file_io_resp {
+	uint8_t completion_code;
+} __attribute__((packed));
+
+int pal_send_post_code_to_bmc(uint8_t *buf, uint8_t size)
+{
+	LOG_ERR("@@@ pal_send_post_code_to_bmc");
+
+	CHECK_NULL_ARG_WITH_RETURN(buf, false);
+
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+
+	msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	msg.hdr.cmd = 0x02; //PLDM_OEM_WRITE_FILE_IO
+
+	msg.hdr.rq = 1;
+
+	struct write_file_io *ptr = (struct write_file_io *)malloc(sizeof(struct write_file_io));
+
+	msg.buf = (uint8_t *)ptr;
+	ptr->cmd_code = 0x00;
+	ptr->data_length = size;
+	memcpy(ptr->message, buf, size);
+
+	msg.len = sizeof(struct write_file_io) + size;
+
+	uint8_t resp_len = sizeof(struct write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_smbus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		return false;
+	}
+
+	struct write_file_io_resp *resp = (struct write_file_io_resp *)rbuf;
+	LOG_ERR("@@ GET completion code %x", resp->completion_code);
+	free(ptr);
+
+	// if ((resp->header.completion_code != MCTP_SUCCESS) ||
+	//     (resp->header.ipmi_comp_code != CC_SUCCESS)) {
+	// 	LOG_ERR("Check reponse completion code fail %x %x", resp->header.completion_code, resp->header.ipmi_comp_code);
+	// 	return false;
+	// }
+
+	return MCTP_SUCCESS;
+}

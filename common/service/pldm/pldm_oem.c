@@ -142,8 +142,37 @@ static uint8_t ipmi_cmd(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t ins
 	return PLDM_LATER_RESP;
 }
 
+k_tid_t test_send_tid;
+struct k_thread test_send_thread;
+K_KERNEL_STACK_MEMBER(test_stack, 1024);
+
+#define UPDATE_THREAD_DELAY_SECOND 1
+static void do_nothing_cmd()
+{
+	LOG_ERR("@@ do_nothing_cmd~");
+	uint8_t t[3] = { 0x01, 0x02, 0x03 };
+	pal_send_post_code_to_bmc(t, 3);
+}
+
+static uint8_t test_send(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t instance_id,
+			 uint8_t *resp, uint16_t *resp_len, void *ext_params)
+{
+	LOG_ERR("@@ test_send~");
+
+	test_send_tid =
+		k_thread_create(&test_send_thread, test_stack,
+				K_THREAD_STACK_SIZEOF(test_stack), do_nothing_cmd,
+				NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0,
+				K_SECONDS(UPDATE_THREAD_DELAY_SECOND));
+	k_thread_name_set(&test_send_thread, "test_send_thread");
+
+	return PLDM_SUCCESS;
+}
+
+
 static pldm_cmd_handler pldm_oem_cmd_tbl[] = { { PLDM_OEM_CMD_ECHO, cmd_echo },
-					       { PLDM_OEM_IPMI_BRIDGE, ipmi_cmd } };
+					       { PLDM_OEM_IPMI_BRIDGE, ipmi_cmd },
+					       { 0xff, test_send } };
 
 uint8_t pldm_oem_handler_query(uint8_t code, void **ret_fn)
 {
@@ -162,4 +191,9 @@ uint8_t pldm_oem_handler_query(uint8_t code, void **ret_fn)
 
 	*ret_fn = (void *)fn;
 	return fn ? PLDM_SUCCESS : PLDM_ERROR;
+}
+
+__weak int pal_send_post_code_to_bmc(uint8_t *buf, uint8_t size)
+{
+	return -2;
 }

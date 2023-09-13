@@ -19,6 +19,8 @@
 
 #define FRU_CFG_NUM MAX_FRU_ID
 
+#include "eeprom.h"
+
 enum { MB_FRU_ID,
        MAX_FRU_ID,
 };

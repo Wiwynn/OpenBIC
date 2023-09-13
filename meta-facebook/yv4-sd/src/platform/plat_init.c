@@ -28,6 +28,7 @@
 #include "mctp_ctrl.h"
 #include "plat_mctp.h"
 #include "plat_i2c_target.h"
+#include "pcc.h"
 
 void pal_pre_init()
 {
@@ -43,4 +44,6 @@ void pal_pre_init()
 void pal_post_init()
 {
 	plat_mctp_init();
+
+	pcc_init(); // HD puts on pre init.
 }

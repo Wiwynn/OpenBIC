@@ -30,6 +30,12 @@ extern "C" {
 #define PLDM_OEM_CMD_ECHO 0x00
 #define PLDM_OEM_IPMI_BRIDGE 0x01
 
+#define PLDM_OEM_WRITE_FILE_IO 0x02
+
+enum {
+   POST_CODE = 0x00,
+};
+
 struct _cmd_echo_req {
 	uint8_t iana[IANA_LEN];
 	uint8_t first_data;
@@ -61,6 +67,8 @@ uint8_t check_iana(const uint8_t *iana);
 uint8_t set_iana(uint8_t *buf, uint8_t buf_len);
 
 uint8_t pldm_oem_handler_query(uint8_t code, void **ret_fn);
+
+int pal_send_post_code_to_bmc(uint8_t *buf, uint8_t size);
 
 #ifdef __cplusplus
 }
