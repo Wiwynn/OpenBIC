@@ -18,6 +18,7 @@
 #define PLAT_DEF_H
 
 #define ENABLE_PLDM
+#define ENABLE_PLDM_SENSOR
 #define ENABLE_CCI
 
 #define HOST_KCS_PORT kcs3
