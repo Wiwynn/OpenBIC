@@ -18,31 +18,18 @@
 
 #include <stdio.h>
 #include <string.h>
-
-#include "pdr.h"
-#include "sensor.h"
-#include "plat_sensor_table.h"
 #include <logging/log.h>
+#include "plat_pldm_sensor.h"
 
 LOG_MODULE_REGISTER(plat_pdr_table);
 
-PDR_numeric_sensor plat_pdr_table[] = {
-	{
-		//PDR common header
-		{
-
-		},
-		//numeric sensor format
-	},
-};
-
-const int PDR_TABLE_SIZE = ARRAY_SIZE(plat_pdr_table);
 uint16_t plat_get_pdr_size()
 {
-	return PDR_TABLE_SIZE;
-}
+	int total_size = 0, i = 0;
 
-void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
-{
-	memcpy(numeric_sensor_table, plat_pdr_table, sizeof(plat_pdr_table));
+	for (i = 0; i < MAX_SENSOR_THREAD_ID; i++) {
+		total_size += plat_pldm_sensor_get_sensor_count(i);
+	}
+
+	return total_size;
 }

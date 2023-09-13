@@ -21,7 +21,7 @@ uint8_t pdr_init(void)
 		(PDR_numeric_sensor *)malloc(pdr_count * sizeof(PDR_numeric_sensor));
 	plat_load_pdr_table(numeric_sensor_table);
 	if (numeric_sensor_table == NULL) {
-		LOG_ERR("Failed to load PDR table");
+		LOG_ERR("Failed to malloc PDR table");
 		return false;
 	}
 
@@ -31,6 +31,11 @@ uint8_t pdr_init(void)
 			(sizeof(PDR_numeric_sensor) - sizeof(PDR_common_header));
 	}
 
+	pdr_info = (PDR_INFO *)malloc(sizeof(PDR_INFO));
+	if (pdr_info == NULL) {
+		LOG_ERR("Failed to malloc PDR info");
+		return false;
+	}
 	pdr_info->repository_state = PDR_STATE_AVAILABLE;
 	pdr_info->record_count = pdr_count;
 	pdr_info->repository_size = pdr_count * sizeof(PDR_numeric_sensor);
