@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <math.h>
 #include <zephyr.h>
 #include <logging/log.h>
 #include "libutil.h"
@@ -58,6 +59,69 @@ bool is_interval_ready(pldm_sensor_info *pldm_sensor_list)
 	}
 
 	return true;
+}
+
+int get_pldm_sensor_info_via_sensor_id(uint16_t sensor_id, float *resolution, float *offset, int8_t *unit_modifier, int *cache, uint8_t *sensor_operational_state)
+{
+	int t_id = 0, s_id = 0, pldm_sensor_count = 0;
+
+	for (t_id = 0; t_id < MAX_SENSOR_THREAD_ID; t_id++) {
+		pldm_sensor_count = plat_get_pldm_sensor_count(t_id);
+		for (s_id = 0; s_id < pldm_sensor_count; s_id++) {
+			if (sensor_id == pldm_sensor_list[t_id][s_id].pdr_numeric_sensor->sensor_id) {
+				// Get from numeric sensor PDR
+				*resolution = pldm_sensor_list[t_id][s_id].pdr_numeric_sensor->resolution;
+				*offset = pldm_sensor_list[t_id][s_id].pdr_numeric_sensor->offset;
+				*unit_modifier = pldm_sensor_list[t_id][s_id].pdr_numeric_sensor->unit_modifier;
+				// Get from sensor config
+				*cache = pldm_sensor_list[t_id][s_id].pldm_sensor_cfg.cache;
+				*sensor_operational_state = pldm_sensor_list[t_id][s_id].pldm_sensor_cfg.cache_status;
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
+uint8_t get_pldm_sensor_reading_from_cache(uint16_t sensor_id, int *reading, uint8_t *sensor_operational_state)
+{
+	float sensor_reading = 0, decimal = 0, resolution = 0, offset = 0;
+	int cache_reading = 0;
+	int8_t unit_modifier = 0;
+	int16_t integer = 0;
+	uint8_t *sensor_reading_byte;
+
+	if (get_pldm_sensor_info_via_sensor_id(sensor_id, &resolution, &offset, &unit_modifier, &cache_reading, sensor_operational_state) != 0) {
+		// Couldn't find sensor id in pldm_sensor_list
+		return PLDM_PLATFORM_INVALID_SENSOR_ID;
+	}
+
+	if (resolution == 0) {
+		// The value of resolution couldn't be 0
+		return PLDM_ERROR_INVALID_DATA;
+	}
+
+	// Convert two byte integer, two byte decimal sensor format to float
+	sensor_reading_byte = malloc(sizeof(int));
+	memcpy (sensor_reading_byte, &cache_reading, sizeof(int));
+	integer = sensor_reading_byte[0] | sensor_reading_byte[1] << 8;
+    decimal = (float)(sensor_reading_byte[2] | sensor_reading_byte[3] << 8)/1000;
+	free(sensor_reading_byte);
+
+	if (integer >= 0) {
+      sensor_reading = (float)integer + decimal;
+	} else {
+      sensor_reading = (float)integer - decimal;
+	}
+
+	// Y = converted reading in Units in BMC
+	// X = sensor reading report to BMC
+	// Y = (X * resolution + offset ) * power (10, unit_modifier)
+	// X = (Y * power (10, -1 * unit_modifier) - offset ) / resolution
+	*reading = (int)((sensor_reading * power(10, -1 * unit_modifier) - offset ) / resolution);
+
+	return PLDM_SUCCESS;
 }
 
 void get_pldm_sensor_reading(pldm_sensor_info *pldm_sensor_list, int pldm_sensor_count, int thread_id, int sensor_num)
@@ -141,18 +205,18 @@ void pldm_sensor_polling_handler(void *arug0, void *arug1, void *arug2)
 		ret = sensor_drive_tbl[current_device].init(&pldm_sensor_list[thread_id][sensor_num].pldm_sensor_cfg);
 		if (ret < 0) {
 			LOG_ERR("Failed to init device0x%x from thread%d", current_device, thread_id);
-			pldm_sensor_list[thread_id]->pldm_sensor_cfg.cache_status = PLDM_SENSOR_FAILED;
+			pldm_sensor_list[thread_id][sensor_num].pldm_sensor_cfg.cache_status = PLDM_SENSOR_FAILED;
 			continue;
 		}
-		pldm_sensor_list[thread_id]->pdr_numeric_sensor->sensor_init = PDR_SENSOR_ENABLE;
+		pldm_sensor_list[thread_id][sensor_num].pdr_numeric_sensor->sensor_init = PDR_SENSOR_ENABLE;
 	}
 
 	while(1)
 	{
 		for (sensor_num = 0; sensor_num < pldm_sensor_count; sensor_num++) {
-			if (pldm_sensor_list[thread_id]->pdr_numeric_sensor->sensor_init != PDR_SENSOR_ENABLE) {
-				pldm_sensor_list[thread_id]->pldm_sensor_cfg.cache_status = PLDM_SENSOR_DISABLED;
-				LOG_INF("sensor_init 0x%x", pldm_sensor_list[thread_id]->pdr_numeric_sensor->sensor_init);
+			if (pldm_sensor_list[thread_id][sensor_num].pdr_numeric_sensor->sensor_init != PDR_SENSOR_ENABLE) {
+				pldm_sensor_list[thread_id][sensor_num].pldm_sensor_cfg.cache_status = PLDM_SENSOR_DISABLED;
+				LOG_INF("sensor_init 0x%x", pldm_sensor_list[thread_id][sensor_num].pdr_numeric_sensor->sensor_init);
 				continue;
 			}
 
@@ -160,7 +224,7 @@ void pldm_sensor_polling_handler(void *arug0, void *arug1, void *arug2)
 				continue;
 			}
 
-			get_pldm_sensor_reading(pldm_sensor_list[thread_id], pldm_sensor_count, thread_id, sensor_num);
+			get_pldm_sensor_reading(&pldm_sensor_list[thread_id][sensor_num], pldm_sensor_count, thread_id, sensor_num);
 		}
 
 		k_msleep(PLDM_SENSOR_POLL_TIME_MS);

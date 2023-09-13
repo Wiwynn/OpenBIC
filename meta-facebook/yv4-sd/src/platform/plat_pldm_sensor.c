@@ -28,7 +28,7 @@ LOG_MODULE_REGISTER(plat_pldm_sensor);
 static struct pldm_sensor_thread pal_pldm_sensor_thread[] = {
 	// thread id, thread name
 	{ ADC_SENSOR_THREAD_ID, "ADC_PLDM_SENSOR_THREAD" },
-	{ VR_SENSOR_THREAD_ID, "VR_PLDM_SENSOR_THREAD" },
+	//{ VR_SENSOR_THREAD_ID, "VR_PLDM_SENSOR_THREAD" },
 };
 
 static struct pldm_sensor_info adc_sensor[] = {
@@ -48,7 +48,7 @@ static struct pldm_sensor_info adc_sensor[] = {
 	},
 };
 
-static struct pldm_sensor_info vr_sensor[] = {
+/*static struct pldm_sensor_info vr_sensor[] = {
 	{
 		.pdr_numeric_sensor = &pdr_numeric_vr_table[0],
 		.update_time = 0,
@@ -64,7 +64,7 @@ static struct pldm_sensor_info vr_sensor[] = {
 		.pldm_sensor_cfg.cache = 0,
 		.pldm_sensor_cfg.cache_status = PLDM_SENSOR_INITIALIZING,
 	},
-};
+};*/
 
 pldm_sensor_thread * plat_load_pldm_sensor_thread()
 {
@@ -81,9 +81,9 @@ int plat_load_pldm_sensor(int thread_id, pldm_sensor_info *pldm_sensor_list)
 		case ADC_SENSOR_THREAD_ID:
 			memcpy(pldm_sensor_list, &adc_sensor, sizeof(adc_sensor));
 			break;
-		case VR_SENSOR_THREAD_ID:
-			//memcpy(pldm_sensor_list, &vr_sensor, sizeof(vr_sensor));
-			break;
+		/*case VR_SENSOR_THREAD_ID:
+			memcpy(pldm_sensor_list, &vr_sensor, sizeof(vr_sensor));
+			break;*/
 		default:
 			ret = -1;
 			LOG_ERR("Unknow pldm sensor thread id %d", thread_id);
@@ -101,9 +101,9 @@ int plat_get_pldm_sensor_count(int thread_id)
 		case ADC_SENSOR_THREAD_ID:
 			count = ARRAY_SIZE(adc_sensor);
 			break;
-		case VR_SENSOR_THREAD_ID:
+		/*case VR_SENSOR_THREAD_ID:
 			count = ARRAY_SIZE(vr_sensor);
-			break;
+			break;*/
 		default:
 			count = -1;
 			LOG_ERR("Unknow pldm sensor thread id %d", thread_id);

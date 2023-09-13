@@ -50,7 +50,7 @@ PDR_numeric_sensor pdr_numeric_adc_table[] = {
 		PDR_SENSOR_USEINIT_PDR, //uint8_t sensor_init;
 		0x00, //uint8_t sensor_auxiliary_names_pdr;
 		0x05, //uint8_t base_unit;
-		-0x04, //int8_t unit_modifier;
+		-4, //int8_t unit_modifier;
 		0x00, //uint8_t rate_unit;
 		0x00, //uint8_t base_oem_unit_handle;
 		0x00, //uint8_t aux_unit;
@@ -59,21 +59,21 @@ PDR_numeric_sensor pdr_numeric_adc_table[] = {
 		0x00, //uint8_t rel;
 		0x00, //uint8_t aux_oem_unit_handle;
 		0x00, //uint8_t is_linear;
-		0x10, //uint8_t sensor_data_size;
-		0x00000001, //int32_t resolution;
-		0x00000000, //int32_t offset;
+		0x04, //uint8_t sensor_data_size;
+		1, //real32_t resolution;
+		0, //real32_t offset;
 		0x0000, //uint16_t accuracy;
 		0x00, //uint8_t plus_tolerance;
 		0x00, //uint8_t minus_tolerance;
-		0x00, //uint8_t hysteresis;
-		0x3F, //uint8_t supported_thresholds;
+		0x00000000, //uint32_t hysteresis;
+		0xFF, //uint8_t supported_thresholds;
 		0x00, //uint8_t threshold_and_hysteresis_volatility;
-		0x00000000, //int32_t state_transition_interval;
-		UPDATE_INTERVAL_1S, //int32_t update_interval;
+		0, //real32_t state_transition_interval;
+		UPDATE_INTERVAL_1S, //real32_t update_interval;
 		0x0001FA40, //uint32_t max_readable;
 		0x0001AF40, //uint32_t min_readable;
-		0x10, //uint8_t range_field_format;
-		0x78, //uint8_t range_field_support;
+		0x04, //uint8_t range_field_format;
+		0xFF, //uint8_t range_field_support;
 		0x00000000, //uint32_t nominal_value;
 		0x00000000, //uint32_t normal_max;
 		0x00000000, //uint32_t normal_min;
@@ -147,7 +147,7 @@ uint16_t plat_get_pdr_size()
 {
 	int total_size = 0;
 
-	//total_size += ARRAY_SIZE(pdr_numeric_adc_table);
+	total_size += ARRAY_SIZE(pdr_numeric_adc_table);
 	//total_size += ARRAY_SIZE(pdr_numeric_vr_table);
 
 	return total_size;
@@ -155,5 +155,5 @@ uint16_t plat_get_pdr_size()
 
 void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
 {
-	//memcpy(&numeric_sensor_table[0], pdr_numeric_adc_table, sizeof(pdr_numeric_adc_table));
+	memcpy(&numeric_sensor_table[0], pdr_numeric_adc_table, sizeof(pdr_numeric_adc_table));
 }

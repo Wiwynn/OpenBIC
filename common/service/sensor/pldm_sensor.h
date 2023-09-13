@@ -22,21 +22,21 @@
 #include <stdlib.h>
 #include "sensor.h"
 #include "pdr.h"
+#include "pldm_base.h"
 
 #define PLDM_SENSOR_POLL_STACK_SIZE 3056
 
 #define PLDM_SENSOR_POLL_TIME_MS 1000
 
-enum PLDM_SENSOR_STATUS
-{
+enum pldm_sensor_operational_state {
 	PLDM_SENSOR_ENABLED,
 	PLDM_SENSOR_DISABLED,
 	PLDM_SENSOR_UNAVAILABLE,
-	PLDM_SENSOR_UNKNOWN,
+	PLDM_SENSOR_STATUSUNKOWN,
 	PLDM_SENSOR_FAILED,
 	PLDM_SENSOR_INITIALIZING,
-	PLDM_SENSOR_SHUTTING_DOWN,
-	PLDM_SENSOR_IN_TEST,
+	PLDM_SENSOR_SHUTTINGDOWN,
+	PLDM_SENSOR_INTEST
 };
 
 typedef struct pldm_sensor_info {
@@ -56,5 +56,6 @@ pldm_sensor_thread * plat_load_pldm_sensor_thread();
 int plat_load_pldm_sensor(int thread_id, pldm_sensor_info *pldm_sensor_list);
 int plat_get_pldm_sensor_count(int thread_id);
 bool is_interval_ready(pldm_sensor_info *pldm_sensor_list);
+uint8_t get_pldm_sensor_reading_from_cache(uint16_t sensor_id, int *reading, uint8_t *sensor_operational_state);
 
 #endif
