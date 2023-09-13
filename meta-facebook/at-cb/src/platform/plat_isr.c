@@ -44,6 +44,7 @@ add_sel_info add_sel_work_item[] = {
 	{ .is_init = false, .gpio_num = INA233_ACCL10_ALRT_N_R, .sel_msg = { 0 } },
 	{ .is_init = false, .gpio_num = INA233_ACCL11_ALRT_N_R, .sel_msg = { 0 } },
 	{ .is_init = false, .gpio_num = INA233_ACCL12_ALRT_N_R, .sel_msg = { 0 } },
+	{ .is_init = false, .gpio_num = SMB_PMBUS_ALERT_N_R, .sel_msg = { 0 } },
 };
 
 add_sel_info *get_addsel_work(uint8_t gpio_num)
@@ -157,3 +158,4 @@ ISR_SENSOR_ALERT(P12V_ACCL9, INA233_ACCL9_ALRT_N_R, P12V_ACCL9_MONITOR, BOARD_ID
 ISR_SENSOR_ALERT(P12V_ACCL10, INA233_ACCL10_ALRT_N_R, P12V_ACCL10_MONITOR, BOARD_ID0)
 ISR_SENSOR_ALERT(P12V_ACCL11, INA233_ACCL11_ALRT_N_R, P12V_ACCL11_MONITOR, BOARD_ID0)
 ISR_SENSOR_ALERT(P12V_ACCL12, INA233_ACCL12_ALRT_N_R, P12V_ACCL12_MONITOR, BOARD_ID0)
+ISR_SENSOR_ALERT(PMBUS, SMB_PMBUS_ALERT_N_R, POWER_BRICK, BOARD_ID0)

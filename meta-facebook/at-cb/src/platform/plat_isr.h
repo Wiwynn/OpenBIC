@@ -50,6 +50,7 @@ void ISR_P12V_ACCL9_ALERT();
 void ISR_P12V_ACCL10_ALERT();
 void ISR_P12V_ACCL11_ALERT();
 void ISR_P12V_ACCL12_ALERT();
+void ISR_PMBUS_ALERT();
 void fio_power_button_work_handler();
 void vr_alert_work_handler();
 
