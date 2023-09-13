@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_PDR_TABLE_H
-#define PLAT_PDR_TABLE_H
+#ifndef PLAT_HOOK_H
+#define PLAT_HOOK_H
 
-#include <stdint.h>
-#include "pdr.h"
+#include "sensor.h"
 
-#define MAX_SENSOR_SIZE 60
+typedef struct _vr_pre_proc_arg {
+	uint8_t vr_page;
+} vr_pre_proc_arg;
 
-uint16_t plat_get_pdr_size();
+extern adc_asd_init_arg ast_adc_init_args[];
+extern vr_pre_proc_arg vr_pre_read_args[];
+
+bool pre_vr_read(sensor_cfg *cfg, void *args);
 
 #endif
