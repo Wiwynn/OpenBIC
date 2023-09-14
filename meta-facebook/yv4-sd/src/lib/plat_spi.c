@@ -27,7 +27,6 @@ int pal_get_bios_flash_position()
 
 bool pal_switch_bios_spi_mux(int gpio_status)
 {
-	LOG_ERR("@@ pal_switch_bios_spi_mux", flash_position);
 	uint8_t retry = 5;
 	I2C_MSG msg;
 

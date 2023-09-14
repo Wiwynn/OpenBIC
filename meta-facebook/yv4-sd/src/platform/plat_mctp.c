@@ -29,16 +29,18 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define MCTP_IC_SHIFT 7
 #define MCTP_IC_MASK 0x80
 
-/* i2c 8 bit address */
-#define I2C_ADDR_BIC 0x40
-#define I2C_ADDR_BMC 0x20
+// /* i2c 8 bit address */
+// #define I2C_ADDR_BIC 0x40
+// #define I2C_ADDR_BMC 0x20
 
-/* i2c dev bus*/
-#define I2C_BUS_BMC 0x02
+// /* i2c dev bus*/
+// #define I2C_BUS_BMC 0x02
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x08
 #define MCTP_EID_SELF 0x0A
+
+#define POST_CODE_SIZE 4
 
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
@@ -65,7 +67,7 @@ mctp_route_entry mctp_route_tbl[] = {
 	{ MCTP_EID_BMC, I2C_BUS_BMC, I2C_ADDR_BMC },
 };
 
-static mctp *find_mctp_by_smbus(uint8_t bus)
+mctp *find_mctp_by_smbus(uint8_t bus)
 {
 	uint8_t i;
 	for (i = 0; i < ARRAY_SIZE(plat_mctp_port); i++) {
@@ -335,4 +337,49 @@ uint8_t plat_get_mctp_port_count()
 mctp_port *plat_get_mctp_port(uint8_t index)
 {
 	return plat_mctp_port + index;
+}
+
+bool pal_send_post_code_to_bmc(uint32_t *pcc_read_buffer, uint16_t send_index)
+{
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+
+	msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	msg.hdr.rq = 1;
+
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) + (POST_CODE_SIZE * sizeof(uint8_t)));
+
+	if (ptr == NULL) {
+		LOG_ERR("Memory allocation failed.");
+		return false;
+	}
+
+	ptr->cmd_code = POST_CODE;
+	ptr->data_length = POST_CODE_SIZE;
+	ptr->messages[0] = pcc_read_buffer[send_index] & 0xFF;
+	ptr->messages[1] = (pcc_read_buffer[send_index] >> 8) & 0xFF;
+	ptr->messages[2] = (pcc_read_buffer[send_index] >> 16) & 0xFF;
+	ptr->messages[3] = (pcc_read_buffer[send_index] >> 24) & 0xFF;
+
+	msg.buf = (uint8_t *)ptr;
+	msg.len = sizeof(struct pldm_oem_write_file_io_req) + POST_CODE_SIZE;
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_smbus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		return false;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+	}
+
+	free(ptr);
+	return true;
 }

@@ -19,8 +19,13 @@
 
 #define FRU_CFG_NUM MAX_FRU_ID
 
+#include "eeprom.h"
+#include "fru.h"
+
 enum { MB_FRU_ID,
        MAX_FRU_ID,
 };
+
+#define PSB_ERROR_MAX_SIZE 9
 
 #endif
