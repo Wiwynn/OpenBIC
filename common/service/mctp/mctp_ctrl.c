@@ -24,6 +24,7 @@
 #include <sys/printk.h>
 #include <zephyr.h>
 #include "libutil.h"
+#include "plat_mctp.h"
 
 LOG_MODULE_DECLARE(mctp);
 
@@ -43,6 +44,61 @@ typedef struct _wait_msg {
 static K_MUTEX_DEFINE(wait_recv_resp_mutex);
 
 static sys_slist_t wait_recv_resp_list = SYS_SLIST_STATIC_INIT(&wait_recv_resp_list);
+
+__weak int load_mctp_support_types(uint8_t *type_len, uint8_t *types)
+{
+	return -1;
+}
+
+__weak uint8_t plat_get_mctp_port_count()
+{
+	return 0;
+}
+
+__weak mctp_port *plat_get_mctp_port(uint8_t index)
+{
+	return NULL;
+}
+
+uint8_t mctp_ctrl_cmd_set_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
+				      uint16_t *resp_len, void *ext_params)
+{
+	ARG_UNUSED(ext_params);
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, MCTP_ERROR);
+
+	struct _set_eid_req *req = (struct _set_eid_req *)buf;
+	struct _set_eid_resp *p = (struct _set_eid_resp *)resp;
+
+	uint8_t plat_mctp_port_count = plat_get_mctp_port_count();
+	if (plat_mctp_port_count != 0) {
+		for (uint8_t i = 0; i < plat_mctp_port_count; i++) {
+			mctp_port *p = plat_get_mctp_port(i);
+			if (p != NULL) {
+				p->mctp_inst->endpoint = req->eid;
+			} else {
+				LOG_ERR("plat_get_mctp_port not implemented");
+				p->completion_code = MCTP_CTRL_CC_ERROR;
+				*resp_len = 1;
+				return MCTP_SUCCESS;
+			}
+		}
+		p->completion_code = MCTP_CTRL_CC_SUCCESS;
+	} else {
+		LOG_ERR("plat_get_mctp_port not implemented");
+		p->completion_code = MCTP_CTRL_CC_ERROR;
+	}
+
+	p->status = 0; // Assignment accepted. Device does not use an EID pool.
+	p->eid = req->eid;
+	p->eid_pool_size = 0;
+
+	*resp_len = (p->completion_code == MCTP_CTRL_CC_SUCCESS) ? sizeof(*p) : 1;
+
+	return MCTP_SUCCESS;
+}
 
 uint8_t mctp_ctrl_cmd_get_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
 				      uint16_t *resp_len, void *ext_params)
@@ -165,6 +221,7 @@ static uint8_t mctp_ctrl_cmd_resp_process(mctp *mctp_inst, uint8_t *buf, uint32_
 }
 
 static mctp_ctrl_cmd_handler_t mctp_ctrl_cmd_tbl[] = {
+	{ MCTP_CTRL_CMD_SET_ENDPOINT_ID, mctp_ctrl_cmd_set_endpoint_id },
 	{ MCTP_CTRL_CMD_GET_ENDPOINT_ID, mctp_ctrl_cmd_get_endpoint_id },
 };
 
