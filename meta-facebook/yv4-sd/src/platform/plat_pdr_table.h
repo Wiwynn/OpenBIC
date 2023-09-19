@@ -22,6 +22,6 @@
 
 #define MAX_SENSOR_SIZE 60
 
-uint16_t plat_get_pdr_size();
+uint16_t plat_get_pdr_size(uint8_t pdr_type);
 
 #endif

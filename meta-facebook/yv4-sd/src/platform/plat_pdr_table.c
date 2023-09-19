@@ -22,14 +22,3 @@
 #include "plat_pldm_sensor.h"
 
 LOG_MODULE_REGISTER(plat_pdr_table);
-
-uint16_t plat_get_pdr_size()
-{
-	int total_size = 0, i = 0;
-
-	for (i = 0; i < MAX_SENSOR_THREAD_ID; i++) {
-		total_size += plat_get_pldm_sensor_count(i);
-	}
-
-	return total_size;
-}

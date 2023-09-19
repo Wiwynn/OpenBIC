@@ -24,6 +24,7 @@
 #include "plat_hook.h"
 #include "plat_i2c.h"
 #include "plat_pldm_sensor.h"
+#include "plat_pdr_table.h"
 
 LOG_MODULE_REGISTER(plat_pldm_sensor);
 
@@ -2059,6 +2060,82 @@ pldm_sensor_info mb_temp_pldm_sensor_table[] = {
 	},
 };
 
+
+PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
+	{
+		// P12V stby Voltage
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0018,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P12V_STBY_VOLT_V",
+	},
+	{
+		// PVDD18 S5 Voltage
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0019,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_PVDD18_S5_VOLT_V",
+	},
+	{
+		// P3V3 stby Voltage
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001A,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P3V3_STBY_VOLT_V",
+	},
+};
+
+uint16_t plat_get_pdr_size(uint8_t pdr_type)
+{
+	int total_size = 0, i = 0;
+
+	switch (pdr_type)
+	{
+	case PLDM_NUMERIC_SENSOR_PDR:
+		for (i = 0; i < MAX_SENSOR_THREAD_ID; i++) {
+			total_size += plat_get_pldm_sensor_count(i);
+		}
+		break;
+	case PLDM_SENSOR_AUXILIARY_NAMES_PDR:
+		total_size = ARRAY_SIZE(plat_pdr_sensor_aux_names_table);
+		break;
+	default:
+		break;
+	}
+
+	return total_size;
+}
+
 pldm_sensor_thread *plat_load_pldm_sensor_thread()
 {
 	return pal_pldm_sensor_thread;
@@ -2124,7 +2201,7 @@ void get_pdr_numeric_sesnor(int thread_id, int sensor_num, PDR_numeric_sensor *n
 	}
 }
 
-void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
+void plat_load_numeric_sensor_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
 {
 	int thread_id = 0, sensor_num = 0;
 	int max_sensor_num = 0, current_sensor_size = 0;
@@ -2137,4 +2214,9 @@ void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
 			current_sensor_size++;
 		}
 	}
+}
+
+void plat_load_aux_sensor_names_pdr_table(PDR_sensor_auxiliary_names *aux_sensor_name_table)
+{
+	memcpy(aux_sensor_name_table, &plat_pdr_sensor_aux_names_table, sizeof(plat_pdr_sensor_aux_names_table));
 }
