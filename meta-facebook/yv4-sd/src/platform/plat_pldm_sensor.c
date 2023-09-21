@@ -42,7 +42,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -54,7 +54,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0002, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			PDR_SENSOR_USEINIT_PDR, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-4, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -110,7 +110,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -122,7 +122,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0003, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -178,7 +178,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -190,7 +190,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0004, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			PDR_SENSOR_USEINIT_PDR, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-5, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -246,7 +246,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -258,7 +258,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0005, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-4, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -314,7 +314,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -326,7 +326,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0006, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -382,7 +382,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -394,7 +394,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0007, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-4, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -450,7 +450,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -462,7 +462,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0008, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-0x03, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -518,7 +518,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -530,7 +530,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x0009, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-0x03, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -586,7 +586,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -598,7 +598,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x000A, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-4, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -654,7 +654,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -666,7 +666,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x000B, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			-4, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -722,7 +722,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -734,7 +734,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x000C, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -790,7 +790,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -802,7 +802,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			0x000D, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x05, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -861,7 +861,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -873,7 +873,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0001, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -930,7 +930,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -942,7 +942,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0002, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -999,7 +999,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1011,7 +1011,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0003, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1068,7 +1068,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1080,7 +1080,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0004, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1137,7 +1137,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1149,7 +1149,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0005, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1206,7 +1206,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1218,7 +1218,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0006, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x06, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1275,7 +1275,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1287,7 +1287,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0006, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x06, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1344,7 +1344,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1356,7 +1356,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0008, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x06, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1413,7 +1413,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1425,7 +1425,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x0009, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x06, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1482,7 +1482,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1494,7 +1494,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000A, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x06, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1551,7 +1551,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1563,7 +1563,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000B, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1620,7 +1620,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1632,7 +1632,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000C, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1689,7 +1689,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1701,7 +1701,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000D, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1758,7 +1758,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1770,7 +1770,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000E, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1827,7 +1827,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1839,7 +1839,7 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 			0x000F, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1899,7 +1899,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1911,7 +1911,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			0x0001, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -1966,7 +1966,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -1978,7 +1978,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			0x0002, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -2033,7 +2033,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			{
 				0x00000000, //uint32_t record_handle
 				0x01, //uint8_t PDR_header_version
-				0x02, //uint8_t PDR_type
+				PLDM_NUMERIC_SENSOR_PDR, //uint8_t PDR_type
 				0x0000, //uint16_t record_change_number
 				0x0000, //uint16_t data_length
 			},
@@ -2045,7 +2045,7 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 			0x0003, //uint16_t entity_instance_number;
 			0x0000, //uint16_t container_id;
 			0x00, //uint8_t sensor_init;
-			0x00, //uint8_t sensor_auxiliary_names_pdr;
+			0x01, //uint8_t sensor_auxiliary_names_pdr;
 			0x02, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 			0x00, //uint8_t rate_unit;
@@ -2094,6 +2094,1017 @@ pldm_sensor_info plat_pldm_sensor_mb_temp_table[] = {
 		},
 	},
 };
+
+
+PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
+	{
+		// MB_INLET_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0001,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_INLET_TEMP_C",
+	},
+	{
+		// MB_OUTLET_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0002,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_OUTLET_TEMP_C",
+	},
+	{
+		// MB_FIO_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0003,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_FIO_TEMP_C",
+	},
+	{
+		// MB_CPU_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0004,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_CPU_TEMP_C",
+	},
+	{
+		// MB_DIMM_A_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0005,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_A_TEMP_C",
+	},
+	{
+		// MB_DIMM_B_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0006,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_B_TEMP_C",
+	},
+	{
+		// MB_DIMM_C_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0007,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_C_TEMP_C",
+	},
+	{
+		// MB_DIMM_D_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0008,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_D_TEMP_C",
+	},
+	{
+		// MB_DIMM_E_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0009,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_E_TEMP_C",
+	},
+	{
+		// MB_DIMM_F_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000A,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_F_TEMP_C",
+	},
+	{
+		// MB_DIMM_G_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000B,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_G_TEMP_C",
+	},
+	{
+		// MB_DIMM_H_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000C,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_H_TEMP_C",
+	},
+	{
+		// MB_DIMM_I_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000D,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_I_TEMP_C",
+	},
+	{
+		// MB_DIMM_J_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000E,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_J_TEMP_C",
+	},
+	{
+		// MB_DIMM_K_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x000F,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_K_TEMP_C",
+	},
+	{
+		// MB_DIMM_L_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0010,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_L_TEMP_C",
+	},
+	{
+		// MB_SSD_BOOT_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0011,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_SSD_BOOT_TEMP_C",
+	},
+	{
+		// MB_SSD_DATA_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0012,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_SSD_DATA_TEMP_C",
+	},
+	{
+		// MB_VR_CPU0_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0013,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU0_TEMP_C",
+	},
+	{
+		// MB_VR_SOC_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0014,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_SOC_TEMP_C",
+	},
+	{
+		// MB_VR_CPU1_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0015,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU1_TEMP_C",
+	},
+	{
+		// MB_VR_PVDDIO_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0016,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDDIO_TEMP_C",
+	},
+	{
+		// MB_VR_PVDD11_TEMP_C
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0017,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDD11_TEMP_C",
+	},
+	{
+		// MB_ADC_P12V_STBY_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0018,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P12V_STBY_VOLT_V",
+	},
+	{
+		// MB_ADC_PVDD18_S5_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0019,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_PVDD18_S5_VOLT_V",
+	},
+	{
+		// MB_ADC_P3V3_STBY_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001A,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P3V3_STBY_VOLT_V",
+	},
+	{
+		// MB_ADC_P3V_BAT_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001B,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P3V_BAT_VOLT_V",
+	},
+	{
+		// MB_ADC_PVDD33_S5_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001C,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_PVDD33_S5_VOLT_V",
+	},
+	{
+		// MB_ADC_P5V_STBY_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001D,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P5V_STBY_VOLT_V",
+	},
+	{
+		// MB_ADC_P12V_DIMM_0_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001E,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P12V_DIMM_0_VOLT_V",
+	},
+	{
+		// MB_ADC_P12V_DIMM_1_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x001F,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P12V_DIMM_1_VOLT_V",
+	},
+	{
+		// MB_ADC_P1V2_STBY_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0020,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P1V2_STBY_VOLT_V",
+	},
+	{
+		// MB_ADC_P1V8_STBY_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0021,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_P1V8_STBY_VOLT_V",
+	},
+	{
+		// MB_ADC_SLOT_DETECT_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0022,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_SLOT_DETECT_VOLT_V",
+	},
+	{
+		// MB_ADC_SIDECAR_DETECT_VOLT_V
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0023,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_ADC_SIDECAR_DETECT_VOLT_V",
+	},
+	{
+		// MB_VR_CPU0_CURR_A
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0024,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU0_CURR_A",
+	},
+	{
+		// MB_VR_SOC_CURR_A
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0025,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_SOC_CURR_A",
+	},
+	{
+		// MB_VR_CPU1_CURR_A
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0026,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU1_CURR_A",
+	},
+	{
+		// MB_VR_PVDDIO_CURR_A
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0027,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDDIO_CURR_A",
+	},
+	{
+		// MB_VR_PVDD11_CURR_A
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0028,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDD11_CURR_A",
+	},
+	{
+		// MB_VR_CPU0_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0029,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU0_PWR_W",
+	},
+	{
+		// MB_VR_SOC_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002A,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_SOC_PWR_W",
+	},
+	{
+		// MB_VR_CPU1_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002B,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_CPU1_PWR_W",
+	},
+	{
+		// MB_VR_PVDDIO_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002C,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDDIO_PWR_W",
+	},
+	{
+		// MB_VR_PVDD11_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002D,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_VR_PVDD11_PWR_W",
+	},
+	{
+		// MB_CPU_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002E,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_CPU_PWR_W",
+	},
+	{
+		// MB_DIMM_A_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x002F,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_A_PWR_W",
+	},
+	{
+		// MB_DIMM_B_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0030,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_B_PWR_W",
+	},
+	{
+		// MB_DIMM_C_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0031,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_C_PWR_W",
+	},
+	{
+		// MB_DIMM_D_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0032,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_D_PWR_W",
+	},
+	{
+		// MB_DIMM_E_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0033,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_E_PWR_W",
+	},
+	{
+		// MB_DIMM_F_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0034,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_F_PWR_W",
+	},
+	{
+		// MB_DIMM_G_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0035,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_G_PWR_W",
+	},
+	{
+		// MB_DIMM_H_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0036,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_H_PWR_W",
+	},
+	{
+		// MB_DIMM_I_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0037,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_I_PWR_W",
+	},
+	{
+		// MB_DIMM_J_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0038,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_J_PWR_W",
+	},
+	{
+		// MB_DIMM_K_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0039,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_K_PWR_W",
+	},
+	{
+		// MB_DIMM_L_PWR_W
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x003A,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"MB_DIMM_L_PWR_W",
+	},
+};
+
+uint32_t plat_get_pdr_size(uint8_t pdr_type)
+{
+	int total_size = 0, i = 0;
+
+	switch (pdr_type)
+	{
+	case PLDM_NUMERIC_SENSOR_PDR:
+		for (i = 0; i < MAX_SENSOR_THREAD_ID; i++) {
+			total_size += plat_pldm_sensor_get_sensor_count(i);
+		}
+		break;
+	case PLDM_SENSOR_AUXILIARY_NAMES_PDR:
+		total_size = ARRAY_SIZE(plat_pdr_sensor_aux_names_table);
+		break;
+	default:
+		break;
+	}
+
+	return total_size;
+}
 
 pldm_sensor_thread *plat_pldm_sensor_load_thread()
 {
@@ -2160,7 +3171,7 @@ void plat_pldm_sensor_get_pdr_numeric_sesnor(int thread_id, int sensor_num, PDR_
 	}
 }
 
-void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
+void plat_load_numeric_sensor_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
 {
 	int thread_id = 0, sensor_num = 0;
 	int max_sensor_num = 0, current_sensor_size = 0;
@@ -2173,4 +3184,9 @@ void plat_load_pdr_table(PDR_numeric_sensor *numeric_sensor_table)
 			current_sensor_size++;
 		}
 	}
+}
+
+void plat_load_aux_sensor_names_pdr_table(PDR_sensor_auxiliary_names *aux_sensor_name_table)
+{
+	memcpy(aux_sensor_name_table, &plat_pdr_sensor_aux_names_table, sizeof(plat_pdr_sensor_aux_names_table));
 }
