@@ -30,7 +30,7 @@ enum SENSOR_THREAD_LIST {
 };
 
 int plat_get_pldm_sensor_count(int thread_id);
-void get_pdr_numeric_sesnor(int thread_id, int sensor_num,
+void get_pdr_numeric_sensor(int thread_id, int sensor_num,
 			    PDR_numeric_sensor *numeric_sensor_table);
 
 #endif
