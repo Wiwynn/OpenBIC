@@ -79,24 +79,6 @@
 	clock-frequency = <I2C_BITRATE_FAST>;
 };
 
-&i3c0 {
-	status = "okay";
-	assigned-address = <0x9>;
-	pinctrl-0 = <&pinctrl_i3c0_default>;
-	i3c-scl-hz = <8000000>;
-	ibi-append-pec;
-	secondary;
-	i3c0_smq: i3c-slave-mqueue@9 {
-		compatible = "aspeed,i3c-slave-mqueue";
-		reg = <0x9>;
-		msg-size = <256>;
-		num-of-msgs = <8>;
-		mandatory-data-byte = <0xbf>;
-		label = "I3C_SMQ_0";
-		status = "okay";
-	};
-}
-
 &udc {
 	status = "okay";
 };
@@ -170,19 +152,7 @@
 	reg = <0 DT_SIZE_K(512)>, <0x80000 DT_SIZE_K(256)>;
 };
 
-&gpio0_a_d {
-	aspeed,persist-maps = <0x5555004f>;
-};
-
-&gpio0_e_h {
-	aspeed,persist-maps = <0x002A8000>;
-};
-
-&gpio0_m_p {
-	aspeed,persist-maps = <0x00000800>;
-};
-
-&tach {
+&tach { 
 	status = "okay";
 
 	pinctrl-0 = <&pinctrl_tach8_default &pinctrl_tach9_default>;
