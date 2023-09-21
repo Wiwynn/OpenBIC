@@ -29,17 +29,6 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define MCTP_IC_SHIFT 7
 #define MCTP_IC_MASK 0x80
 
-/* i2c 8 bit address */
-#define I2C_ADDR_BIC 0x40
-#define I2C_ADDR_BMC 0x20
-
-/* i2c dev bus*/
-#define I2C_BUS_BMC 0x02
-
-/* mctp endpoint */
-#define MCTP_EID_BMC 0x08
-#define MCTP_EID_SELF 0x0A
-
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
@@ -53,7 +42,7 @@ mctp_route_entry mctp_route_tbl[] = {
 	{ MCTP_EID_BMC, I2C_BUS_BMC, I2C_ADDR_BMC },
 };
 
-static mctp *find_mctp_by_smbus(uint8_t bus)
+mctp *find_mctp_by_smbus(uint8_t bus)
 {
 	uint8_t i;
 	for (i = 0; i < ARRAY_SIZE(plat_mctp_port); i++) {
