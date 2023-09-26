@@ -59,6 +59,7 @@ typedef enum pldm_platform_monitor_commands {
 
 #define PLDM_PLATFORM_OEM_GPIO_EFFECTER_STATE_FIELD_COUNT 2
 #define PLDM_PLATFORM_OEM_HOST_POWER_CTRL_EFFECTER_STATE_FIELD_COUNT 1
+#define PLDM_PLATFORM_OEM_SWITCH_UART_EFFECTER_STATE_FIELD_COUNT 1
 #define PLDM_PLATFORM_OEM_AST1030_GPIO_PIN_NUM_MAX 167
 
 #define PLDM_COMPOSITE_EFFECTER_COUNT_MIN 0x01
@@ -180,6 +181,7 @@ Set Specification (DSP0249) Table 15 – Entity ID codes*/
 enum pldm_entity_types {
 	PLDM_ENTITY_SUB_CHASSIS = 46,
 	PLDM_ENTITY_IO_CONTROLLER = 145,
+	PLDM_ENTITY_OTHER_BUS = 160,
 };
 
 /* Y = (mX + b) * 10^r */
@@ -340,6 +342,19 @@ struct pldm_get_state_effecter_states_resp {
 	uint8_t completion_code;
 	uint8_t composite_effecter_count;
 	get_effecter_state_field_t field[8];
+} __attribute__((packed));
+
+struct pldm_get_state_effecter_states_resp2 {
+	uint8_t completion_code;
+	uint8_t composite_effecter_count;
+	uint8_t reg01;
+	uint8_t reg02;
+	uint8_t reg03;
+	uint8_t reg04;
+	uint8_t reg11;
+	uint8_t reg12;
+	uint8_t reg13;
+	uint8_t reg14;
 } __attribute__((packed));
 
 struct pldm_event_message_buffer_size_req {
