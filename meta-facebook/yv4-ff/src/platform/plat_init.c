@@ -21,6 +21,8 @@
 #include "plat_gpio.h"
 #include "plat_mctp.h"
 #include "plat_i2c_target.h"
+#include "pldm_monitor.h"
+#include "plat_pldm_monitor.h"
 
 #define DEF_PROJ_GPIO_PRIORITY 78
 
@@ -59,16 +61,18 @@ void pal_pre_init()
 	}
 }
 
-void pal_post_init()
-{
-	plat_mctp_init();
-}
-
 void pal_set_sys_status()
 {
 	set_mb_dc_status(POWER_EN_R);
 	set_DC_status(PG_CARD_OK);
 	set_sys_ready_pin(BIC_READY_R);
+}
+
+void pal_post_init()
+{
+	plat_mctp_init();
+	pldm_load_state_effecter_table(PLAT_PLDM_MAX_STATE_EFFECTER_IDX);
+	pldm_assign_gpio_effecter_id(PLAT_EFFECTER_ID_GPIO_HIGH_BYTE);
 }
 
 DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,

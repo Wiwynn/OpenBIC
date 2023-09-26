@@ -181,3 +181,15 @@ int uint8_t_to_dec_ascii_pointer(uint8_t val, uint8_t *result, uint8_t len)
 
 	return idx;
 }
+
+void clear_bits(uint32_t *value, int start_bit, int end_bit)
+{
+	if ((start_bit < 0) || (end_bit > 31)) {
+		LOG_ERR("Unexpected bit range '%d' ~ '%d'", start_bit, end_bit);
+		return;
+	}
+
+	for (int index = start_bit; index <= end_bit; index++) {
+		*value = CLEARBIT(*value, index);
+	}
+}
