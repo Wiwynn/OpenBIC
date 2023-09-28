@@ -979,18 +979,14 @@ bool pre_accl_nvme_read(sensor_cfg *cfg, void *args)
 		switch (cfg->target_addr) {
 		case ACCL_FREYA_1_ADDR:
 		case ACCL_ARTEMIS_MODULE_1_ADDR:
-			if (accl_freya->is_cache_freya1_info) {
-				accl_freya->is_cache_freya1_info = false;
-				memset(&accl_freya->freya1_fw_info, 0, FREYA_FW_VERSION_LENGTH);
-			}
+			accl_freya->is_cache_freya1_info = false;
+			memset(&accl_freya->freya1_fw_info, 0, FREYA_FW_VERSION_LENGTH);
 			accl_freya->freya1_fw_info.is_freya_ready = FREYA_NOT_READY;
 			break;
 		case ACCL_FREYA_2_ADDR:
 		case ACCL_ARTEMIS_MODULE_2_ADDR:
-			if (accl_freya->is_cache_freya2_info) {
-				accl_freya->is_cache_freya2_info = false;
-				memset(&accl_freya->freya2_fw_info, 0, FREYA_FW_VERSION_LENGTH);
-			}
+			accl_freya->is_cache_freya2_info = false;
+			memset(&accl_freya->freya2_fw_info, 0, FREYA_FW_VERSION_LENGTH);
 			accl_freya->freya2_fw_info.is_freya_ready = FREYA_NOT_READY;
 			break;
 		default:
@@ -1004,6 +1000,12 @@ bool pre_accl_nvme_read(sensor_cfg *cfg, void *args)
 	switch (cfg->target_addr) {
 	case ACCL_FREYA_1_ADDR:
 	case ACCL_ARTEMIS_MODULE_1_ADDR:
+		if (accl_freya->freya1_fw_info.is_freya_ready != FREYA_READY) {
+			// Get firmware version in the next sensor polling for waiting version ready
+			accl_freya->freya1_fw_info.is_freya_ready = FREYA_READY;
+			return true;
+		}
+
 		if (accl_freya->is_cache_freya1_info != true) {
 			ret = get_freya_fw_info(cfg->port, cfg->target_addr,
 						&accl_freya->freya1_fw_info);
@@ -1015,6 +1017,12 @@ bool pre_accl_nvme_read(sensor_cfg *cfg, void *args)
 		break;
 	case ACCL_FREYA_2_ADDR:
 	case ACCL_ARTEMIS_MODULE_2_ADDR:
+		if (accl_freya->freya2_fw_info.is_freya_ready != FREYA_READY) {
+			// Get firmware version in the next sensor polling for waiting version ready
+			accl_freya->freya2_fw_info.is_freya_ready = FREYA_READY;
+			return true;
+		}
+
 		if (accl_freya->is_cache_freya2_info != true) {
 			ret = get_freya_fw_info(cfg->port, cfg->target_addr,
 						&accl_freya->freya2_fw_info);
