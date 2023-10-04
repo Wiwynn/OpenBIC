@@ -27,6 +27,7 @@ enum SENSOR_ACCESS { SENSOR_READ, SENSOR_WRITE };
 
 void cmd_sensor_cfg_list_all_table(const struct shell *shell, size_t argc, char **argv);
 void cmd_sensor_cfg_list_all_sensor(const struct shell *shell, size_t argc, char **argv);
+void cmd_sensor_cfg_list_all_PDR_sensor(const struct shell *shell, size_t argc, char **argv);
 void cmd_sensor_cfg_get_table_all_sensor(const struct shell *shell, size_t argc, char **argv);
 void cmd_sensor_cfg_get_table_single_sensor(const struct shell *shell, size_t argc, char **argv);
 void cmd_control_sensor_polling(const struct shell *shell, size_t argc, char **argv);
@@ -41,6 +42,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 		  cmd_sensor_cfg_get_table_single_sensor),
 	SHELL_CMD(control_sensor_polling, NULL, "Enable/Disable sensor polling",
 		  cmd_control_sensor_polling),
+	SHELL_CMD(list_all_pldm_sensor, NULL, "List all PLDM SENSOR config",
+		  cmd_sensor_cfg_list_all_PDR_sensor),
 	SHELL_SUBCMD_SET_END);
 
 #endif

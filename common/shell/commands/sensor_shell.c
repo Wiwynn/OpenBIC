@@ -22,6 +22,10 @@
 #include <string.h>
 #include <logging/log.h>
 
+#ifdef ENABLE_PLDM
+#include "pldm_sensor.h"
+#endif
+
 /*
  * Constants
  *
@@ -284,6 +288,56 @@ void cmd_sensor_cfg_list_all_sensor(const struct shell *shell, size_t argc, char
 			shell,
 			"---------------------------------------------------------------------------------");
 	}
+}
+
+void cmd_sensor_cfg_list_all_PDR_sensor(const struct shell *shell, size_t argc, char **argv)
+{
+	if (shell == NULL) {
+		return;
+	}
+	//TODO: check argc and argv
+
+	shell_print(
+		shell,
+		"---------------------------------------------------------------------------------");
+	for (int thread_id = 0; thread_id < sizeof(pldm_sensor_list); thread_id++) {
+		for (int sensor_index = 0; sensor_index < sizeof(pldm_sensor_list[thread_id]);
+		     sensor_index++) {
+			sensor_cfg *cfg =
+				&pldm_sensor_list[thread_id][sensor_index].pldm_sensor_cfg;
+			int sensor_id = pldm_sensor_list[thread_id][sensor_index]
+						.pdr_numeric_sensor.sensor_id;
+
+			char *sensor_name = NULL;
+			for (int aux_sensor_index = 0; sizeof(aux_sensor_name_table);
+			     aux_sensor_index++) {
+				if (aux_sensor_name_table[aux_sensor_index]->sensor_id ==
+				    sensor_id) {
+					sensor_name =
+						(char *)aux_sensor_name_table[aux_sensor_index]
+							->sensorName;
+				}
+			}
+			if (sensor_name == NULL) {
+				shell_warn(shell, "Failed to get 0x%02x sensor", sensor_id);
+			}
+
+			char check_access = ((cfg->access_checker(sensor_id) == true) ? 'O' : 'X');
+			char check_poll = ((cfg->is_enable_polling == true) ? 'O' : 'X');
+			int16_t fraction = cfg->cache >> 16;
+			int16_t integer = cfg->cache & 0xFFFF;
+
+			shell_print(
+				shell,
+				"[0x%-2x] %-25s: %-10s | access[%c] | poll[%c] %-4d sec | %-25s | %5d.%03d",
+				sensor_id, *sensor_name, sensor_type_name[cfg->type], check_access,
+				check_poll, (int)cfg->poll_time,
+				sensor_status_name[cfg->cache_status], integer, fraction);
+		}
+	}
+	shell_print(
+		shell,
+		"---------------------------------------------------------------------------------");
 }
 
 void cmd_sensor_cfg_get_table_all_sensor(const struct shell *shell, size_t argc, char **argv)
