@@ -27,10 +27,13 @@ int pal_get_bios_flash_position()
 
 bool pal_switch_bios_spi_mux(int gpio_status)
 {
+	LOG_ERR("@@ pal_switch_bios_spi_mux", flash_position);
 	uint8_t retry = 5;
 	I2C_MSG msg;
 
-	msg.bus = I2C_BUS1;
+	msg.bus = I2C_BUS5; // for yv4
+
+    // msg.bus = I2C_BUS1; // for hd
 	msg.target_addr = CPLD_ADDR;
 	msg.tx_len = 2;
 	msg.data[0] = CPLD_SPI_OOB_CONTROL_REG;
