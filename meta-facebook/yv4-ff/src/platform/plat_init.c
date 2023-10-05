@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+#include "util_sys.h"
+#include "power_status.h"
 #include "hal_gpio.h"
+#include "plat_power_seq.h"
+#include "plat_gpio.h"
 
 #define DEF_PROJ_GPIO_PRIORITY 78
 
@@ -44,6 +48,13 @@ SCU_CFG scu_cfg[] = {
 void pal_pre_init()
 {
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
+}
+
+void pal_set_sys_status()
+{
+	set_mb_dc_status(POWER_EN_R);
+	set_DC_status(PG_CARD_OK);
+	set_sys_ready_pin(BIC_READY_R);
 }
 
 DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NULL, NULL,
