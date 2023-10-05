@@ -24,7 +24,7 @@
 #include <zephyr.h>
 #include "libutil.h"
 
-LOG_MODULE_REGISTER(mctp);
+LOG_MODULE_REGISTER(mctp, LOG_LEVEL_DBG);
 
 mctp_route_entry *mctp_route_tbl = NULL;
 extern mctp_route_entry plat_mctp_route_tbl[];
@@ -142,7 +142,7 @@ static uint8_t bridge_msg(mctp *mctp_inst, uint8_t *buf, uint16_t len)
 		return MCTP_ERROR;
 	}
 
-	LOG_DBG("ret = %d, bridget msg to mctp = %p", ret, target_mctp);
+	LOG_DBG("ret = %d, bridget msg to mctp = %p, endpoint %x", ret, target_mctp, hdr->dest_ep);
 	return mctp_bridge_msg(target_mctp, buf, len, target_ext_params);
 }
 

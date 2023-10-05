@@ -18,6 +18,8 @@
 #include "ipmi.h"
 #include "sensor.h"
 #include "plat_ipmb.h"
+#include "common_i2c_mux.h"
+#include "cci.h"
 
 #include "hal_i2c.h"
 
@@ -33,6 +35,12 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define I2C_ADDR_BMC 0x20
 #define I2C_ADDR_1OU_BIC 0x40
 
+// I2C 8 bit address
+#define I2C_ADDR_CXL 0x64
+#define I2C_BUS_CXL 8
+
+#define CXL_EID 0x15
+
 /* i2c dev bus*/
 #define I2C_BUS_BMC 0x06
 #define I2C_BUS_1OU_BIC 0x07 // for yv4 need to change
@@ -40,6 +48,8 @@ LOG_MODULE_REGISTER(plat_mctp);
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x08
 #define MCTP_EID_1OU_BIC 0x0B
+
+
 
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
@@ -59,12 +69,12 @@ typedef struct _mctp_msg_handler {
 
 static mctp_smbus_port smbus_port[] = {
 	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I2C_BUS_BMC },
-	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I2C_BUS_1OU_BIC },
+	{ .conf.smbus_conf.addr = I2C_ADDR_BIC, .conf.smbus_conf.bus = I2C_BUS_CXL },
 };
 
 mctp_route_entry plat_mctp_route_tbl[] = {
 	{ MCTP_EID_BMC, I2C_BUS_BMC, I2C_ADDR_BMC },
-	{ MCTP_EID_1OU_BIC, I2C_BUS_1OU_BIC, I2C_ADDR_1OU_BIC},
+	{ CXL_EID, I2C_BUS_CXL, I2C_ADDR_CXL},
 };
 
 static mctp *find_mctp_by_smbus(uint8_t bus)
@@ -152,6 +162,11 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 	case MCTP_MSG_TYPE_PLDM:
 		LOG_ERR("type: mctp_pldm");
 		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
+		break;
+
+	case MCTP_MSG_TYPE_CCI:
+		LOG_DBG("type: mctp_pldm");
+		mctp_cci_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
 	default:
@@ -296,9 +311,29 @@ mctp *pal_get_mctp(uint8_t mctp_medium_type, uint8_t bus)
 	}
 }
 
+#define I2C_BUS9 8
+#define CXL_SMBUS_MMUX_ADDR 0x70
+#define CXL_SMBUS_MUX_CHANNEL 0x01
+
+void enable_vistara_smbus_mux()
+{
+	bool ret = true;
+	mux_config cxl_mux = { 0 };
+
+	cxl_mux.bus = I2C_BUS9;
+	cxl_mux.target_addr = CXL_SMBUS_MMUX_ADDR;
+	cxl_mux.channel = CXL_SMBUS_MUX_CHANNEL;
+	ret = set_mux_channel(cxl_mux, MUTEX_LOCK_DISENABLE);
+	if (!ret) {
+		LOG_ERR("switch cxl mux failed");
+	}
+}
+
 void plat_mctp_init(void)
 {
 	int ret = 0;
+
+	enable_vistara_smbus_mux();
 
 	tbl_size = ARRAY_SIZE(plat_mctp_route_tbl);
 

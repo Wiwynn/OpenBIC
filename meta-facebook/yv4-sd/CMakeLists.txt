@@ -37,6 +37,7 @@ target_include_directories(app PRIVATE ${common_path}/service/mctp)
 target_include_directories(app PRIVATE ${common_path}/service/pldm)
 target_include_directories(app PRIVATE ${common_path}/service/sensor) 
 target_include_directories(app PRIVATE ${common_path}/service/usb) 
+target_include_directories(app PRIVATE ${common_path}/service/cci)
 target_include_directories(app PRIVATE ${common_path}/shell/commands)
 target_include_directories(app PRIVATE ${common_path}/shell)
 
