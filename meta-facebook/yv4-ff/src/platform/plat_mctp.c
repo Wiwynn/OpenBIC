@@ -86,6 +86,11 @@ mctp_route_entry plat_mctp_route_tbl[] = {
 	{ MCTP_EID_CXL, I2C_BUS_CXL, I2C_ADDR_CXL },
 };
 
+uint8_t MCTP_SUPPORTED_MESSAGES_TYPES[] = {
+	TYPE_MCTP_CONTROL,
+	TYPE_PLDM,
+};
+
 static mctp *find_mctp_by_smbus(uint8_t bus)
 {
 	uint8_t i;
@@ -374,4 +379,11 @@ uint8_t plat_get_mctp_port_count()
 mctp_port *plat_get_mctp_port(uint8_t index)
 {
 	return plat_mctp_port + index;
+}
+
+int load_mctp_support_types(uint8_t *type_len, uint8_t *types)
+{
+	*type_len = sizeof(MCTP_SUPPORTED_MESSAGES_TYPES);
+	memcpy(types, MCTP_SUPPORTED_MESSAGES_TYPES, sizeof(MCTP_SUPPORTED_MESSAGES_TYPES));
+	return MCTP_SUCCESS;
 }
