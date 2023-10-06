@@ -89,11 +89,21 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 		req = (struct kcs_request *)ibuf;
 		req->netfn = req->netfn >> 2;
 
+		if(req->netfn == 0x30)
+		{
+			if(req->cmd == 0x57){
+				LOG_ERR("Get 0x30 0x57");
+			}else if (req->cmd == 0x58){
+				LOG_ERR("Get 0x30 0x58");
+			}
+		}
+
 		if (pal_request_msg_to_BIC_from_HOST(
 			    req->netfn, req->cmd)) { // In-band update command, not bridging to bmc
 			current_msg.buffer.InF_source = HOST_KCS_1 + kcs_inst->index;
 			current_msg.buffer.netfn = req->netfn;
-			current_msg.buffer.cmd = req->cmd;
+			current_msg.buffer.cmd = req->cmd;		
+
 			current_msg.buffer.data_len = rc - 2; // exclude netfn, cmd
 			if (current_msg.buffer.data_len != 0) {
 				memcpy(current_msg.buffer.data, req->data,
@@ -151,12 +161,23 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 				BMC_IPMB; // default bypassing IPMI standard command to BMC
 			bridge_msg.netfn = req->netfn;
 			bridge_msg.cmd = req->cmd;
+
+			if(bridge_msg.netfn == 0x30)
+			{
+				if(bridge_msg.cmd == 0x57){
+					LOG_ERR("bridge 0x30 0x57");
+				}else if (bridge_msg.cmd == 0x58){
+					LOG_ERR("bridge 0x30 0x58");
+				}
+			}
+
 			if (bridge_msg.data_len != 0) {
 				memcpy(&bridge_msg.data[0], &ibuf[2], bridge_msg.data_len);
 			}
 
 			// Check BMC communication interface if use IPMB or not
 			if (!pal_is_interface_use_ipmb(IPMB_inf_index_map[BMC_IPMB])) {
+				LOG_ERR("Send 0x30 0x5? to BMC by PLDM");
 				int ret = 0;
 
 				// Send request to MCTP/PLDM thread to ask BMC
@@ -185,6 +206,7 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 
 				SAFE_FREE(kcs_buff);
 			} else {
+				LOG_ERR("Send 0x30 0x5? to BMC by IPMI");
 				status = ipmb_send_request(&bridge_msg,
 							   IPMB_inf_index_map[BMC_IPMB]);
 				if (status != IPMB_ERROR_SUCCESS) {
