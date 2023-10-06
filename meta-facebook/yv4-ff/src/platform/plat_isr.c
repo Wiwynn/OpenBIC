@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <logging/log.h>
+#include <drivers/sensor.h>
+#include <drivers/pwm.h>
+
+#include "plat_isr.h"
+#include "plat_gpio.h"
 #include "util_worker.h"
 #include "hal_gpio.h"
-#include "plat_gpio.h"
 #include "plat_power_seq.h"
-#include "plat_isr.h"
 
 LOG_MODULE_REGISTER(plat_isr);
 
@@ -42,4 +44,34 @@ void ISR_MB_DC_STAGUS_CHAGNE()
 void ISR_MB_PCIE_RST()
 {
 	gpio_set(PERST_ASIC_N_R, gpio_get(RST_PCIE_MB_EXP_N));
+}
+
+static void CXL_READY_handler()
+{
+	const struct device *heartbeat = NULL;
+	int ret = 0;
+
+	heartbeat = device_get_binding(CXL_HEART_BEAT_LABEL);
+	if (heartbeat == NULL) {
+		LOG_ERR("%s device not found", CXL_HEART_BEAT_LABEL);
+		return;
+	}
+
+	ret = sensor_sample_fetch(heartbeat);
+	if (ret < 0) {
+		LOG_ERR("Failed to read %s due to sensor_sample_fetch failed, ret: %d",
+			CXL_HEART_BEAT_LABEL, ret);
+		return;
+	}
+	gpio_set(SEL_SMB_MUX_PMIC_R, GPIO_HIGH);
+	gpio_set(SEL_SMB_MUX_DIMM_R, GPIO_HIGH);
+}
+
+K_WORK_DELAYABLE_DEFINE(CXL_READY_thread, CXL_READY_handler);
+void ISR_CXL_PG_ON()
+{
+	if (k_work_cancel_delayable(&CXL_READY_thread) != 0) {
+		LOG_ERR("Failed to cancel CXL_READY thread");
+	}
+	k_work_schedule(&CXL_READY_thread, K_SECONDS(CXL_READY_SECONDS));
 }
