@@ -50,6 +50,7 @@
 LOG_MODULE_REGISTER(pcc);
 
 K_THREAD_STACK_DEFINE(process_postcode_thread, PROCESS_POSTCODE_STACK_SIZE);
+// test test
 static struct k_thread process_postcode_thread_handler;
 
 const struct device *pcc_dev;
@@ -58,17 +59,17 @@ static uint16_t pcc_read_len = 0, pcc_read_index = 0;
 static bool proc_4byte_postcode_ok = false;
 static struct k_sem get_postcode_sem;
 
-static uint8_t PSB_error_code_list[] = { 0x03, 0x04, 0x05, 0x0B, 0x10, 0x13, 0x14, 0x18, 0x22, 0x3E,
-					 0x62, 0x64, 0x69, 0x6C, 0x6F, 0x78, 0x79, 0x7A, 0x7B, 0x7C,
-					 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x92 };
+// static uint8_t PSB_error_code_list[] = { 0x03, 0x04, 0x05, 0x0B, 0x10, 0x13, 0x14, 0x18, 0x22, 0x3E,
+// 					 0x62, 0x64, 0x69, 0x6C, 0x6F, 0x78, 0x79, 0x7A, 0x7B, 0x7C,
+// 					 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x92 };
 
-static uint16_t ABL_error_code_list[] = { 0x3000, 0x3001, 0x3002, 0x3003, 0xE2A4, 0xE2A7, 0xE2A8,
-					  0xE2AA, 0xE2AB, 0xE2AC, 0xE2AE, 0xE2B1, 0xE2B2, 0xE2E4,
-					  0xE2B3, 0xE2B4, 0xE2B5, 0xE2B9, 0xE2BA, 0xE2BB, 0xE2BD,
-					  0xE2BF, 0xE2CB, 0xE2CC, 0xE2CD, 0xE320, 0xE321, 0xE322,
-					  0xE2E5, 0xE2EB, 0xE2EC, 0xE2AD, 0xE2ED, 0xE30E, 0xE2CA,
-					  0xE2EF, 0xE2C2, 0xE2C3, 0xE2E3, 0xE2C6, 0xE310, 0xE2E7,
-					  0xE32D, 0xE33E, 0xE328, 0xE345, 0xE32B, 0xE332 };
+// static uint16_t ABL_error_code_list[] = { 0x3000, 0x3001, 0x3002, 0x3003, 0xE2A4, 0xE2A7, 0xE2A8,
+// 					  0xE2AA, 0xE2AB, 0xE2AC, 0xE2AE, 0xE2B1, 0xE2B2, 0xE2E4,
+// 					  0xE2B3, 0xE2B4, 0xE2B5, 0xE2B9, 0xE2BA, 0xE2BB, 0xE2BD,
+// 					  0xE2BF, 0xE2CB, 0xE2CC, 0xE2CD, 0xE320, 0xE321, 0xE322,
+// 					  0xE2E5, 0xE2EB, 0xE2EC, 0xE2AD, 0xE2ED, 0xE30E, 0xE2CA,
+// 					  0xE2EF, 0xE2C2, 0xE2C3, 0xE2E3, 0xE2C6, 0xE310, 0xE2E7,
+// 					  0xE32D, 0xE33E, 0xE328, 0xE345, 0xE32B, 0xE332 };
 
 uint16_t copy_pcc_read_buffer(uint16_t start, uint16_t length, uint8_t *buffer, uint16_t buffer_len)
 {
@@ -102,7 +103,10 @@ uint16_t copy_pcc_read_buffer(uint16_t start, uint16_t length, uint8_t *buffer, 
 
 void check_PSB_error(uint32_t postcode)
 {
+	// temp check it fail becuase of it.
+#ifndef ENABLE_PLDM
 	uint8_t error_code = postcode & 0xFF;
+	LOG_ERR("error code %x.", error_code);
 	int i = 0;
 	for (; i < ARRAY_SIZE(PSB_error_code_list); i++) {
 		if (error_code == PSB_error_code_list[i]) {
@@ -113,7 +117,6 @@ void check_PSB_error(uint32_t postcode)
 		return;
 	}
 
-#ifndef ENABLE_PLDM
 	/* Match PSB error */
 	/* Add SEL */
 	common_addsel_msg_t sel_msg;
@@ -147,6 +150,7 @@ void check_PSB_error(uint32_t postcode)
 
 void check_ABL_error(uint32_t postcode)
 {
+#ifndef ENABLE_PLDM
 	uint16_t error_code = postcode & 0xFFFF;
 	int i = 0;
 	for (; i < ARRAY_SIZE(ABL_error_code_list); i++) {
@@ -157,7 +161,6 @@ void check_ABL_error(uint32_t postcode)
 	if (i == ARRAY_SIZE(ABL_error_code_list)) {
 		return;
 	}
-#ifndef ENABLE_PLDM
 	ipmb_error status;
 	ipmi_msg *msg = (ipmi_msg *)malloc(sizeof(ipmi_msg));
 	if (msg == NULL) {
@@ -210,6 +213,12 @@ void check_ABL_error(uint32_t postcode)
 #ifdef ENABLE_PLDM
 bool pldm_send_post_code_to_bmc(uint16_t send_index)
 {
+	// LOG_ERR("get post code %d, %d, %d, %d", pcc_read_buffer[send_index] & 0xFF,
+	// 	(pcc_read_buffer[send_index] >> 8) & 0xFF,
+	// 	(pcc_read_buffer[send_index] >> 16) & 0xFF,
+	// 	(pcc_read_buffer[send_index] >> 24) & 0xFF);
+	// return true;
+
 	pldm_msg msg = { 0 };
 	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
 	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
@@ -294,26 +303,42 @@ bool send_post_code_to_bmc(uint16_t send_index)
 #endif
 }
 
+// add this
 static void process_postcode(void *arvg0, void *arvg1, void *arvg2)
 {
 	uint16_t send_index = 0;
 	while (1) {
+		LOG_ERR("@@@ sleep test ~");
+		// k_msleep(100);
+
+		// uint16_t current_read_index = pcc_read_index;
+		// for (; send_index != current_read_index;
+		//      send_index = (send_index + 1) % PCC_BUFFER_LEN) {
+		// 	if (((pcc_read_buffer[send_index] >> 24) & 0xFF) == PSB_POSTCODE_PREFIX) {
+		// 		check_PSB_error(pcc_read_buffer[send_index]);
+		// 	} else if (((pcc_read_buffer[send_index] >> 24) & 0xFF) ==
+		// 		   ABL_POSTCODE_PREFIX) {
+		// 		check_ABL_error(pcc_read_buffer[send_index]);
+		// 	}
+
 		uint16_t current_read_index = pcc_read_index;
-		for (; send_index != current_read_index;
-		     send_index = (send_index + 1) % PCC_BUFFER_LEN) {
+		for (; send_index != current_read_index; send_index = (send_index + 1) % PCC_BUFFER_LEN) {
+			LOG_ERR("@@@ current_read_index = %d", current_read_index);
 			if (((pcc_read_buffer[send_index] >> 24) & 0xFF) == PSB_POSTCODE_PREFIX) {
+				LOG_ERR("@@@ check_PSB_error");
 				check_PSB_error(pcc_read_buffer[send_index]);
-			} else if (((pcc_read_buffer[send_index] >> 24) & 0xFF) ==
-				   ABL_POSTCODE_PREFIX) {
-				check_ABL_error(pcc_read_buffer[send_index]);
-			}
-
-			k_sem_take(&get_postcode_sem, K_FOREVER);
-
-			send_post_code_to_bmc(send_index);
-
-			k_yield();
+			} 
+			// else if (((pcc_read_buffer[send_index] >> 24) & 0xFF) == ABL_POSTCODE_PREFIX) {
+			// 	check_ABL_error(pcc_read_buffer[send_index]);
+			// }
 		}
+
+		k_sem_take(&get_postcode_sem, K_FOREVER);
+
+		LOG_ERR("@@@ send post code to bmc index = %d", send_index);
+		send_post_code_to_bmc(send_index);
+
+		k_yield();
 	}
 }
 
@@ -330,12 +355,17 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 	uint8_t data, addr;
 	uint32_t i = st_idx;
 	proc_4byte_postcode_ok = true;
-
+	LOG_ERR("@@@ pcc_rx_callback");
 	do {
 		data = rb[i];
+		LOG_ERR("@@@~~~ pcc_rx_callback data = %d", data);
 		addr = rb[i + 1];
 		four_byte_data |= data << (8 * (addr & 0x0F));
+
 		if ((addr & 0x0F) == 0x03) {
+			LOG_ERR("@@@~~~ pcc_rx_callback get four byte data = %x", four_byte_data);
+			LOG_ERR("@@@~~~ pcc_read_index store = %d", pcc_read_index);
+
 			pcc_read_buffer[pcc_read_index] = four_byte_data;
 			four_byte_data = 0;
 			if (pcc_read_len < PCC_BUFFER_LEN) {
@@ -353,6 +383,7 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 
 void pcc_init()
 {
+	LOG_ERR("@@@ pcc_init v9");
 	pcc_dev = device_get_binding(DT_LABEL(DT_NODELABEL(pcc)));
 	if (!pcc_dev) {
 		LOG_ERR("No pcc device found.");
@@ -361,24 +392,32 @@ void pcc_init()
 	/* set registers to enable pcc */
 	uint32_t reg_data;
 
+	LOG_ERR("@@@ set reg LPC_PCCR0_REG");
 	reg_data = sys_read32(LPC_PCCR0_REG);
 	sys_write32(reg_data & ~(PCCR0_EN_DMA_MODE | PCCR0_EN), LPC_PCCR0_REG);
 	sys_write32(reg_data | (PCCR0_EN_DMA_MODE | PCCR0_EN), LPC_PCCR0_REG);
 
+	LOG_ERR("@@@ set reg LPC_PCCR0_REG 0x00820080");
 	sys_write32(0x00820080, LPC_SNPWADR_REG);
 
+	LOG_ERR("@@@ set reg LPC_HICRB_REG 0x00820080");
 	reg_data = sys_read32(LPC_HICRB_REG);
 	sys_write32(reg_data | 0x0000C000, LPC_HICRB_REG);
 
+	LOG_ERR("@@@ set reg LPC_HICR6_REG 0x00820080");
 	reg_data = sys_read32(LPC_HICR6_REG);
 	sys_write32((reg_data | 0x00080000) & ~0x0001ffff, LPC_HICR6_REG);
 
+	// add this
+	LOG_ERR("@@@ set reg k_sem_init 0x00820080");
 	k_sem_init(&get_postcode_sem, 0, 1);
 
+	LOG_ERR("@@@ pcc_aspeed_register_rx_callback");
 	if (pcc_aspeed_register_rx_callback(pcc_dev, pcc_rx_callback)) {
 		LOG_ERR("Cannot register PCC RX callback.");
 	}
 
+	// test test
 	k_thread_create(&process_postcode_thread_handler, process_postcode_thread,
 			K_THREAD_STACK_SIZEOF(process_postcode_thread), process_postcode, NULL,
 			NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
