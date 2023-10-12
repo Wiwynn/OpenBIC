@@ -197,7 +197,7 @@ typedef struct _mctp {
 typedef struct _mctp_port {
 	mctp *mctp_inst;
 	uint8_t channel_target;
-	uint8_t medium_type;
+	MCTP_MEDIUM_TYPE medium_type;
 	mctp_medium_conf conf;
 } mctp_port;
 
@@ -214,6 +214,7 @@ typedef struct _mctp_msg_handler {
 	mctp_fn_cb msg_handler_cb;
 } mctp_msg_handler;
 
+extern mctp_port mctp_config_table[];
 extern mctp_port mctp_config_table[];
 extern int mctp_config_table_size;
 
@@ -244,6 +245,7 @@ uint8_t mctp_bridge_msg(mctp *mctp_inst, uint8_t *buf, uint16_t len, mctp_ext_pa
 /* medium init/deinit */
 uint8_t mctp_smbus_init(mctp *mctp_inst, mctp_medium_conf medium_conf);
 uint8_t mctp_smbus_deinit(mctp *mctp_inst);
+uint8_t mctp_i3c_controller_init(mctp *mctp_instance, mctp_medium_conf medium_conf);
 uint8_t mctp_i3c_target_init(mctp *mctp_instance, mctp_medium_conf medium_conf);
 uint8_t mctp_i3c_deinit(mctp *mctp_instance);
 

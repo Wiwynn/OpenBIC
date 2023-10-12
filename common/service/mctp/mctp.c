@@ -94,6 +94,8 @@ static uint8_t mctp_medium_init(mctp *mctp_inst, mctp_medium_conf medium_conf)
 	case MCTP_MEDIUM_TYPE_TARGET_I3C:
 		ret = mctp_i3c_target_init(mctp_inst, medium_conf);
 		break;
+	case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
+		ret = mctp_i3c_deinit(mctp_inst);
 	default:
 		return MCTP_ERROR;
 	}
@@ -110,6 +112,7 @@ static uint8_t mctp_medium_deinit(mctp *mctp_inst)
 		mctp_smbus_deinit(mctp_inst);
 		break;
 	case MCTP_MEDIUM_TYPE_TARGET_I3C:
+	case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
 		mctp_i3c_deinit(mctp_inst);
 		break;
 	default:
