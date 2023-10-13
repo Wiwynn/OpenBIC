@@ -15,7 +15,8 @@
 #define I3C_BUS_HUB 1
 #define I3C_ADDR_HUB 0x70
 
-#define I3C_STATIC_ADDR_1OU_BIC 0x9
+#define I3C_STATIC_ADDR_FF_BIC 0x9
+#define I3C_STATIC_ADDR_WF_BIC 0xA
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x08
@@ -55,6 +56,6 @@ uint8_t plat_get_mctp_port_count();
 mctp_port *plat_get_mctp_port(uint8_t index);
 uint8_t plat_get_eid();
 
-mctp *find_mctp_by_smbus(uint8_t bus);
+mctp *find_mctp_by_bus(uint8_t bus);
 
 #endif /* _PLAT_MCTP_h */
