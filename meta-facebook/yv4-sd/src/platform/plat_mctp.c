@@ -29,10 +29,6 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define MCTP_IC_SHIFT 7
 #define MCTP_IC_MASK 0x80
 
-/* mctp endpoint */
-#define MCTP_EID_BMC 0x08
-#define MCTP_EID_SELF 0x0A
-
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
