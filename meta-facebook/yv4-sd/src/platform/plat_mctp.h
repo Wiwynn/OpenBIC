@@ -10,6 +10,10 @@
 /* i2c dev bus*/
 #define I2C_BUS_BMC 0x02
 
+/* mctp endpoint */
+#define MCTP_EID_BMC 0x08
+#define MCTP_EID_SELF 0x0A
+
 struct mctp_to_ipmi_header_req {
 	uint8_t iana[IANA_LEN];
 	uint8_t netfn_lun;
