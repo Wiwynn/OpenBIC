@@ -74,6 +74,11 @@ __weak uint8_t plat_get_physical_address()
 	return 0;
 }
 
+__weak void plat_update_mctp_routing_table(uint8_t eid)
+{
+	return;
+}
+
 uint8_t mctp_ctrl_cmd_set_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t *resp,
 				      uint16_t *resp_len, void *ext_params)
 {
@@ -104,6 +109,8 @@ uint8_t mctp_ctrl_cmd_set_endpoint_id(void *mctp_inst, uint8_t *buf, uint16_t le
 		LOG_ERR("plat_get_mctp_port not implemented");
 		p->completion_code = MCTP_CTRL_CC_ERROR;
 	}
+
+	plat_update_mctp_routing_table(req->eid);
 
 	p->status = 0; // Assignment accepted. Device does not use an EID pool.
 	p->eid = req->eid;

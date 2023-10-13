@@ -15,7 +15,8 @@
 #define I3C_BUS_HUB 1
 #define I3C_ADDR_HUB 0x70
 
-#define I3C_STATIC_ADDR_1OU_BIC 0x9
+#define I3C_STATIC_ADDR_FF_BIC 0x9
+#define I3C_STATIC_ADDR_WF_BIC 0xA
 
 struct mctp_to_ipmi_header_req {
 	uint8_t iana[IANA_LEN];
@@ -54,6 +55,6 @@ uint8_t plat_get_routing_entry_size();
 uint8_t plat_get_starting_eid();
 uint8_t plat_get_physical_address();
 
-mctp *find_mctp_by_smbus(uint8_t bus);
+mctp *find_mctp_by_bus(uint8_t bus);
 
 #endif /* _PLAT_MCTP_h */

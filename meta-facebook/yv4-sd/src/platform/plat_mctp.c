@@ -32,11 +32,13 @@ LOG_MODULE_REGISTER(plat_mctp);
 
 /* mctp endpoint */
 #define MCTP_EID_BMC 0x08
-#define MCTP_EID_SELF 0x0A
-#define MCTP_EID_1OU_BIC 41
-#define MCTP_EID_CXL 42
 
-uint8_t tbl_size = 0;
+// dynamic allocate eids
+#define MCTP_EID_FF_BIC 0
+#define MCTP_EID_WF_BIC 0
+#define MCTP_EID_FF_CXL 0
+#define MCTP_EID_WF_CXL1 0
+#define MCTP_EID_WF_CXL2 0
 
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
@@ -45,18 +47,24 @@ static mctp_port plat_mctp_port[] = {
 	{ .conf.smbus_conf.addr = I2C_ADDR_BIC,
 	  .conf.smbus_conf.bus = I2C_BUS_BMC,
 	  .medium_type = MCTP_MEDIUM_TYPE_SMBUS },
-	{ .conf.i3c_conf.addr = I3C_STATIC_ADDR_1OU_BIC,
+	{ .conf.i3c_conf.addr = I3C_STATIC_ADDR_FF_BIC,
+	  .conf.i3c_conf.bus = I3C_BUS_HUB,
+	  .medium_type = MCTP_MEDIUM_TYPE_CONTROLLER_I3C },
+	{ .conf.i3c_conf.addr = I3C_STATIC_ADDR_WF_BIC,
 	  .conf.i3c_conf.bus = I3C_BUS_HUB,
 	  .medium_type = MCTP_MEDIUM_TYPE_CONTROLLER_I3C },
 };
 
 mctp_route_entry plat_mctp_route_tbl[] = {
 	{ MCTP_EID_BMC, I2C_BUS_BMC, I2C_ADDR_BMC },
-	{ MCTP_EID_1OU_BIC, I3C_BUS_HUB, I3C_STATIC_ADDR_1OU_BIC },
-	{ MCTP_EID_CXL, I3C_BUS_HUB, I3C_STATIC_ADDR_1OU_BIC },
+	{ MCTP_EID_FF_BIC, I3C_BUS_HUB, I3C_STATIC_ADDR_FF_BIC },
+	{ MCTP_EID_WF_BIC, I3C_BUS_HUB, I3C_STATIC_ADDR_WF_BIC },
+	{ MCTP_EID_FF_CXL, I3C_BUS_HUB, I3C_STATIC_ADDR_FF_BIC },
+	{ MCTP_EID_WF_CXL1, I3C_BUS_HUB, I3C_STATIC_ADDR_WF_BIC },
+	{ MCTP_EID_WF_CXL2, I3C_BUS_HUB, I3C_STATIC_ADDR_WF_BIC },
 };
 
-mctp *find_mctp_by_smbus(uint8_t bus)
+mctp *find_mctp_by_bus(uint8_t bus)
 {
 	uint8_t i;
 	for (i = 0; i < ARRAY_SIZE(plat_mctp_port); i++) {
@@ -95,12 +103,10 @@ static void set_endpoint_resp_timeout(void *args)
 
 static void set_dev_endpoint(void)
 {
-	for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
-		mctp_route_entry *p = plat_mctp_route_tbl + i;
+	// We only need to set FF BIC EID and WF BIC EID.
+	for (uint8_t i = 1; i < 3; i++) {
 
-		/* skip BMC */
-		if (p->bus == I2C_BUS_BMC && p->addr == I2C_ADDR_BMC)
-			continue;
+		mctp_route_entry *p = plat_mctp_route_tbl + 1;
 
 		if (p->endpoint == MCTP_EID_CXL)
 			continue;
@@ -128,7 +134,7 @@ static void set_dev_endpoint(void)
 			msg.timeout_cb_fn = set_endpoint_resp_timeout;
 			msg.timeout_cb_fn_args = p;
 
-			mctp_ctrl_send_msg(find_mctp_by_smbus(p->bus), &msg);
+			mctp_ctrl_send_msg(find_mctp_by_bus(p->bus), &msg);
 		}
 	}
 }
@@ -142,10 +148,12 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 
 	switch (msg_type) {
 	case MCTP_MSG_TYPE_CTRL:
+		LOG_DBG("type: mctp_ctrl");
 		mctp_ctrl_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
 	case MCTP_MSG_TYPE_PLDM:
+		LOG_DBG("type: mctp_pldm");
 		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
@@ -174,7 +182,7 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 	for (i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
 		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		if (p->endpoint == dest_endpoint) {
-			*mctp_inst = find_mctp_by_smbus(p->bus);
+			*mctp_inst = find_mctp_by_bus(p->bus);
 			if (dest_endpoint == MCTP_EID_BMC) {
 				ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
 				ext_params->smbus_ext_params.addr = p->addr;
@@ -239,7 +247,7 @@ bool mctp_add_sel_to_ipmi(common_addsel_msg_t *sel_msg)
 	uint8_t resp_len = sizeof(struct mctp_to_ipmi_sel_resp);
 	uint8_t rbuf[resp_len];
 
-	if (!mctp_pldm_read(find_mctp_by_smbus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+	if (!mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
 		LOG_ERR("mctp_pldm_read fail");
 		return false;
 	}
@@ -293,12 +301,12 @@ int pal_get_target(uint8_t interface)
 mctp *pal_get_mctp(uint8_t medium_type, uint8_t bus)
 {
 	switch (medium_type) {
-	case MCTP_MEDIUM_TYPE_SMBUS:
-		return find_mctp_by_smbus(bus);
-	case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
-		return find_mctp_by_smbus(bus);
-	default:
-		return NULL;
+		case MCTP_MEDIUM_TYPE_SMBUS:
+		case MCTP_MEDIUM_TYPE_TARGET_I3C:
+		case MCTP_MEDIUM_TYPE_CONTROLLER_I3C:
+			return find_mctp_by_bus(bus);
+		default:
+			return NULL;
 	}
 }
 
@@ -307,6 +315,15 @@ void plat_set_eid_by_slot()
 {
 	uint8_t slot_eid = get_slot_eid();
 	plat_eid = slot_eid;
+}
+
+void set_routing_table_eid()
+{
+	// skip bmc
+	for (uint8_t i = 1; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
+		mctp_route_entry *p = plat_mctp_route_tbl + i;
+		p->endpoint = plat_eid + i;
+	}
 }
 
 uint8_t plat_get_eid()
@@ -318,7 +335,7 @@ void plat_mctp_init(void)
 {
 	int ret = 0;
 	plat_set_eid_by_slot();
-	tbl_size = ARRAY_SIZE(plat_mctp_route_tbl);
+	set_routing_table_eid();
 	/* init the mctp/pldm instance */
 	for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_port); i++) {
 		mctp_port *p = plat_mctp_port + i;

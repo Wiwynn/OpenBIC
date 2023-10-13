@@ -192,6 +192,7 @@ uint8_t mctp_ctrl_read(void *mctp_p, mctp_ctrl_msg *msg, uint8_t *read_buf, uint
 
 uint8_t plat_get_mctp_port_count();
 mctp_port *plat_get_mctp_port(uint8_t index);
+void plat_update_mctp_routing_table(uint8_t eid);
 
 #ifdef __cplusplus
 }
