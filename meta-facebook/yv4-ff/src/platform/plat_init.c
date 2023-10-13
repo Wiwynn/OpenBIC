@@ -19,6 +19,8 @@
 #include "hal_gpio.h"
 #include "plat_power_seq.h"
 #include "plat_gpio.h"
+#include "plat_mctp.h"
+#include "plat_i2c_target.h"
 
 #define DEF_PROJ_GPIO_PRIORITY 78
 
@@ -48,6 +50,18 @@ SCU_CFG scu_cfg[] = {
 void pal_pre_init()
 {
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
+ 	/* init i2c target */
+	for (int index = 0; index < MAX_TARGET_NUM; index++) {
+		if (I2C_TARGET_ENABLE_TABLE[index])
+			i2c_target_control(
+				index, (struct _i2c_target_config *)&I2C_TARGET_CONFIG_TABLE[index],
+				1);
+	}
+}
+
+void pal_post_init()
+{
+	plat_mctp_init();
 }
 
 void pal_set_sys_status()

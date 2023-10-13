@@ -36,6 +36,7 @@ typedef struct _mctp_ctrl_cmd_handler {
 
 #define MCTP_CTRL_CMD_SET_ENDPOINT_ID 0x01
 #define MCTP_CTRL_CMD_GET_ENDPOINT_ID 0x02
+#define MCTP_CTRL_CMD_GET_ROUTING_TABLE_ENTRIES 0x0A
 
 #define MCTP_CTRL_CMD_GET_MESSAGE_TYPE_SUPPORT 0x05
 
@@ -44,6 +45,8 @@ typedef struct _mctp_ctrl_cmd_handler {
 #define MCTP_CTRL_READ_STATUS_SUCCESS 0x00
 #define MCTP_CTRL_READ_STATUS_CC_ERROR 0x01
 #define MCTP_CTRL_READ_STATUS_TIMEOUT 0x02
+
+#define ADDRESS_SIZE 0x01
 
 /*
  * MCTP Control Completion Codes
@@ -88,6 +91,18 @@ enum message_type {
 	TYPE_MCTP_CONTROL,
 	TYPE_PLDM,
 	TYPE_MAX_SIZE,
+};
+
+enum entry_type {
+	SINGLE_EID_NOT_MCTP_BRIDGE,
+	EID_RANGE_INCLUDING_MCTP_BRIDGE,
+	SINGLE_EID_SERVES_AS_BRIDGE,
+	EID_RANGE_NOT_INCLUDING_BRIDGE,
+};
+
+enum dynamic_or_static_entry {
+	DYNAMIC_ENTRY,
+	STATIC_ENTRY,
 };
 
 struct _get_message_type_resp {
@@ -141,6 +156,34 @@ typedef struct _mctp_ctrl_resp_arg {
 	uint16_t read_len;
 	uint16_t return_len;
 } mctp_ctrl_resp_arg;
+
+typedef struct __attribute__((packed)) {
+	uint8_t port_number : 5;
+	uint8_t dynamic_or_static_entry : 1;
+	uint8_t entry_type : 2;
+} entry_type;
+
+typedef struct __attribute__((packed)) {
+	uint8_t eid_range_size;
+	uint8_t starting_eid;
+	entry_type routing_entry_type;
+	uint8_t phys_transport_binding_id;
+	uint8_t phys_media_type_id;
+	uint8_t phys_address_size;
+	uint8_t phys_address;
+} routing_table_entry;
+
+struct _get_routing_table_req {
+	uint8_t entry_handle;
+} __attribute__((__packed__));
+
+struct _get_routing_table_resp {
+	uint8_t completion_code;
+	uint8_t next_entry_handle;
+	uint8_t number_of_entries;
+	routing_table_entry entry;
+} __attribute__((__packed__));
+
 
 uint8_t mctp_ctrl_cmd_handler(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params);
 

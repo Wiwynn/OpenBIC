@@ -389,6 +389,7 @@ static int get_bus_id(struct i3c_dev_desc *desc)
 	strncpy(i3c_dev_name, desc->master_dev->name, I3C_DEV_STR_LEN);
 
 	substr = strtok_r(i3c_dev_name, delim, &saveptr);
+	substr = strtok_r(NULL, delim, &saveptr);
 
 	bus_id = atoi(substr);
 	if (bus_id > I3C_MAX_NUM) {
@@ -474,7 +475,7 @@ i3c_controller_ibi_init(I3C_MSG *msg)
 	int ret = 0;
 
 	int idx = find_dev_i3c_idx(target);
-	if (idx > 0) {
+	if (idx < 0) {
 		LOG_ERR("%s: find dev i3c idx failed. idx = %d", __func__, idx);
 	}
 

@@ -50,6 +50,9 @@ bool mctp_add_sel_to_ipmi(common_addsel_msg_t *sel_msg);
 uint8_t plat_get_mctp_port_count();
 mctp_port *plat_get_mctp_port(uint8_t index);
 uint8_t plat_get_eid();
+uint8_t plat_get_routing_entry_size();
+uint8_t plat_get_starting_eid();
+uint8_t plat_get_physical_address();
 
 mctp *find_mctp_by_smbus(uint8_t bus);
 
