@@ -18,6 +18,7 @@
 #include "ipmi.h"
 #include "sensor.h"
 #include "plat_ipmb.h"
+#include "cci.h"
 
 #include "hal_i2c.h"
 
@@ -180,6 +181,11 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 	case MCTP_MSG_TYPE_PLDM:
 		LOG_ERR("type: mctp_pldm");
 		mctp_pldm_cmd_handler(mctp_p, buf, len, ext_params);
+		break;
+
+	case MCTP_MSG_TYPE_CCI:
+		LOG_DBG("type: mctp_pldm");
+		mctp_cci_cmd_handler(mctp_p, buf, len, ext_params);
 		break;
 
 	default:
