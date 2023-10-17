@@ -37,6 +37,9 @@ extern "C" {
 #define KEYWORD_CPLD_LATTICE "LCMXO3-9400C"
 #endif
 
+#define KEYWORD_RETIMER_PT5161L "pt5161l"
+#define RETIMER_PT5161L_FW_VER_LEN 4
+
 static const char hex_to_ascii[] = { '0', '1', '2', '3', '4', '5', '6', '7',
 				     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
@@ -54,7 +57,7 @@ static const char hex_to_ascii[] = { '0', '1', '2', '3', '4', '5', '6', '7',
 		return ret_val;                                                                            \
 	}
 
-/** 
+/**
  * PLDM Firmware update commands
  */
 enum pldm_firmware_update_commands {
@@ -103,7 +106,7 @@ enum pldm_firmware_update_completion_codes {
 };
 
 /**
- * PLDM Frimware update string type 
+ * PLDM Frimware update string type
  */
 enum pldm_firmware_update_string_type {
 	PLDM_COMP_VER_STR_TYPE_UNKNOWN = 0,
@@ -115,7 +118,7 @@ enum pldm_firmware_update_string_type {
 };
 
 /**
- * PLDM Frimware update state 
+ * PLDM Frimware update state
  */
 enum pldm_firmware_update_state {
 	STATE_IDLE,
@@ -128,7 +131,7 @@ enum pldm_firmware_update_state {
 };
 
 /**
- * PLDM Frimware update aux state 
+ * PLDM Frimware update aux state
  */
 enum pldm_firmware_update_aux_state {
 	STATE_AUX_INPROGRESS,
@@ -159,7 +162,7 @@ enum {
 	COMP_CLASS_TYPE_MAX = 0x10000,
 };
 
-/** 
+/**
  * Common error codes in TransferComplete, VerifyComplete and ApplyComplete request
  */
 enum pldm_firmware_update_common_error_codes {
@@ -168,12 +171,12 @@ enum pldm_firmware_update_common_error_codes {
 	PLDM_FW_UPDATE_GENERIC_ERROR = 0x0A
 };
 
-/** 
+/**
  * TransferResult values in the request of TransferComplete
  */
 enum pldm_firmware_update_transfer_result_values {
 	PLDM_FW_UPDATE_TRANSFER_SUCCESS = 0x00,
-	/* Other values that are not currently used, and will be defined if they are 
+	/* Other values that are not currently used, and will be defined if they are
   used in the future. */
 };
 
@@ -182,7 +185,7 @@ enum pldm_firmware_update_transfer_result_values {
  */
 enum pldm_firmware_update_verify_result_values {
 	PLDM_FW_UPDATE_VERIFY_SUCCESS = 0x00,
-	/* Other values that are not currently used, and will be defined if they are 
+	/* Other values that are not currently used, and will be defined if they are
   used in the future. */
 };
 
@@ -191,12 +194,12 @@ enum pldm_firmware_update_verify_result_values {
  */
 enum pldm_firmware_update_apply_result_values {
 	PLDM_FW_UPDATE_APPLY_SUCCESS = 0x00,
-	/* Other values that are not currently used, and will be defined if they are 
+	/* Other values that are not currently used, and will be defined if they are
   used in the future. */
 };
 
 /**
- * component classification values define in PLDM firmware update specification 
+ * component classification values define in PLDM firmware update specification
  * Table 27
  */
 enum pldm_component_classification_values {
@@ -303,7 +306,7 @@ struct pldm_fw_update_cfg {
 };
 extern struct pldm_fw_update_cfg fw_update_cfg;
 
-/** 
+/**
  * Structure representing fixed part of Request Update request
  */
 struct pldm_request_update_req {
@@ -346,7 +349,7 @@ struct pldm_pass_component_table_resp {
 	uint8_t comp_resp_code;
 } __attribute__((packed));
 
-/** 
+/**
  * Structure representing UpdateComponent request
  */
 struct pldm_update_component_req {
@@ -360,7 +363,7 @@ struct pldm_update_component_req {
 	uint8_t comp_ver_str_len;
 } __attribute__((packed));
 
-/** 
+/**
  * Structure representing UpdateComponent response
  */
 struct pldm_update_component_resp {
@@ -503,6 +506,7 @@ uint16_t pldm_fw_update_read(void *mctp_p, enum pldm_firmware_update_commands cm
 uint8_t pldm_bic_update(void *fw_update_param);
 uint8_t pldm_vr_update(void *fw_update_param);
 uint8_t pldm_cpld_update(void *fw_update_param);
+uint8_t pldm_retimer_update(void *fw_update_param);
 uint8_t pldm_bic_activate(void *arg);
 
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
