@@ -33,6 +33,11 @@
 #include "usb.h"
 #include <logging/log.h>
 #include <logging/log_ctrl.h>
+#include <libutil.h>
+
+#define LPC_HICR9_REG (0x7E789098)
+#define LPC_HICRA_REG (0x7E78909C)
+
 
 __weak void pal_pre_init()
 {
@@ -51,6 +56,27 @@ __weak void pal_device_init()
 
 __weak void pal_set_sys_status()
 {
+	return;
+}
+
+void switch_vistara()
+{
+	uint32_t reg_value = 0;
+	reg_value = sys_read32(LPC_HICR9_REG);
+	reg_value = CLEARBIT(reg_value, 8);
+	reg_value = CLEARBIT(reg_value, 9);
+	reg_value = CLEARBIT(reg_value, 10);
+	reg_value = CLEARBIT(reg_value, 11);
+
+	reg_value = SETBITS(reg_value, 0b0101, 8);
+	sys_write32(reg_value, LPC_HICR9_REG);
+	/* According "HICRA: Host Interface Control Register A(offset: 9Ch)" from AST103
+	 * Write 111 to bit[2:0] to switch uart to VISTARA
+	 */
+	reg_value = sys_read32(LPC_HICRA_REG);
+	reg_value = SETBITS(reg_value, 0b111, 0);
+	sys_write32(reg_value, LPC_HICRA_REG);
+
 	return;
 }
 
@@ -76,4 +102,5 @@ void main(void)
 	pal_device_init();
 	pal_set_sys_status();
 	pal_post_init();
+	switch_vistara();
 }
