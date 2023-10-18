@@ -41,6 +41,7 @@ struct pldm_state_effecter_info plat_state_effecter_table[] = {
 
 void plat_pldm_switch_uart(const uint8_t *buf, uint16_t len, uint8_t *resp, uint16_t *resp_len)
 {
+	LOG_ERR("access plat_pldm_switch_uart successfully");
 	CHECK_NULL_ARG(buf);
 	CHECK_NULL_ARG(resp);
 	CHECK_NULL_ARG(resp_len);
@@ -67,7 +68,7 @@ void plat_pldm_switch_uart(const uint8_t *buf, uint16_t len, uint8_t *resp, uint
 	}
 
 	uint8_t uart_number = uart->effecter_state;
-
+	LOG_ERR("uart_number is %d", uart_number);
 	uint32_t reg_value = 0;
 
 	switch (uart_number) {
@@ -76,16 +77,18 @@ void plat_pldm_switch_uart(const uint8_t *buf, uint16_t len, uint8_t *resp, uint
 		 * Write 0101 to bit[11:8] to switch uart to VISTARA
 		 */
 		reg_value = sys_read32(LPC_HICR9_REG);
-
+		LOG_ERR("original reg is %d", reg_value);
 		clear_bits(&reg_value, 8, 11);
 		reg_value = SETBITS(reg_value, 0b0101, 8);
+		LOG_ERR("changed reg is %d", reg_value);
 		sys_write32(reg_value, LPC_HICR9_REG);
-
 		/* According "HICRA: Host Interface Control Register A(offset: 9Ch)" from AST1030 spec,
 		 * Write 111 to bit[2:0] to switch uart to VISTARA
 		 */
 		reg_value = sys_read32(LPC_HICRA_REG);
+		LOG_ERR("original reg is %d", reg_value);
 		reg_value = SETBITS(reg_value, 0b111, 0);
+		LOG_ERR("changed reg is %d", reg_value);
 		sys_write32(reg_value, LPC_HICRA_REG);
 
 		break;
@@ -94,15 +97,19 @@ void plat_pldm_switch_uart(const uint8_t *buf, uint16_t len, uint8_t *resp, uint
 		 * Write 1010 to bit[11:8] to switch uart to BIC
 		 */
 		reg_value = sys_read32(LPC_HICR9_REG);
+		LOG_ERR("original reg is %d", reg_value);
 		clear_bits(&reg_value, 8, 11);
 		reg_value = SETBITS(reg_value, 0b1010, 8);
+		LOG_ERR("changed reg is %d", reg_value);
 		sys_write32(reg_value, LPC_HICR9_REG);
 
 		/* According "HICRA: Host Interface Control Register A(offset: 9Ch)" from AST1030 spec,
 		 * Write 000 to bit[2:0] to switch uart to BIC
 		 */
 		reg_value = sys_read32(LPC_HICRA_REG);
+		LOG_ERR("original reg is %d", reg_value);
 		clear_bits(&reg_value, 0, 2);
+		LOG_ERR("changed reg is %d", reg_value);
 		sys_write32(reg_value, LPC_HICRA_REG);
 
 		break;
@@ -116,6 +123,7 @@ uint8_t plat_pldm_set_state_effecter_state_handler(const uint8_t *buf, uint16_t 
 						   uint16_t *resp_len,
 						   struct pldm_state_effecter_info *info_p)
 {
+	LOG_ERR("Access plat_pldm_set_state_effecter_state_handler successfully");
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -126,6 +134,7 @@ uint8_t plat_pldm_set_state_effecter_state_handler(const uint8_t *buf, uint16_t 
 
 	switch (info_p->entity_type) {
 	case PLDM_ENTITY_OTHER_BUS:
+		LOG_ERR("access plat_pldm_switch_uart");
 		plat_pldm_switch_uart(buf, len, resp, resp_len);
 		break;
 	//TODO: case PLDM_ENTITY_IO_CONTROLLER for GPIO controller
