@@ -40,6 +40,8 @@ LOG_MODULE_REGISTER(plat_mctp);
 #define MCTP_EID_WF_CXL1 0
 #define MCTP_EID_WF_CXL2 0
 
+uint8_t tbl_size = 0;
+
 K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
 K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
 
@@ -104,12 +106,9 @@ static void set_endpoint_resp_timeout(void *args)
 static void set_dev_endpoint(void)
 {
 	// We only need to set FF BIC EID and WF BIC EID.
-	for (uint8_t i = 1; i < 3; i++) {
+	//for (uint8_t i = 1; i < 3; i++) {
 
 		mctp_route_entry *p = plat_mctp_route_tbl + 1;
-
-		if (p->endpoint == MCTP_EID_CXL)
-			continue;
 
 		for (uint8_t j = 0; j < ARRAY_SIZE(plat_mctp_port); j++) {
 			if (p->bus != plat_mctp_port[j].conf.i3c_conf.bus)
@@ -136,7 +135,7 @@ static void set_dev_endpoint(void)
 
 			mctp_ctrl_send_msg(find_mctp_by_bus(p->bus), &msg);
 		}
-	}
+	//}
 }
 
 static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
@@ -334,6 +333,7 @@ uint8_t plat_get_eid()
 void plat_mctp_init(void)
 {
 	int ret = 0;
+	tbl_size = ARRAY_SIZE(plat_mctp_route_tbl);
 	plat_set_eid_by_slot();
 	set_routing_table_eid();
 	/* init the mctp/pldm instance */

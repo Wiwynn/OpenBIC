@@ -345,12 +345,10 @@ void plat_update_mctp_routing_table(uint8_t eid)
 
 	// update cxl eid
 	p = plat_mctp_route_tbl + 2;
-	p->endpoint = eid + 1;
+	p->endpoint = eid + 2;
 
 	// set cxl eid
-	uint8_t rc = set_dev_endpoint();
-	if (rc != MCTP_SUCCESS)
-		LOG_ERR("set CXL EID fail");
+	k_timer_start(&send_cmd_timer, K_MSEC(10000), K_NO_WAIT);
 
 	return;
 }
