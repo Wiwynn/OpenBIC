@@ -247,7 +247,7 @@ bool pldm_send_post_code_to_bmc(uint16_t send_index)
 
 	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
 	if (resp->completion_code != PLDM_SUCCESS) {
-		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+		// LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
 	}
 
 	SAFE_FREE(ptr);
