@@ -204,3 +204,8 @@
 		label = "HB0";
 	};
 };
+
+&kcs3 {
+  status = "okay";
+  addr = <0xca2>;
+};
