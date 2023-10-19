@@ -708,6 +708,7 @@ uint8_t pldm_set_state_effecter_states(void *mctp_inst, uint8_t *buf, uint16_t l
 				       uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
 				       void *ext_params)
 {
+	LOG_ERR("Access set_state_effecter_states2");
 	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
@@ -791,6 +792,7 @@ uint8_t pldm_get_state_effecter_states(void *mctp_inst, uint8_t *buf, uint16_t l
 				       uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
 				       void *ext_params)
 {
+	LOG_ERR("Access get_state_effecter_states2");
 	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
@@ -894,6 +896,7 @@ static pldm_cmd_handler pldm_monitor_cmd_tbl[] = {
 
 uint8_t pldm_monitor_handler_query(uint8_t code, void **ret_fn)
 {
+	LOG_ERR("Access pldm_monitor_handler_query1");
 	if (!ret_fn)
 		return PLDM_ERROR;
 
