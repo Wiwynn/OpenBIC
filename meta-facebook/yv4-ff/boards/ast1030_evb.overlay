@@ -145,3 +145,8 @@
 &sram0 {
 	reg = <0 DT_SIZE_K(512)>, <0x80000 DT_SIZE_K(256)>;
 };
+
+&kcs3 {
+  status = "okay";
+  addr = <0xca2>;
+};
