@@ -30,7 +30,12 @@
 #include "libutil.h"
 #include "ipmb.h"
 
-LOG_MODULE_REGISTER(kcs);
+#ifdef ENABLE_PLDM
+#include "pldm_oem.h"
+#include "plat_mctp.h"
+#endif
+
+LOG_MODULE_REGISTER(kcs, LOG_LEVEL_DBG);
 
 kcs_dev *kcs;
 static bool proc_kcs_ok = false;
@@ -55,14 +60,60 @@ void reset_kcs_ok()
 	proc_kcs_ok = false;
 }
 
+#ifdef ENABLE_PLDM
+bool pldm_send_bios_version_to_bmc(uint8_t *buf, uint8_t size)
+{
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.ep = MCTP_EID_BMC;
+
+	msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	msg.hdr.rq = 1;
+
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) + (size * sizeof(uint8_t)));
+
+	if (ptr == NULL) {
+		LOG_ERR("Memory allocation failed.");
+		return false;
+	}
+
+	ptr->cmd_code = BIOS_VERSION;
+	ptr->data_length = size;
+	memcpy(ptr->messages, buf, size);
+
+	msg.buf = (uint8_t *)ptr;
+	msg.len = sizeof(struct pldm_oem_write_file_io_req) + (size * sizeof(uint8_t));
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_smbus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		return false;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+	}
+
+	SAFE_FREE(ptr);
+	return true;
+}
+#endif
+
 static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 {
 	int rc = 0;
 	uint8_t ibuf[KCS_BUFF_SIZE];
+#ifndef ENABLE_PLDM
 	ipmi_msg bridge_msg;
-	ipmi_msg_cfg current_msg;
 	ipmb_error status;
-
+#endif
+	ipmi_msg_cfg current_msg;
 	struct kcs_request *req;
 
 	ARG_UNUSED(arvg1);
@@ -135,6 +186,14 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 				if (ret == -1) {
 					LOG_ERR("Record bios fw version fail");
 				}
+#ifdef ENABLE_PLDM
+				/*
+				TODO:
+				BIOS doesn't send set sys info ipmi command to BMC currently.
+				When bios can send normally the code needs to modify.
+				*/
+				pldm_send_bios_version_to_bmc(ibuf, rc);
+#endif
 			}
 			if ((req->netfn == NETFN_OEM_Q_REQ) &&
 			    (req->cmd == CMD_OEM_Q_SET_DIMM_INFO) &&
@@ -144,6 +203,8 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 					LOG_ERR("Set dimm presence status fail");
 				}
 			}
+
+#ifndef ENABLE_PLDM
 			bridge_msg.data_len = rc - 2; // exclude netfn, cmd
 			bridge_msg.seq_source = 0xff; // No seq for KCS
 			bridge_msg.InF_source = HOST_KCS_1 + kcs_inst->index;
@@ -192,6 +253,7 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 						status);
 				}
 			}
+#endif
 		}
 	}
 }
