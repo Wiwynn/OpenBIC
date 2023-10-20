@@ -22,11 +22,11 @@
 #define ADDR_TMP75_INLET (0x92 >> 1)
 #define ADDR_TMP75_OUTLET (0x98 >> 1)
 #define ADDR_TMP75_FIO (0x90 >> 1)
-#define ADDR_VR_CPU0 (0X4F >> 1)
-#define ADDR_VR_SOC (0X4F >> 1)
-#define ADDR_VR_CPU1 (0X4E >> 1)
-#define ADDR_VR_PVDDIO (0X4E >> 1)
-#define ADDR_VR_PVDD11 (0X4B >> 1)
+#define ADDR_VR_CPU0 (0XEC >> 1)
+#define ADDR_VR_SOC (0XEC >> 1)
+#define ADDR_VR_CPU1 (0XC6 >> 1)
+#define ADDR_VR_PVDDIO (0XC6 >> 1)
+#define ADDR_VR_PVDD11 (0XE4 >> 1)
 
 #define OFFSET_TMP75_TEMP 0x00
 #define OFFSET_NVME_TEMP 0x00

@@ -284,7 +284,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0005, //uint16_t sensor_id;
+			0x0057, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0002, //uint16_t entity_instance_number;
 
@@ -361,7 +361,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0006, //uint16_t sensor_id;
+			0x0058, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0003, //uint16_t entity_instance_number;
 
@@ -438,7 +438,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0007, //uint16_t sensor_id;
+			0x0059, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0004, //uint16_t entity_instance_number;
 
@@ -515,7 +515,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0008, //uint16_t sensor_id;
+			0x005E, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0005, //uint16_t entity_instance_number;
 
@@ -592,7 +592,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0009, //uint16_t sensor_id;
+			0x005A, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0006, //uint16_t entity_instance_number;
 
@@ -669,7 +669,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0010, //uint16_t sensor_id;
+			0x005B, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0007, //uint16_t entity_instance_number;
 
@@ -746,7 +746,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0011, //uint16_t sensor_id;
+			0x005C, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0008, //uint16_t entity_instance_number;
 
@@ -823,7 +823,7 @@ pldm_sensor_info plat_pldm_sensor_adc_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0012, //uint16_t sensor_id;
+			0x005D, //uint16_t sensor_id;
 			0x0087, //uint16_t entity_type;
 			0x0009, //uint16_t entity_instance_number;
 
@@ -1055,7 +1055,7 @@ pldm_sensor_info plat_pldm_sensor_ina233_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0064, //uint16_t sensor_id;
+			0x0065, //uint16_t sensor_id;
 			0x0000, //uint16_t entity_type; //Need to check
 			0x0003, //uint16_t entity_instance_number;
 
@@ -1215,7 +1215,7 @@ pldm_sensor_info plat_pldm_sensor_ina233_table[] = {
 			PDR_SENSOR_USEINIT_PDR, //uint8_t sensor_init;
 			0x01, //uint8_t sensor_auxiliary_names_pdr;
 
-			0x06, //uint8_t base_unit;
+			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 
 			0x00, //uint8_t rate_unit;
@@ -1291,7 +1291,7 @@ pldm_sensor_info plat_pldm_sensor_ina233_table[] = {
 			PDR_SENSOR_USEINIT_PDR, //uint8_t sensor_init;
 			0x01, //uint8_t sensor_auxiliary_names_pdr;
 
-			0x06, //uint8_t base_unit;
+			0x07, //uint8_t base_unit;
 			0, //int8_t unit_modifier;
 
 			0x00, //uint8_t rate_unit;
@@ -3142,6 +3142,91 @@ PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
 		.nameLanguageTag = "en",
 		.sensorName = u"FF_VR_PVDDQ_CD_PWR_W",
 	},
+	{
+		// FF_ADC_P3V3_STBY_VOLT_V 
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0004,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"FF_ADC_P3V3_STBY_VOLT_V",
+	},
+	{
+		// FF_CH0_DIMM_A_TEMP_C 
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0005,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"FF_CH0_DIMM_A_TEMP_C",
+	},
+	{
+		// FF_CH0_DIMM_B_TEMP_C 
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0006,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"FF_CH0_DIMM_B_TEMP_C",
+	},
+	{
+		// FF_CH1_DIMM_C_TEMP_C 
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0007,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"FF_CH1_DIMM_C_TEMP_C",
+	},
+	{
+		// FF_CH1_DIMM_D_TEMP_C 
+		/*** PDR common header***/
+		{
+			.record_handle = 0x00000000,
+			.PDR_header_version = 0x01,
+			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
+			.record_change_number = 0x0000,
+			.data_length = 0x0000,
+		},
+		.terminus_handle = 0x0000,
+		.sensor_id = 0x0008,
+		.sensor_count = 0x1,
+		.nameStringCount = 0x1,
+		.nameLanguageTag = "en",
+		.sensorName = u"FF_CH1_DIMM_D_TEMP_C",
+	},
 };
 
 pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
@@ -3160,7 +3245,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0001, //uint16_t sensor_id;
+			0x0005, //uint16_t sensor_id;
 			0x0089, //uint16_t entity_type;
 			0x0001, //uint16_t entity_instance_number;
 
@@ -3236,7 +3321,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0002, //uint16_t sensor_id;
+			0x0006, //uint16_t sensor_id;
 			0x0089, //uint16_t entity_type;
 			0x0002, //uint16_t entity_instance_number;
 
@@ -3312,7 +3397,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0001, //uint16_t sensor_id;
+			0x0007, //uint16_t sensor_id;
 			0x0089, //uint16_t entity_type;
 			0x0001, //uint16_t entity_instance_number;
 
@@ -3388,7 +3473,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			/***numeric sensor format***/
 			0x0000, //uint16_t PLDM_terminus_handle;
 
-			0x0002, //uint16_t sensor_id;
+			0x0008, //uint16_t sensor_id;
 			0x0089, //uint16_t entity_type;
 			0x0002, //uint16_t entity_instance_number;
 
