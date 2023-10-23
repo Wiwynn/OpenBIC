@@ -17,7 +17,15 @@
 #ifndef PLAT_ISR_H
 #define PLAT_ISR_H
 
+#define ADDR_IOE4 (0x46 >> 1)
+
+#define E1S_PRESENT_BIT BIT(2)
+#define E1S_CLK_BIT BIT(5)
+#define E1S_PE_RESET_BIT BIT(6)
+
 void ISR_MB_DC_STAGUS_CHAGNE();
 void ISR_MB_PCIE_RST();
+
+void set_ioe4_pin();
 
 #endif
