@@ -173,13 +173,3 @@ void plat_mctp_init(void)
 		ret = mctp_start(p->mctp_inst);
 	}
 }
-
-uint8_t plat_get_mctp_port_count()
-{
-	return ARRAY_SIZE(plat_mctp_port);
-}
-
-mctp_port *plat_get_mctp_port(uint8_t index)
-{
-	return plat_mctp_port + index;
-}
