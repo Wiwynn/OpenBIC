@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_PLDM_SENSOR_H
+#define PLAT_PLDM_SENSOR_H
 
-#define ENABLE_MCTP_I3C
+#include "pdr.h"
 
-#define BMC_USB_PORT "CDC_ACM_0"
+#define UPDATE_INTERVAL_1S 1
 
-#define ENABLE_PLDM
-#define ENABLE_PLDM_SENSOR
-#define ENABLE_CCI
+enum SENSOR_THREAD_LIST {
+	ADC_SENSOR_THREAD_ID = 0,
+	MAX_SENSOR_THREAD_ID,
+};
+
+int plat_pldm_sensor_get_sensor_count(int thread_id);
+void plat_pldm_sensor_get_pdr_numeric_sesnor(int thread_id, int sensor_num,
+					     PDR_numeric_sensor *numeric_sensor_table);
+
 #endif
