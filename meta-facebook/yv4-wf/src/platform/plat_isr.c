@@ -26,7 +26,7 @@
 
 LOG_MODULE_REGISTER(plat_isr);
 
-int e1s_pe_reset_control()
+int set_ioe4_control(int cmd)
 {
 	int ret = 0;
 	uint8_t retry = 5;
@@ -41,7 +41,8 @@ int e1s_pe_reset_control()
 
 	ret = i2c_master_read(&msg, retry);
 	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		LOG_ERR("Unable to read ioexp bus when setting IOE4: %u addr: 0x%02x", msg.bus,
+			msg.target_addr);
 		return -1;
 	}
 
@@ -53,12 +54,24 @@ int e1s_pe_reset_control()
 	msg.target_addr = ADDR_IOE4;
 	msg.tx_len = 2;
 	msg.data[0] = TCA9555_OUTPUT_PORT_REG_1;
-	msg.data[1] = ((io_output_status | E1S_PE_RESET_BIT) & (~E1S_CLK_BIT));
+
+	switch (cmd) {
+	case SET_CLK:
+		msg.data[1] = ((io_output_status & (~ASIC_CLK_BIT)) & (~E1S_CLK_BIT));
+		break;
+	case SET_PE_RST:
+		msg.data[1] = (io_output_status | E1S_PE_RESET_BIT);
+		break;
+	default:
+		LOG_ERR("Unknown command to set IOE4. cmd: %d", cmd);
+		return -1;
+	}
 
 	ret = i2c_master_write(&msg, retry);
 
 	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		LOG_ERR("Unable to write ioexp bus when setting IOE4: %u addr: 0x%02x", msg.bus,
+			msg.target_addr);
 		return -1;
 	}
 
@@ -82,7 +95,8 @@ int check_e1s_present_status()
 	ret = i2c_master_read(&msg, retry);
 
 	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		LOG_ERR("Unable to read ioexp bus when checking E1S present: %u addr: 0x%02x",
+			msg.bus, msg.target_addr);
 		return -1;
 	}
 
@@ -111,7 +125,8 @@ void set_ioe4_pin()
 
 	ret = i2c_master_read(&msg, retry);
 	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		LOG_ERR("Unable to read ioexp bus when initializing IOE4: %u addr: 0x%02x", msg.bus,
+			msg.target_addr);
 		return;
 	}
 
@@ -123,13 +138,13 @@ void set_ioe4_pin()
 	msg.target_addr = ADDR_IOE4;
 	msg.tx_len = 2;
 	msg.data[0] = TCA9555_CONFIG_REG_1;
-	msg.data[1] = ((io_output_status & (~E1S_PE_RESET_BIT)) & (~E1S_CLK_BIT)) |
-		      E1S_PRESENT_BIT; //Set bit5,6 output and bit2 input
+	msg.data[1] = IOE4_CONFIGUTATION_PINS;
 
 	ret = i2c_master_write(&msg, retry);
 
 	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp bus: %u addr: 0x%02x", msg.bus, msg.target_addr);
+		LOG_ERR("Unable to write ioexp bus when initializing IOE4: %u addr: 0x%02x",
+			msg.bus, msg.target_addr);
 		return;
 	}
 
@@ -139,8 +154,13 @@ void set_ioe4_pin()
 void check_ioexp_status()
 {
 	if (check_e1s_present_status() == 0) {
-		e1s_pe_reset_control();
+		set_ioe4_control(SET_PE_RST);
 	}
+}
+
+void set_asic_and_e1s_clk_handler()
+{
+	set_ioe4_control(SET_CLK);
 }
 
 K_WORK_DEFINE(cxl_power_on_work, execute_power_on_sequence);
@@ -169,4 +189,11 @@ void ISR_MB_PCIE_RST()
 	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
 		k_work_submit(&ioe_power_on_work);
 	}
+}
+
+K_WORK_DEFINE(e1s_pwr_on_work, set_asic_and_e1s_clk_handler);
+
+void ISR_E1S_PWR_ON()
+{
+	k_work_submit(&e1s_pwr_on_work);
 }
