@@ -184,7 +184,7 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		if (p->endpoint == dest_endpoint) {
 			*mctp_inst = find_mctp_by_bus(p->bus);
-			if (dest_endpoint == MCTP_EID_CXL) {
+			if (p->bus != I3C_BUS_SD_BIC) {
 				ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
 				ext_params->smbus_ext_params.addr = p->addr;
 			}
