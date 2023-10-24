@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef PLAT_HOOK_H
+#define PLAT_HOOK_H
 
-#define BMC_USB_PORT "CDC_ACM_0"
+extern adc_asd_init_arg ast_adc_init_args[];
 
-#define ENABLE_PLDM
-#define ENABLE_PLDM_SENSOR
-#define ENABLE_CCI
 #endif
