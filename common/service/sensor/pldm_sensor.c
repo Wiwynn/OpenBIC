@@ -91,6 +91,7 @@ int pldm_sensor_get_info_via_sensor_id(uint16_t sensor_id, float *resolution, fl
 							 .pdr_numeric_sensor.unit_modifier;
 				// Get from sensor config
 				*cache = pldm_sensor_list[t_id][s_id].pldm_sensor_cfg.cache;
+				LOG_ERR("sensor[%d][%d] cache is %d",t_id, s_id, *cache);
 				*sensor_operational_state =
 					pldm_sensor_list[t_id][s_id].pldm_sensor_cfg.cache_status;
 				return 0;
