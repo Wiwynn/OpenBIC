@@ -115,24 +115,7 @@ void set_ioe4_pin()
 {
 	int ret = 0;
 	uint8_t retry = 5;
-	uint8_t io_output_status = 0;
 	I2C_MSG msg = { 0 };
-
-	msg.bus = I2C_BUS6;
-	msg.target_addr = ADDR_IOE4;
-	msg.rx_len = 1;
-	msg.tx_len = 1;
-	msg.data[0] = TCA9555_CONFIG_REG_1;
-
-	ret = i2c_master_read(&msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Unable to read ioexp bus when initializing IOE4: %u addr: 0x%02x", msg.bus, msg.target_addr);
-		return;
-	}
-
-	io_output_status = msg.data[0];
-
-	memset(&msg, 0, sizeof(I2C_MSG));
 
 	msg.bus = I2C_BUS6;
 	msg.target_addr = ADDR_IOE4;
