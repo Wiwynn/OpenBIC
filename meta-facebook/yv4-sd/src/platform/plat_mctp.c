@@ -95,6 +95,31 @@ mctp *find_mctp_by_bus(uint8_t bus)
 	return NULL;
 }
 
+mctp *find_mctp_by_addr(uint8_t addr)
+{
+	uint8_t i;
+	for (i = 0; i < ARRAY_SIZE(plat_mctp_port); i++) {
+		mctp_port *p = plat_mctp_port + i;
+
+		if (p->medium_type == MCTP_MEDIUM_TYPE_SMBUS) {
+			if (addr == p->conf.smbus_conf.addr) {
+				return p->mctp_inst;
+			}
+		}
+		else if (p->medium_type == MCTP_MEDIUM_TYPE_CONTROLLER_I3C) {
+			if (addr == p->conf.i3c_conf.addr) {
+				return p->mctp_inst;
+			}
+		}
+		else {
+			LOG_ERR("Unknown medium type");
+			return NULL;
+		}
+	}
+
+	return NULL;
+}
+
 static void set_endpoint_resp_handler(void *args, uint8_t *buf, uint16_t len)
 {
 	ARG_UNUSED(args);
@@ -121,7 +146,7 @@ static void set_dev_endpoint(void)
 			continue;
 
 		for (uint8_t j = 0; j < ARRAY_SIZE(plat_mctp_port); j++) {
-			if (p->bus != plat_mctp_port[j].conf.i3c_conf.bus)
+			if (p->addr != plat_mctp_port[j].conf.i3c_conf.addr)
 				continue;
 
 			struct _set_eid_req req = { 0 };
@@ -143,7 +168,7 @@ static void set_dev_endpoint(void)
 			msg.timeout_cb_fn = set_endpoint_resp_timeout;
 			msg.timeout_cb_fn_args = p;
 
-			uint8_t rc = mctp_ctrl_send_msg(find_mctp_by_bus(p->bus), &msg);
+			uint8_t rc = mctp_ctrl_send_msg(find_mctp_by_addr(p->addr), &msg);
 			if (rc)
 				LOG_ERR("Fail to set endpoint %d", p->endpoint);
 		}
@@ -188,12 +213,13 @@ static uint8_t get_mctp_route_info(uint8_t dest_endpoint, void **mctp_inst,
 	for (i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
 		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		if (p->endpoint == dest_endpoint) {
-			*mctp_inst = find_mctp_by_bus(p->bus);
 			if (dest_endpoint == MCTP_EID_BMC) {
+				*mctp_inst = find_mctp_by_bus(p->bus);
 				ext_params->type = MCTP_MEDIUM_TYPE_SMBUS;
 				ext_params->smbus_ext_params.addr = p->addr;
 			}
 			else {
+				*mctp_inst = find_mctp_by_addr(p->addr);
 				ext_params->type = MCTP_MEDIUM_TYPE_CONTROLLER_I3C;
 				ext_params->i3c_ext_params.addr = p->addr;
 			}
