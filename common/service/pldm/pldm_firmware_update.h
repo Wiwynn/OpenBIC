@@ -145,23 +145,22 @@ enum pldm_firmware_update_aux_state {
 /**
  * PLDM component classification
  */
-enum {
-	COMP_CLASS_TYPE_UNKNOWN = 0x0000,
-	COMP_CLASS_TYPE_OTHER,
-	COMP_CLASS_TYPE_DRIVER,
-	COMP_CLASS_TYPE_CFG_SW,
-	COMP_CLASS_TYPE_APP_SW,
-	COMP_CLASS_TYPE_INSTR,
-	COMP_CLASS_TYPE_FW_BIOS,
-	COMP_CLASS_TYPE_DIAG_SW,
-	COMP_CLASS_TYPE_OS,
-	COMP_CLASS_TYPE_MW,
-	COMP_CLASS_TYPE_FW,
-	COMP_CLASS_TYPE_BIOS_FC,
-	COMP_CLASS_TYPE_SP_SV_P,
-	COMP_CLASS_TYPE_SW_BUNDLE,
-	COMP_CLASS_TYPE_DOWNSTREAM = 0xFFFF,
-	COMP_CLASS_TYPE_MAX = 0x10000,
+enum { COMP_CLASS_TYPE_UNKNOWN = 0x0000,
+       COMP_CLASS_TYPE_OTHER,
+       COMP_CLASS_TYPE_DRIVER,
+       COMP_CLASS_TYPE_CFG_SW,
+       COMP_CLASS_TYPE_APP_SW,
+       COMP_CLASS_TYPE_INSTR,
+       COMP_CLASS_TYPE_FW_BIOS,
+       COMP_CLASS_TYPE_DIAG_SW,
+       COMP_CLASS_TYPE_OS,
+       COMP_CLASS_TYPE_MW,
+       COMP_CLASS_TYPE_FW,
+       COMP_CLASS_TYPE_BIOS_FC,
+       COMP_CLASS_TYPE_SP_SV_P,
+       COMP_CLASS_TYPE_SW_BUNDLE,
+       COMP_CLASS_TYPE_DOWNSTREAM = 0xFFFF,
+       COMP_CLASS_TYPE_MAX = 0x10000,
 };
 
 /**
@@ -196,6 +195,10 @@ enum pldm_firmware_update_verify_result_values {
  */
 enum pldm_firmware_update_apply_result_values {
 	PLDM_FW_UPDATE_APPLY_SUCCESS = 0x00,
+	PLDM_FW_UPDATE_APPLY_SUCCESS_HAS_MODIFY_ACTIVATE_METHOD,
+	PLDM_FW_UPDATE_APPLY_FAIL_WITH_MEMORY_WRITE_ISSUE,
+	PLDM_FW_UPDATE_APPLY_TIMEOUT_OCCURRED = 0x09,
+	PLDM_FW_UPDATE_APPLY_GENERIC_ERROR_OCCURRED,
 	/* Other values that are not currently used, and will be defined if they are
   used in the future. */
 };
@@ -274,6 +277,7 @@ typedef enum fd_update_interface {
 
 // typedef uint8_t (*pldm_fwupdate_func)(uint16_t comp_id, void *mctp_p, void *ext_params);
 typedef uint8_t (*pldm_fwupdate_func)(void *fw_update_param);
+typedef uint8_t (*pldm_apply_check_func)();
 typedef uint8_t (*pldm_act_func)(void *arg);
 typedef bool (*pldm_get_fw_version_fn)(void *info_p, uint8_t *buf, uint8_t *len);
 typedef struct pldm_fw_update_param {
@@ -299,6 +303,7 @@ typedef struct pldm_fw_update_info {
 	pldm_fwupdate_func pos_update_func;
 	fd_update_interface_t inf;
 	uint16_t activate_method;
+	pldm_apply_check_func self_apply_check_func;
 	pldm_act_func self_act_func;
 	pldm_get_fw_version_fn get_fw_version_fn;
 	uint8_t *pending_version_p;

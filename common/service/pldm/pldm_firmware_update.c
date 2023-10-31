@@ -623,7 +623,13 @@ void req_fw_update_handler(void *mctp_p, void *ext_params, void *arg)
 	state_update(STATE_APPLY);
 
 	LOG_INF("Apply complete");
-	if (report_tranfer(mctp_p, ext_params, PLDM_FW_UPDATE_APPLY_SUCCESS)) {
+
+	uint8_t apply_result = PLDM_FW_UPDATE_APPLY_SUCCESS;
+	if (fw_info->self_apply_check_func != NULL) {
+		apply_result = fw_info->self_apply_check_func();
+	}
+
+	if (report_tranfer(mctp_p, ext_params, apply_result)) {
 		report_tranfer(mctp_p, ext_params, PLDM_FW_UPDATE_GENERIC_ERROR);
 		cur_aux_state = STATE_AUX_FAILED;
 		goto exit;
