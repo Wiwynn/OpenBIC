@@ -30,6 +30,11 @@
 #include "libutil.h"
 #include "ipmb.h"
 
+#ifdef ENABLE_PLDM
+#include "pldm_oem.h"
+#include "plat_mctp.h"
+#endif
+
 LOG_MODULE_REGISTER(kcs);
 
 kcs_dev *kcs;
@@ -55,14 +60,69 @@ void reset_kcs_ok()
 	proc_kcs_ok = false;
 }
 
+#ifdef ENABLE_PLDM
+
+enum cmd_app_get_sys_info_params {
+	LENGTH_INDEX = 0x05, // skip netfun, cmd code, paramter selctor, set selctor, encoding
+	VERIONS_START_INDEX = 0x06,
+};
+
+int pldm_send_bios_version_to_bmc(uint8_t *buf)
+{
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.ep = MCTP_EID_BMC;
+
+	msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	msg.hdr.rq = 1;
+
+	uint8_t data_len = buf[LENGTH_INDEX];
+
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) + (data_len * sizeof(uint8_t)));
+
+	if (ptr == NULL) {
+		LOG_ERR("Memory allocation failed.");
+		return -1;
+	}
+
+	ptr->cmd_code = BIOS_VERSION;
+	ptr->data_length = data_len;
+	memcpy(ptr->messages, &buf[VERIONS_START_INDEX], data_len);
+
+	msg.buf = (uint8_t *)ptr;
+	msg.len = sizeof(struct pldm_oem_write_file_io_req) + (data_len * sizeof(uint8_t));
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		SAFE_FREE(ptr);
+		return -1;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+	}
+
+	SAFE_FREE(ptr);
+	return 1;
+}
+#endif
+
 static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 {
 	int rc = 0;
 	uint8_t ibuf[KCS_BUFF_SIZE];
+#ifndef ENABLE_PLDM
 	ipmi_msg bridge_msg;
-	ipmi_msg_cfg current_msg;
 	ipmb_error status;
-
+#endif
+	ipmi_msg_cfg current_msg;
 	struct kcs_request *req;
 
 	ARG_UNUSED(arvg1);
@@ -128,6 +188,42 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 					SAFE_FREE(kcs_buff);
 				} while (0);
 			}
+#ifdef ENABLE_PLDM
+			/*
+			Bios needs get self test and get system info before getting set system info
+			*/
+			if ((req->netfn == NETFN_APP_REQ) &&
+			    (req->cmd == CMD_APP_GET_SELFTEST_RESULTS)) {
+				uint8_t *kcs_buff;
+				kcs_buff = malloc(4);
+				if (kcs_buff == NULL) {
+					LOG_ERR("Memory allocation failed");
+					continue;
+				}
+				kcs_buff[0] = req->netfn;
+				kcs_buff[1] = req->cmd;
+				kcs_buff[2] = 0x00;
+				kcs_buff[3] = 0x55;
+				kcs_write(kcs_inst->index, kcs_buff, 4);
+				SAFE_FREE(kcs_buff);
+			}
+			if ((req->netfn == NETFN_APP_REQ) &&
+			    (req->cmd == CMD_APP_GET_SYS_INFO_PARAMS)) {
+				uint8_t *kcs_buff;
+				kcs_buff = malloc(5);
+				if (kcs_buff == NULL) {
+					LOG_ERR("Memory allocation failed");
+					continue;
+				}
+				kcs_buff[0] = req->netfn;
+				kcs_buff[1] = req->cmd;
+				kcs_buff[2] = 0x00;
+				kcs_buff[3] = 0x01;
+				kcs_buff[4] = 0x00;
+				kcs_write(kcs_inst->index, kcs_buff, 5);
+				SAFE_FREE(kcs_buff);
+			}
+#endif
 			if ((req->netfn == NETFN_APP_REQ) &&
 			    (req->cmd == CMD_APP_SET_SYS_INFO_PARAMS) &&
 			    (req->data[0] == CMD_SYS_INFO_FW_VERSION)) {
@@ -135,6 +231,12 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 				if (ret == -1) {
 					LOG_ERR("Record bios fw version fail");
 				}
+#ifdef ENABLE_PLDM
+				ret = pldm_send_bios_version_to_bmc(ibuf);
+				if (ret < 0) {
+					LOG_ERR("Failed to send bios version to bmc, rc = %d", ret);
+				}
+#endif
 			}
 			if ((req->netfn == NETFN_OEM_Q_REQ) &&
 			    (req->cmd == CMD_OEM_Q_SET_DIMM_INFO) &&
@@ -144,6 +246,7 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 					LOG_ERR("Set dimm presence status fail");
 				}
 			}
+#ifndef ENABLE_PLDM
 			bridge_msg.data_len = rc - 2; // exclude netfn, cmd
 			bridge_msg.seq_source = 0xff; // No seq for KCS
 			bridge_msg.InF_source = HOST_KCS_1 + kcs_inst->index;
@@ -192,6 +295,7 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 						status);
 				}
 			}
+#endif
 		}
 	}
 }
