@@ -19,6 +19,8 @@
 
 #include <stdint.h>
 
+void ISR_SLP_S5_CHANGED();
+void ISR_SLP_S3_CHANGED();
 void ISR_DC_ON();
 void ISR_POST_COMPLETE();
 void ISR_BMC_READY();

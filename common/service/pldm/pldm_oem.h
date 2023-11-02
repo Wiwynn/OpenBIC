@@ -34,6 +34,7 @@ extern "C" {
 
 enum cmd_type {
 	POST_CODE = 0x00,
+	POWER_STATUS = 0x01,
 };
 
 struct _cmd_echo_req {

@@ -15,6 +15,7 @@
  */
 
 #include <logging/log.h>
+#include <stdlib.h>
 #include "libipmi.h"
 #include "kcs.h"
 #include "rg3mxxb12.h"
@@ -31,6 +32,7 @@
 #include "plat_class.h"
 #include "plat_sensor_table.h"
 #include "plat_i2c.h"
+#include "pldm_oem.h"
 #include "plat_mctp.h"
 #include "plat_apml.h"
 #include "plat_i3c.h"
@@ -75,6 +77,65 @@ void reinit_i3c_hub()
 
 	// Set FF/WF's EID
 	send_cmd_to_dev_handler(NULL);
+}
+
+#define POWER_STATUS_DATA_SIZE 1
+
+void send_power_status_to_bmc(const int power_status)
+{
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.ep = MCTP_EID_BMC;
+
+	msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	msg.hdr.rq = 1;
+
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) +
+		(sizeof(uint8_t) * POWER_STATUS_DATA_SIZE));
+
+	if (!ptr)
+	{
+		LOG_ERR("Failed to allocate memory.");
+		return;
+	}
+
+	ptr->cmd_code = POWER_STATUS;
+	ptr->data_length = POWER_STATUS_DATA_SIZE;
+	ptr->messages[0] = power_status;
+	
+	msg.buf = (uint8_t *)ptr;
+	msg.len = sizeof(struct pldm_oem_write_file_io_req) + POWER_STATUS_DATA_SIZE;
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		return;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+	}
+
+	SAFE_FREE(ptr);
+	return;
+}
+
+void ISR_SLP_S5_CHANGED()
+{
+	const int ACPI_S5 = 5;
+	send_power_status_to_bmc(ACPI_S5);
+}
+
+void ISR_SLP_S3_CHANGED()
+{
+	const int ACPI_S3 = 3;
+	send_power_status_to_bmc(ACPI_S3);
 }
 
 void switch_i3c_dimm_mux_to_cpu()
