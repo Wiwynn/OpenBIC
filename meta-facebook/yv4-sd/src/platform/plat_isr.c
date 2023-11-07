@@ -77,6 +77,7 @@ void reinit_i3c_hub()
 
 K_WORK_DELAYABLE_DEFINE(set_DC_on_5s_work, set_DC_on_delayed_status);
 K_WORK_DEFINE(reinit_i3c_work, reinit_i3c_hub);
+
 #define DC_ON_5_SECOND 5
 void ISR_DC_ON()
 {

@@ -98,6 +98,19 @@ bool post_amd_tsi_read(sensor_cfg *cfg, void *args, int *const reading)
 	}
 
 	// TODO: if throttle send event to BMC
+	return true;
+}
 
+bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args)
+{
+	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
+	ARG_UNUSED(args);
+
+	if (!get_post_status()) {
+		LOG_DBG("Post code not complete.");
+		return true;
+	}
+
+	// TODO: Check DIMM present
 	return true;
 }

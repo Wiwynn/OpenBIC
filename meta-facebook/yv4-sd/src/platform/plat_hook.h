@@ -29,5 +29,6 @@ extern vr_pre_proc_arg vr_pre_read_args[];
 
 bool pre_vr_read(sensor_cfg *cfg, void *args);
 bool post_amd_tsi_read(sensor_cfg *cfg, void *args, int *const reading);
+bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args);
 
 #endif
