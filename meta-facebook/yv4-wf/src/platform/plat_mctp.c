@@ -284,7 +284,6 @@ mctp_port *plat_get_mctp_port(uint8_t index)
 	return plat_mctp_port + index;
 }
 
-<<<<<<< HEAD
 void plat_update_mctp_routing_table(uint8_t eid)
 {
 	// update sd bic eid
@@ -303,11 +302,11 @@ void plat_update_mctp_routing_table(uint8_t eid)
 	k_timer_start(&send_cmd_timer, K_MSEC(30000), K_NO_WAIT);
 
 	return;
-=======
+}
+
 int load_mctp_support_types(uint8_t *type_len, uint8_t *types)
 {
 	*type_len = sizeof(MCTP_SUPPORTED_MESSAGES_TYPES);
 	memcpy(types, MCTP_SUPPORTED_MESSAGES_TYPES, sizeof(MCTP_SUPPORTED_MESSAGES_TYPES));
 	return MCTP_SUCCESS;
->>>>>>> 979a42bfb... fby4: wf: Support to read ADC sensor
 }

@@ -16,7 +16,6 @@
 
 #include <logging/log.h>
 #include "util_worker.h"
-#include "ioexp_tca9555.h"
 #include "hal_gpio.h"
 #include "hal_i2c.h"
 #include "plat_gpio.h"
@@ -25,6 +24,17 @@
 #include "plat_i2c.h"
 
 LOG_MODULE_REGISTER(plat_isr);
+
+IOE_CFG ioe_cfg[] = {
+	{ ADDR_IOE1, TCA9555_CONFIG_REG_0, 0x18, TCA9555_OUTPUT_PORT_REG_0, 0x18 },
+	{ ADDR_IOE1, TCA9555_CONFIG_REG_1, 0xC0, TCA9555_OUTPUT_PORT_REG_1, 0xFE },
+	{ ADDR_IOE2, TCA9555_CONFIG_REG_0, 0xF0, TCA9555_OUTPUT_PORT_REG_0, 0xF0 },
+	{ ADDR_IOE2, TCA9555_CONFIG_REG_1, 0xC0, TCA9555_OUTPUT_PORT_REG_1, 0x78 },
+	{ ADDR_IOE3, TCA9555_CONFIG_REG_0, 0xFF, TCA9555_OUTPUT_PORT_REG_0, 0xFF },
+	{ ADDR_IOE3, TCA9555_CONFIG_REG_1, 0xF0, TCA9555_OUTPUT_PORT_REG_1, 0xF4 },
+	{ ADDR_IOE4, TCA9555_CONFIG_REG_0, 0x12, TCA9555_OUTPUT_PORT_REG_0, 0x7F },
+	{ ADDR_IOE4, TCA9555_CONFIG_REG_1, 0x04, TCA9555_OUTPUT_PORT_REG_1, 0xBE },
+};
 
 int set_ioe4_control(int cmd)
 {
@@ -110,24 +120,33 @@ int check_e1s_present_status()
 	}
 }
 
-void set_ioe4_pin()
+void set_ioe_init()
 {
 	int ret = 0;
 	uint8_t retry = 5;
 	I2C_MSG msg = { 0 };
-
 	msg.bus = I2C_BUS6;
-	msg.target_addr = ADDR_IOE4;
 	msg.tx_len = 2;
-	msg.data[0] = TCA9555_CONFIG_REG_1;
-	msg.data[1] = IOE4_CONFIGUTATION_PINS;
 
-	ret = i2c_master_write(&msg, retry);
+	for (int i = 0; i < ARRAY_SIZE(ioe_cfg); i++) {
+		msg.target_addr = ioe_cfg[i].addr;
+		msg.data[0] = ioe_cfg[i].conf_reg;
+		msg.data[1] = ioe_cfg[i].conf_dir;
+		ret = i2c_master_write(&msg, retry);
+		if (ret != 0) {
+			LOG_ERR("Unable to write ioexp bus when initializing IOE, addr: 0x%02x",
+					msg.target_addr);
+			return;
+		}
 
-	if (ret != 0) {
-		LOG_ERR("Unable to write ioexp bus when initializing IOE4: %u addr: 0x%02x",
-			msg.bus, msg.target_addr);
-		return;
+		msg.data[0] = ioe_cfg[i].output_reg;
+		msg.data[1] = ioe_cfg[i].output_val;
+		ret = i2c_master_write(&msg, retry);
+		if (ret != 0) {
+			LOG_ERR("Unable to write ioexp bus when initializing IOE, addr: 0x%02x",
+					msg.target_addr);
+			return;
+		}
 	}
 
 	return;
