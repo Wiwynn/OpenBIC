@@ -224,8 +224,13 @@ int pldm_sensor_polling_pre_check(pldm_sensor_info *pldm_snr_list)
 		}
 	}
 
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x1c)
+		pldm_snr_list->pldm_sensor_cfg.type = 0x19;
 	ret = sensor_drive_tbl[pldm_snr_list->pldm_sensor_cfg.type].init(
 		&pldm_snr_list->pldm_sensor_cfg);
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x19)
+		pldm_snr_list->pldm_sensor_cfg.type = 0x1c;
+
 	if (ret < 0) {
 		pldm_snr_list->pldm_sensor_cfg.cache_status = PLDM_SENSOR_FAILED;
 		LOG_ERR("Failed to init sensor 0x%x", pldm_snr_list->pdr_numeric_sensor.sensor_id);
