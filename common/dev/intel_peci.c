@@ -26,6 +26,7 @@
 #include "util_sys.h"
 #include "intel_dimm.h"
 #include <logging/log.h>
+#include "pmic.h"
 
 LOG_MODULE_REGISTER(dev_intel_peci);
 
@@ -515,6 +516,449 @@ static bool get_dimm_temp(uint8_t addr, uint8_t type, int *reading)
 	return true;
 }
 
+static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
+{
+	CHECK_NULL_ARG_WITH_RETURN(reading, false);
+
+	uint8_t pmic_addr = 0xFF;
+	uint8_t bdf = 0xFF;
+	uint8_t read_len = 0x05;
+	uint8_t write_len = 0x0C;
+	uint8_t sys_sem_head_cmd[PECI_RD_END_PT_CFG_WR_LEN - 1] = { 0x00, 0x03, 0x00, 0x00,
+								    0x00, 0x04, 0x00, 0xA8,
+								    0x21, 0xE0, 0x01 };
+	uint8_t sys_sem_tail_cmd[PECI_RD_END_PT_CFG_WR_LEN - 1] = { 0x00, 0x03, 0x00, 0x00,
+								    0x00, 0x04, 0x00, 0xB8,
+								    0x21, 0xE0, 0x01 };
+	uint8_t sys_sem_app_cmd[PECI_RD_END_PT_CFG_WR_LEN - 1] = { 0x00, 0x03, 0x00, 0x00,
+								   0x00, 0x04, 0x00, 0x98,
+								   0x21, 0xE0, 0x01 };
+	uint8_t bios_rtbus_rdy_cmd[PECI_RD_END_PT_CFG_WR_LEN - 1] = { 0x00, 0x03, 0x00, 0x00,
+								      0x00, 0x04, 0x00, 0xA0,
+								      0x81, 0x81, 0x00 };
+	uint8_t bios_rtbus_get_cmd[PECI_RD_END_PT_CFG_WR_LEN - 1] = { 0x00, 0x03, 0x00, 0x00,
+								      0x00, 0x04, 0x00, 0xCC,
+								      0x81, 0x81, 0x00 };
+	uint8_t rl_sem_cmd[PECI_WR_END_PT_CFG_WR_LEN_DWORD - 2] = { 0x00, 0x03, 0x00, 0x00, 0x00,
+								    0x04, 0x00, 0xC8, 0x21, 0xE0,
+								    0x01, 0x00, 0x00, 0x00, 0x00 };
+	uint16_t sem_head = 0xFFFF, sem_tail = 0xFFFF, sem_app = 0xFFFFF;
+	uint8_t bios_rtbusu0_val;
+
+	switch (type) {
+	case PECI_POWER_CHANNEL0_PMIC0:
+		pmic_addr = 0x48;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL0_PMIC1:
+		pmic_addr = 0x49;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL1_PMIC0:
+		pmic_addr = 0x4A;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL1_PMIC1:
+		pmic_addr = 0x4B;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL2_PMIC0:
+		pmic_addr = 0x4C;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL2_PMIC1:
+		pmic_addr = 0x4D;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL3_PMIC0:
+		pmic_addr = 0x4E;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL3_PMIC1:
+		pmic_addr = 0x4F;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL4_PMIC0:
+		pmic_addr = 0x48;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL4_PMIC1:
+		pmic_addr = 0x49;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL5_PMIC0:
+		pmic_addr = 0x4A;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL5_PMIC1:
+		pmic_addr = 0x4B;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL6_PMIC0:
+		pmic_addr = 0x4C;
+		bdf = 0xF2;
+		break;
+	case PECI_POWER_CHANNEL6_PMIC1:
+		pmic_addr = 0x4D;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL7_PMIC0:
+		pmic_addr = 0x4E;
+		bdf = 0xF5;
+		break;
+	case PECI_POWER_CHANNEL7_PMIC1:
+		pmic_addr = 0x4F;
+		bdf = 0xF5;
+		break;
+	}
+
+	if (pmic_addr == 0xFF || bdf == 0xFF) {
+		LOG_ERR("Unsupported PECI PMIC channel %d", type);
+		return false;
+	}
+
+	uint8_t *read_buf = (uint8_t *)malloc(read_len * sizeof(uint8_t));
+	if (!read_buf) {
+		LOG_ERR("%s fail to allocate read_buf memory", __func__);
+		return false;
+	}
+
+	// Check semaphore head and tail number
+	while (1) {
+		if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+			       sys_sem_head_cmd) != 0) {
+			LOG_ERR("PECI read system semaphore head number error");
+		}
+		if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+			if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+				LOG_ERR("Read system semaphore head number unknown request");
+			} else {
+				LOG_ERR("Read system semaphore head number peci control hardware, firmware or associated logic error");
+			}
+		}
+		sem_head = (read_buf[1] << 8) | read_buf[2];
+
+		memset(read_buf, 0, read_len);
+
+		if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+			       sys_sem_tail_cmd) != 0) {
+			LOG_ERR("PECI read system semaphore tail number error");
+		}
+		if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+			if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+				LOG_ERR("Read system semaphore tail number unknown request");
+			} else {
+				LOG_ERR("Read system semaphore tail number peci control hardware, firmware or associated logic error");
+			}
+		}
+		sem_tail = (read_buf[1] << 8) | read_buf[2];
+
+		if ((sem_head == sem_tail) && (sem_head != 0xFFFFF) && (sem_tail != 0xFFFF)) {
+			break;
+		} else {
+			read_len = 0x01;
+			write_len = 0x11;
+			read_buf = (uint8_t *)realloc(read_buf, read_len);
+			rl_sem_cmd[11] = (sem_head >> 8) & 0xFF;
+			rl_sem_cmd[12] = sem_head & 0xFF;
+			if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       rl_sem_cmd) != 0) {
+				LOG_ERR("PECI relase the semaphore error");
+			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Relase the semaphore unknown request");
+				} else {
+					LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+				}
+			}
+		}
+	}
+
+	// Apply semaphore
+	read_len = 0x05;
+	write_len = 0x0C;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       sys_sem_app_cmd) != 0) {
+		LOG_ERR("PECI apply system semaphore error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Apply system semaphore unknown request");
+		} else {
+			LOG_ERR("Apply system semaphore peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	sem_app = (read_buf[1] << 8) | read_buf[2];
+	if ((sem_app != sem_head) || (read_buf[4] != PECI_CC_RSP_SUCCESS)) {
+		LOG_ERR("Apply system semaphore error");
+		goto cleanup;
+	}
+
+	// Check BIOS assign RootBus_U0 ready
+	memset(read_buf, 0, read_len);
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       bios_rtbus_rdy_cmd) != 0) {
+		LOG_ERR("PECI check BIOS assign RootBus_U0 ready error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Check BIOS assign RootBus_U0 ready unknown request");
+		} else {
+			LOG_ERR("Check BIOS assign RootBus_U0 ready peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	// Bit 30 == 1 means ready
+	if (GETBIT(read_buf[4], 6) != 1) {
+		LOG_ERR("BIOS assign RootBus_U0 is not ready");
+		goto cleanup;
+	}
+
+	// Get RootBus_U0 value
+	memset(read_buf, 0, read_len);
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       bios_rtbus_get_cmd) != 0) {
+		LOG_ERR("PECI get BIOS RootBus_U0 value error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Get BIOS RootBus_U0 value unknown request");
+		} else {
+			LOG_ERR("Get BIOS RootBus_U0 value peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	bios_rtbusu0_val = read_buf[3];
+
+	// Check CPU I3C_SPD controller INTR_STATUS
+	memset(read_buf, 0, read_len);
+	write_len = 0x0E;
+	uint8_t check_cpu_i3c_spd_cmd[13] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0x20, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       check_cpu_i3c_spd_cmd) != 0) {
+		LOG_ERR("PECI check CPU I3C_SPD controller INTR_STATUS error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS unknown request");
+		} else {
+			LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	if (read_buf[1] != 0x09) {
+		LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS error");
+		goto cleanup;
+	}
+
+	// Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT
+	read_len = 0x01;
+	write_len = 0x13;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	uint8_t wr_lowqport_cmd[PECI_WR_END_PT_CFG_WR_LEN_DWORD] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF,      bdf, bios_rtbusu0_val,
+		0xC0, 0x00, 0x00, 0x00, 0x03, 0x00, pmic_addr, 0xe0
+	};
+	if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       wr_lowqport_cmd) != 0) {
+		LOG_ERR("PECI write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT unknown request");
+		} else {
+			LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+
+	// Make sure user can write next commands
+	read_len = 0x05;
+	write_len = 0x0E;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	uint8_t wr_next_cmd[PECI_WR_END_PT_CFG_WR_LEN_BYTE - 1] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0x20, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len, wr_next_cmd) !=
+	    0) {
+		LOG_ERR("PECI make sure user can write next commands error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Make sure user can write next commands unknown request");
+		} else {
+			LOG_ERR("Make sure user can write next commands peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	if (read_buf[1] != 0x09) {
+		LOG_ERR("Make sure user can write next commands error");
+		goto cleanup;
+	}
+
+	// Write REGULAR_COMMAND_High to COMMAND_QUEUE_PORT
+	read_len = 0x01;
+	write_len = 0x13;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	uint8_t wr_highqport_cmd[PECI_WR_END_PT_CFG_WR_LEN_DWORD] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0xC0, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x01, 0x00
+	};
+	if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       wr_highqport_cmd) != 0) {
+		LOG_ERR("PECI write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT unknown request");
+		} else {
+			LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+
+	// Make sure getting PMIC respond data back without I3C transfer error happen
+	read_len = 0x05;
+	write_len = 0x0E;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	uint8_t check_error_cmd[PECI_WR_END_PT_CFG_WR_LEN_BYTE - 1] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0x20, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       check_error_cmd) != 0) {
+		LOG_ERR("PECI check I3C transfer error happen error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Check I3C transfer error happen unknown request");
+		} else {
+			LOG_ERR("Check I3C transfer error happen peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	if ((read_buf[1] != 0x1B) || (read_buf[2] != 0x00)) {
+		LOG_ERR("I3C transfer error happen");
+		goto cleanup;
+	}
+
+	// See how many data byte be read back, and make sure without I3C trandfer error happen
+	memset(read_buf, 0, read_len);
+	uint8_t error_cnt_cmd[PECI_WR_END_PT_CFG_WR_LEN_BYTE - 1] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0xC4, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       error_cnt_cmd) != 0) {
+		LOG_ERR("PECI make sure without I3C trandfer error happen error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Make sure without I3C trandfer error happen unknown request");
+		} else {
+			LOG_ERR("Make sure without I3C trandfer error happen peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	if (read_buf[1] != 0x01) {
+		LOG_ERR("Data byte be read back is not correct");
+		goto cleanup;
+	}
+	if (read_buf[4] != 0x00) {
+		LOG_ERR("I3C trandfer error happen");
+		goto cleanup;
+	}
+
+	// Read CPU I3C_SPD Controller DATA_PORT to receive PMIC data
+	memset(read_buf, 0, read_len);
+	uint8_t get_pmic_data_cmd[PECI_WR_END_PT_CFG_WR_LEN_BYTE - 1] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0xC8, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       get_pmic_data_cmd) != 0) {
+		LOG_ERR("PECI get pmic data error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Get pmic data unknown request");
+		} else {
+			LOG_ERR("Get pmic data peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	sensor_val *sval = (sensor_val *)reading;
+	sval->integer = (read_buf[1] * PMIC_TOTAL_POWER_MW / 1000) & 0xFFFF;
+	sval->fraction = (read_buf[1] * PMIC_TOTAL_POWER_MW % 1000) & 0xFFFF;
+
+	// Check CPU I3C_SPD Controller INTR_STATUS, make sure CPU I3C SPD Controller back to normal state
+	memset(read_buf, 0, read_len);
+	uint8_t back_normal_cmd[PECI_WR_END_PT_CFG_WR_LEN_BYTE - 1] = {
+		0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, bdf, bios_rtbusu0_val,
+		0x20, 0x00, 0x00, 0x00
+	};
+	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+		       back_normal_cmd) != 0) {
+		LOG_ERR("PECI back to normal state error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Back to normal state unknown request");
+		} else {
+			LOG_ERR("Back to normal state peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+	if (read_buf[1] != 0x09) {
+		LOG_ERR("Back to normal state fail");
+		goto cleanup;
+	}
+
+	// Relase the semaphore
+	read_len = 0x01;
+	write_len = 0x11;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	rl_sem_cmd[11] = (sem_head >> 8) & 0xFF;
+	rl_sem_cmd[12] = sem_head & 0xFF;
+	if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len, rl_sem_cmd) !=
+	    0) {
+		LOG_ERR("PECI relase the semaphore error");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Relase the semaphore unknown request");
+		} else {
+			LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+
+	SAFE_FREE(read_buf);
+	return true;
+cleanup:
+	SAFE_FREE(read_buf);
+	return false;
+}
+
 uint8_t intel_peci_read(sensor_cfg *cfg, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, SENSOR_UNSPECIFIED_ERROR);
@@ -562,6 +1006,24 @@ uint8_t intel_peci_read(sensor_cfg *cfg, int *reading)
 		break;
 	case PECI_PWR_CPU:
 		ret_val = get_cpu_pwr(cfg->target_addr, reading);
+		break;
+	case PECI_POWER_CHANNEL0_PMIC0:
+	case PECI_POWER_CHANNEL0_PMIC1:
+	case PECI_POWER_CHANNEL1_PMIC0:
+	case PECI_POWER_CHANNEL1_PMIC1:
+	case PECI_POWER_CHANNEL2_PMIC0:
+	case PECI_POWER_CHANNEL2_PMIC1:
+	case PECI_POWER_CHANNEL3_PMIC0:
+	case PECI_POWER_CHANNEL3_PMIC1:
+	case PECI_POWER_CHANNEL4_PMIC0:
+	case PECI_POWER_CHANNEL4_PMIC1:
+	case PECI_POWER_CHANNEL5_PMIC0:
+	case PECI_POWER_CHANNEL5_PMIC1:
+	case PECI_POWER_CHANNEL6_PMIC0:
+	case PECI_POWER_CHANNEL6_PMIC1:
+	case PECI_POWER_CHANNEL7_PMIC0:
+	case PECI_POWER_CHANNEL7_PMIC1:
+		ret_val = get_pmic_power(cfg->target_addr, read_type, reading);
 		break;
 	default:
 		break;
