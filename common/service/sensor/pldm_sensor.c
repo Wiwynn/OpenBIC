@@ -224,10 +224,18 @@ int pldm_sensor_polling_pre_check(pldm_sensor_info *pldm_snr_list)
 		}
 	}
 
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x5)
+		pldm_snr_list->pldm_sensor_cfg.type =0x4;
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x10)
+		pldm_snr_list->pldm_sensor_cfg.type =0xf;
 	if (pldm_snr_list->pldm_sensor_cfg.type == 0x1c)
 		pldm_snr_list->pldm_sensor_cfg.type = 0x19;
 	ret = sensor_drive_tbl[pldm_snr_list->pldm_sensor_cfg.type].init(
 		&pldm_snr_list->pldm_sensor_cfg);
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x4)
+		pldm_snr_list->pldm_sensor_cfg.type =0x5;
+	if (pldm_snr_list->pldm_sensor_cfg.type == 0x10)
+		pldm_snr_list->pldm_sensor_cfg.type =0xf;
 	if (pldm_snr_list->pldm_sensor_cfg.type == 0x19)
 		pldm_snr_list->pldm_sensor_cfg.type = 0x1c;
 
