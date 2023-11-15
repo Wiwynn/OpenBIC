@@ -27,6 +27,7 @@
 #define ADDR_VR_CPU1 (0XC6 >> 1)
 #define ADDR_VR_PVDDIO (0XC6 >> 1)
 #define ADDR_VR_PVDD11 (0XE4 >> 1)
+#define ADDR_NVME (0xD4 >> 1)
 
 #define OFFSET_TMP75_TEMP 0x00
 #define OFFSET_NVME_TEMP 0x00
