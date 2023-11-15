@@ -114,8 +114,8 @@ void pal_set_sys_status()
 void pal_device_init()
 {
 	init_i3c_dimm_prsnt_status();
-	start_get_dimm_info_thread();
-	start_monitor_pmic_error_thread();
+	//start_get_dimm_info_thread();
+	//start_monitor_pmic_error_thread();
 	start_monitor_cpu_thread();
 }
 
