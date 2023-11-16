@@ -2297,6 +2297,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0005,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_A_G_ADDR,
@@ -2365,6 +2366,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0006,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_B_H_ADDR,
@@ -2433,6 +2435,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0007,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_C_I_ADDR,
@@ -2501,6 +2504,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0008,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_D_J_ADDR,
@@ -2569,6 +2573,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0009,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_E_K_ADDR,
@@ -2637,6 +2642,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000a,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_F_L_ADDR,
@@ -2705,6 +2711,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000b,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_A_G_ADDR,
@@ -2773,6 +2780,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000c,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_B_H_ADDR,
@@ -2841,6 +2849,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000d,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_C_I_ADDR,
@@ -2909,6 +2918,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000e,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_D_J_ADDR,
@@ -2977,6 +2987,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x000f,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_E_K_ADDR,
@@ -3045,6 +3056,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0010,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_SPD_F_L_ADDR,
@@ -3114,6 +3126,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x002f,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_PMIC_A_G_ADDR,
@@ -3182,6 +3195,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
+			.num = 0x0030,
 			.type = sensor_dev_i3c_dimm,
 			.port = I3C_BUS3,
 			.target_addr = DIMM_PMIC_B_H_ADDR,
@@ -3464,7 +3478,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
 		},
-	},	
+	},
 	{
 		{
 			// DIMMG_PMIC_PWR_W
@@ -3873,7 +3887,6 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
 		},
 	},
-	
 };
 
 PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {

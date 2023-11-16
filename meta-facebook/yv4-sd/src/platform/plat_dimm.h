@@ -33,4 +33,81 @@
 #define DIMM_PMIC_E_K_ADDR 0x4C
 #define DIMM_PMIC_F_L_ADDR 0x4D
 
+#define MAX_LEN_I3C_GET_PMIC_PWR 1
+#define MAX_LEN_I3C_GET_SPD_TEMP 2
+
+#define DIMM_I3C_MUX_CONTROL_OFFSET 0x0C
+#define I3C_MUX_TO_DIMMA_TO_F 0x02
+#define I3C_MUX_TO_DIMMG_TO_L 0x03
+
+#define I3C_DIMM_MUTEX_TIMEOUT_MS 1000
+#define GET_DIMM_INFO_TIME_MS 1000
+#define GET_DIMM_INFO_STACK_SIZE 2304 //Jeff why
+
+typedef struct dimm_info {
+	bool is_present;
+	bool is_ready_monitor;
+	/*
+	uint8_t pmic_error_data[MAX_LEN_I3C_GET_PMIC_ERR];
+	*/
+	uint8_t pmic_pwr_data[MAX_LEN_I3C_GET_PMIC_PWR];
+	uint8_t spd_temp_data[MAX_LEN_I3C_GET_SPD_TEMP];
+} dimm_info;
+
+enum NUMBER_DIMM_TEMP {
+	NUM_DIMM_A_TEMP = 0x0005,
+	NUM_DIMM_B_TEMP,
+	NUM_DIMM_C_TEMP,
+	NUM_DIMM_D_TEMP,
+	NUM_DIMM_E_TEMP,
+	NUM_DIMM_F_TEMP,
+	NUM_DIMM_G_TEMP,
+	NUM_DIMM_H_TEMP,
+	NUM_DIMM_I_TEMP,
+	NUM_DIMM_J_TEMP,
+	NUM_DIMM_K_TEMP,
+	NUM_DIMM_L_TEMP,
+};
+
+enum NUMBER_DIMM_PMIC_PWR {
+	NUM_DIMM_A_PMIC_PWR = 0x002f,
+	NUM_DIMM_B_PMIC_PWR,
+	NUM_DIMM_C_PMIC_PWR,
+	NUM_DIMM_D_PMIC_PWR,
+	NUM_DIMM_E_PMIC_PWR,
+	NUM_DIMM_F_PMIC_PWR,
+	NUM_DIMM_G_PMIC_PWR,
+	NUM_DIMM_H_PMIC_PWR,
+	NUM_DIMM_I_PMIC_PWR,
+	NUM_DIMM_J_PMIC_PWR,
+	NUM_DIMM_K_PMIC_PWR,
+	NUM_DIMM_L_PMIC_PWR,
+};
+
+enum DIMM_ID {
+	DIMM_ID_A,
+	DIMM_ID_B,
+	DIMM_ID_C,
+	DIMM_ID_D,
+	DIMM_ID_E,
+	DIMM_ID_F,
+	DIMM_ID_G,
+	DIMM_ID_H,
+	DIMM_ID_I,
+	DIMM_ID_J,
+	DIMM_ID_K,
+	DIMM_ID_L,
+	DIMM_ID_MAX = 12,
+	DIMM_ID_UNKNOWN = 0xff,
+};
+
+void start_get_dimm_info_thread();
+void get_dimm_info_handler();
+uint8_t sensor_num_map_dimm_id(uint8_t sensor_num);
+void get_spd_temp_raw_data(int dimm_index, uint8_t *data);
+int pal_get_spd_temp(uint8_t sensor_num, uint8_t *data);
+void clear_unaccessible_dimm_data(uint8_t dimm_id);
+int switch_i3c_dimm_mux(uint8_t i3c_mux_switch_data);
+int all_brocast_ccc(I3C_MSG *i3c_msg);
+
 #endif

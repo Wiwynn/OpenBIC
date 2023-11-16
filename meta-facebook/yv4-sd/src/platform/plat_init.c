@@ -32,6 +32,7 @@
 #include "plat_i2c_target.h"
 #include "plat_pldm_monitor.h"
 #include "plat_class.h"
+#include "plat_dimm.h"
 #include "pcc.h"
 
 void pal_pre_init()
@@ -83,6 +84,7 @@ void pal_post_init()
 	pcc_init();
 	pldm_load_state_effecter_table(PLAT_PLDM_MAX_STATE_EFFECTER_IDX);
 	pldm_assign_gpio_effecter_id(PLAT_EFFECTER_ID_GPIO_HIGH_BYTE);
+	start_get_dimm_info_thread();
 }
 
 void pal_set_sys_status()

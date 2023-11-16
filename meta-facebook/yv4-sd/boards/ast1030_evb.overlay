@@ -96,6 +96,14 @@
 	i3c-pp-scl-lo-period-ns = <40>;
 };
 
+&i3c3 {
+	status = "okay";
+	pinctrl-0 = <&pinctrl_i3c3_default>;
+	i3c-scl-hz = <12500000>;
+	i3c-pp-scl-hi-period-ns = <40>;
+	i3c-pp-scl-lo-period-ns = <40>;
+};
+
 &i2c13 {
 	pinctrl-0 = <&pinctrl_i2c13_default>;
 	status = "okay";
