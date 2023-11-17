@@ -44,6 +44,8 @@
 #define MAX_LEN_I3C_GET_PMIC_PWR 1
 #define MAX_LEN_I3C_GET_SPD_TEMP 2
 
+#define LEN_PECI_GET_PMIC_ERR 7
+
 enum DIMM_ID {
 	DIMM_ID_A0 = 0,
 	DIMM_ID_A1,

@@ -29,12 +29,35 @@ struct k_mutex i3c_dimm_mutex;
 
 uint8_t pmic_i3c_addr_list[MAX_COUNT_DIMM / 2] = { PMIC_A0_A4_ADDR, PMIC_A1_A5_ADDR, PMIC_A2_A6_ADDR,
 						   PMIC_A3_A7_ADDR };
-uint8_t spd_i3c_addr_list[MAX_COUNT_DIMM / 2] = { DIMM_SPD_A0_A4_ADDR, DIMM_SPD_A1_A5_ADDR,
-						  DIMM_SPD_A2_A6_ADDR, DIMM_SPD_A3_A7_ADDR };
 
 dimm_info dimm_data[MAX_COUNT_DIMM];
 
 static bool dimm_prsnt_inited = false;
+
+const uint8_t sys_sem_head_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+				       0x00, 0xA8, 0x21, 0xE0, 0x01 };
+const uint8_t sys_sem_tail_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+				       0x00, 0xB8, 0x21, 0xE0, 0x01 };
+const uint8_t sys_sem_app_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+				      0x00, 0x98, 0x21, 0xE0, 0x01 };
+const uint8_t bios_rtbus_rdy_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+					 0x00, 0xA0, 0x81, 0x81, 0x00 };
+const uint8_t bios_rtbus_get_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
+					 0x00, 0xCC, 0x81, 0x81, 0x00 };
+uint8_t check_cpu_i3c_spd_cmd[13] = { 0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF,
+				      0x00, 0x00, 0x20, 0x00, 0x00, 0x00 };
+uint8_t wr_lowqport_cmd[17] = { 0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF, 0x00, 0x00,
+				0xC0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0xe0 };
+uint8_t get_pmic_data_cmd[13] = { 0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF,
+				  0x00, 0x00, 0xC8, 0x00, 0x00, 0x00 };
+uint8_t back_normal_cmd[13] = { 0x12, 0x05, 0x00, 0x00, 0x00, 0x05, 0xFF,
+				0x00, 0x00, 0x20, 0x00, 0x00, 0x00 };
+uint8_t rl_sem_cmd[15] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0xC8,
+			   0x21, 0xE0, 0x01, 0x00, 0x00, 0x00, 0x00 };
+
+const uint8_t pmic_err_offset[7] = { 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x33 };
+
+const uint8_t pmic_err_index[7] = { 0, 1, 3, 4, 5, 6, 46 };
 
 void start_get_dimm_info_thread()
 {
@@ -59,184 +82,383 @@ bool is_dimm_ready_monitor(uint8_t dimm_id)
 
 void get_dimm_info_handler()
 {
-	I3C_MSG i3c_msg = { 0 };
-	int i;
-
-	i3c_msg.bus = I3C_BUS4;
-	uint16_t i3c_hub_type = I3C_HUB_TYPE_UNKNOWN;
-	i3c_hub_type = get_i3c_hub_type();
-
-	// Attach PMIC addr
-	for (i = 0; i < (MAX_COUNT_DIMM / 2); i++) {
-		i3c_msg.target_addr = pmic_i3c_addr_list[i];
-		i3c_attach(&i3c_msg);
-	}
-
-	// Init mutex
-	if (k_mutex_init(&i3c_dimm_mutex)) {
-		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
-	}
-
-	// Switch I3C mux to BIC when host post complete but BIC reset
-	if (get_post_status()) {
-		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
-			LOG_ERR("Failed to lock I3C dimm MUX");
-			return;
-		}
-
-		switch_i3c_dimm_mux(I3C_MUX_TO_BIC);
-
-		if (k_mutex_unlock(&i3c_dimm_mutex)) {
-			LOG_ERR("Failed to unlock I3C dimm MUX");
-		}
-	}
+	uint8_t pmic_addr, bdf;
+	uint8_t read_len = 0x05;
+	uint8_t write_len = 0x0C;
+	uint16_t sem_head, sem_tail, sem_app;
+	uint8_t bios_rtbusu0_val;
+	uint8_t pmic_offset;
 
 	while (1) {
-		int ret = 0, dimm_id;
-
-		// Avoid to get wrong thus only monitor after post complete
-		if (!get_post_status()) {
-			k_msleep(GET_DIMM_INFO_TIME_MS);
-			continue;
-		}
-
-		if (!is_dimm_prsnt_inited()) {
-			init_i3c_dimm_prsnt_status();
-		}
-
-		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
-			LOG_ERR("Failed to lock I3C dimm MUX");
-			k_msleep(GET_DIMM_INFO_TIME_MS);
-			continue;
-		}
-
+		int dimm_id, step;
 		for (dimm_id = 0; dimm_id < MAX_COUNT_DIMM; dimm_id++) {
 			if (!dimm_data[dimm_id].is_present) {
 				continue;
 			}
 
-			ret = switch_i3c_dimm_mux(I3C_MUX_TO_BIC);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				continue;
-			}
-
-			uint8_t slave_port_setting = (dimm_id / (MAX_COUNT_DIMM / 2)) ?
-								   I3C_HUB_TO_DIMMEFGH :
-								   I3C_HUB_TO_DIMMABCD;
-
-			if (i3c_hub_type == RG3M87B12_DEVICE_INFO) {
-				if (!rg3mxxb12_set_slave_port(I3C_BUS4, RG3MXXB12_DEFAULT_STATIC_ADDRESS,
-						      slave_port_setting)) {
-					clear_unaccessible_dimm_data(dimm_id);
-					LOG_ERR("Failed to set slave port to slave port: 0x%x",
-						slave_port_setting);
-					continue;
-				}
-			} else {
-				if (!p3h284x_set_slave_port(I3C_BUS4, P3H284X_DEFAULT_STATIC_ADDRESS,
-						      slave_port_setting)) {
-					clear_unaccessible_dimm_data(dimm_id);
-					LOG_ERR("Failed to set slave port to slave port: 0x%x",
-						slave_port_setting);
-					continue;
-				}
-			}
-
-			memset(&i3c_msg, 0, sizeof(I3C_MSG));
-			i3c_msg.bus = I3C_BUS4;
-			i3c_msg.target_addr = spd_i3c_addr_list[dimm_id % (MAX_COUNT_DIMM / 2)];
-			i3c_attach(&i3c_msg);
-
-			// I3C_CCC_RSTDAA: Reset dynamic address assignment
-			// I3C_CCC_SETAASA: Set all addresses to static address
-			ret = all_brocast_ccc(&i3c_msg);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				i3c_detach(&i3c_msg);
-				continue;
-			}
-
-			if (!get_post_status()) {
-				i3c_detach(&i3c_msg);
-				break;
-			}
-
-			i3c_msg.tx_len = 1;
-			i3c_msg.rx_len = MAX_LEN_I3C_GET_SPD_TEMP;
-			i3c_msg.data[0] = DIMM_SPD_TEMP;
-
-			ret = i3c_spd_reg_read(&i3c_msg, false);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				i3c_detach(&i3c_msg);
-				LOG_ERR("Failed to read DIMM %d SPD temperature via I3C, ret= %d",
-					dimm_id, ret);
-			} else {
-				memcpy(&dimm_data[dimm_id].spd_temp_data, &i3c_msg.data,
-				       sizeof(dimm_data[dimm_id].spd_temp_data));
-			}
-			i3c_detach(&i3c_msg);
-
 			// Double check before read each DIMM info
 			if (!get_post_status()) {
 				dimm_data[dimm_id].is_ready_monitor = false;
 				break;
 			}
 
-			// Read DIMM PMIC power
-			memset(&i3c_msg, 0, sizeof(I3C_MSG));
-			i3c_msg.bus = I3C_BUS4;
-			i3c_msg.target_addr = pmic_i3c_addr_list[dimm_id % (MAX_COUNT_DIMM / 2)];
-			i3c_msg.tx_len = 1;
-			i3c_msg.rx_len = MAX_LEN_I3C_GET_PMIC_PWR;
-			i3c_msg.data[0] = DIMM_PMIC_SWA_PWR;
+			bdf = (dimm_id < (MAX_COUNT_DIMM / 2)) ? 0xF2 : 0xF5;
 
-			ret = i3c_transfer(&i3c_msg);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				LOG_ERR("Failed to read DIMM %d PMIC power via I3C, ret= %d",
-					dimm_id, ret);
-				continue;
-			} else {
-				memcpy(&dimm_data[dimm_id].pmic_pwr_data, &i3c_msg.data,
-				       sizeof(dimm_data[dimm_id].pmic_pwr_data));
+			pmic_addr = pmic_i3c_addr_list[dimm_id % (MAX_COUNT_DIMM / 2)];
+
+			// Check semaphore head and tail number
+			while (1) {
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, sys_sem_head_cmd) != 0) {
+					LOG_ERR("PECI read system semaphore head number error");
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Read system semaphore head number unknown request");
+					} else {
+						LOG_ERR("Read system semaphore head number peci control hardware, firmware or associated logic error");
+					}
+				}
+				sem_head = (read_buf[1] << 8) | read_buf[2];
+
+				memset(read_buf, 0, read_len);
+
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, sys_sem_tail_cmd) != 0) {
+					LOG_ERR("PECI read system semaphore tail number error");
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Read system semaphore tail number unknown request");
+					} else {
+						LOG_ERR("Read system semaphore tail number peci control hardware, firmware or associated logic error");
+					}
+				}
+				sem_tail = (read_buf[1] << 8) | read_buf[2];
+
+				if (sem_head == sem_tail) {
+					break;
+				} else {
+					read_len = 0x01;
+					write_len = 0x11;
+					read_buf = (uint8_t *)realloc(read_buf, read_len);
+					rl_sem_cmd[11] = (sem_head >> 8) & 0xFF;
+					rl_sem_cmd[12] = sem_head & 0xFF;
+					if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len,
+						       read_buf, write_len, rl_sem_cmd) != 0) {
+						LOG_ERR("PECI relase the semaphore error");
+					}
+					if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+						if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+							LOG_ERR("Relase the semaphore unknown request");
+						} else {
+							LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+						}
+					}
+				}
 			}
 
-			// Double check before read each DIMM info
-			if (!get_post_status()) {
-				dimm_data[dimm_id].is_ready_monitor = false;
-				break;
+			// Apply semaphore
+			read_len = 0x05;
+			write_len = 0x0C;
+			read_buf = (uint8_t *)realloc(read_buf, read_len);
+			if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       sys_sem_app_cmd) != 0) {
+				LOG_ERR("PECI apply system semaphore error");
+				goto cleanup;
+			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Apply system semaphore unknown request");
+				} else {
+					LOG_ERR("Apply system semaphore peci control hardware, firmware or associated logic error");
+				}
+				goto cleanup;
+			}
+			sem_app = (read_buf[1] << 8) | read_buf[2];
+			if ((sem_app != sem_head) || (read_buf[4] != PECI_CC_RSP_SUCCESS)) {
+				LOG_ERR("Apply system semaphore error");
+				goto cleanup;
 			}
 
-			// Read DIMM PMIC error
-			memset(&i3c_msg, 0, sizeof(I3C_MSG));
-			i3c_msg.bus = I3C_BUS4;
-			i3c_msg.target_addr = pmic_i3c_addr_list[dimm_id % (MAX_COUNT_DIMM / 2)];
-			i3c_msg.tx_len = 1;
-			i3c_msg.rx_len = MAX_LEN_I3C_GET_PMIC_ERR;
-			i3c_msg.data[0] = PMIC_POR_ERROR_LOG_ADDR_VAL;
-
-			ret = i3c_transfer(&i3c_msg);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				LOG_ERR("Failed to read DIMM %d PMIC error via I3C, ret= %d",
-					dimm_id, ret);
-				continue;
-			} else {
-				memcpy(&dimm_data[dimm_id].pmic_error_data, &i3c_msg.data,
-				       sizeof(dimm_data[dimm_id].pmic_error_data));
+			// Check BIOS assign RootBus_U0 ready
+			memset(read_buf, 0, read_len);
+			if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       bios_rtbus_rdy_cmd) != 0) {
+				LOG_ERR("PECI check BIOS assign RootBus_U0 ready error");
+				goto cleanup;
 			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Check BIOS assign RootBus_U0 ready unknown request");
+				} else {
+					LOG_ERR("Check BIOS assign RootBus_U0 ready peci control hardware, firmware or associated logic error");
+				}
+				goto cleanup;
+			}
+			// Bit 30 == 1 means ready
+			if (GETBIT(read_buf[4], 6) != 1) {
+				LOG_ERR("BIOS assign RootBus_U0 is not ready");
+				goto cleanup;
+			}
+
+			// Get RootBus_U0 value
+			memset(read_buf, 0, read_len);
+			if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       bios_rtbus_get_cmd) != 0) {
+				LOG_ERR("PECI get BIOS RootBus_U0 value error");
+				goto cleanup;
+			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Get BIOS RootBus_U0 value unknown request");
+				} else {
+					LOG_ERR("Get BIOS RootBus_U0 value peci control hardware, firmware or associated logic error");
+				}
+				goto cleanup;
+			}
+			bios_rtbusu0_val = read_buf[3];
+
+			for (step = 0; step < PECI_GET_PMIC_ERR_STEP; step++) {
+				// Check CPU I3C_SPD controller INTR_STATUS
+				read_len = 0x05;
+				write_len = 0x0E;
+				read_buf = (uint8_t *)realloc(read_buf, read_len);
+				check_cpu_i3c_spd_cmd[7] = bdf;
+				check_cpu_i3c_spd_cmd[8] = bios_rtbusu0_val;
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, check_cpu_i3c_spd_cmd) != 0) {
+					LOG_ERR("PECI check CPU I3C_SPD controller INTR_STATUS error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS unknown request");
+					} else {
+						LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+				if (read_buf[1] != 0x09) {
+					LOG_ERR("Check CPU I3C_SPD controller INTR_STATUS error");
+					goto cleanup;
+				}
+
+				// Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT
+				read_len = 0x01;
+				write_len = 0x13;
+				read_buf = (uint8_t *)realloc(read_buf, read_len);
+				wr_lowqport_cmd[7] = bdf;
+				wr_lowqport_cmd[8] = bios_rtbusu0_val;
+				wr_lowqport_cmd[15] = pmic_addr;
+				if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, wr_lowqport_cmd) != 0) {
+					LOG_ERR("PECI write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT unknown request");
+					} else {
+						LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+
+				// Make sure user can write next commands
+				read_len = 0x05;
+				write_len = 0x0E;
+				read_buf = (uint8_t *)realloc(read_buf, read_len);
+				uint8_t wr_next_cmd[13] = { 0x12, 0x05, 0x00,
+							    0x00, 0x00, 0x05,
+							    0xFF, bdf,	bios_rtbusu0_val,
+							    0x20, 0x00, 0x00,
+							    0x00 };
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, wr_next_cmd) != 0) {
+					LOG_ERR("PECI make sure user can write next commands error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Make sure user can write next commands unknown request");
+					} else {
+						LOG_ERR("Make sure user can write next commands peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+				if (read_buf[1] != 0x09) {
+					LOG_ERR("Make sure user can write next commands error");
+					goto cleanup;
+				}
+
+				// Write REGULAR_COMMAND_High to COMMAND_QUEUE_PORT
+				read_len = 0x01;
+				write_len = 0x13;
+				read_buf = (uint8_t *)realloc(read_buf, read_len);
+				uint8_t wr_highqport_cmd[17] = { 0x12,
+								 0x05,
+								 0x00,
+								 0x00,
+								 0x00,
+								 0x05,
+								 0xFF,
+								 bdf,
+								 bios_rtbusu0_val,
+								 0xC0,
+								 0x00,
+								 0x00,
+								 0x00,
+								 pmic_err_offset[offset],
+								 0x00,
+								 0x01,
+								 0x00 };
+				if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, wr_highqport_cmd) != 0) {
+					LOG_ERR("PECI write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT unknown request");
+					} else {
+						LOG_ERR("Write REGULAR_COMMAND_LOW to COMMAND_QUEUE_PORT peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+
+				// Make sure getting PMIC respond data back without I3C transfer error happen
+				read_len = 0x05;
+				write_len = 0x0E;
+				read_buf = (uint8_t *)realloc(read_buf, read_len);
+				uint8_t check_error_cmd[13] = { 0x12, 0x05, 0x00,
+								0x00, 0x00, 0x05,
+								0xFF, bdf,  bios_rtbusu0_val,
+								0x20, 0x00, 0x00,
+								0x00 };
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, check_error_cmd) != 0) {
+					LOG_ERR("PECI check I3C transfer error happen error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Check I3C transfer error happen unknown request");
+					} else {
+						LOG_ERR("Check I3C transfer error happen peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+				if ((read_buf[1] != 0x1B) || (read_buf[2] != 0x00)) {
+					LOG_ERR("I3C transfer error happen");
+					goto cleanup;
+				}
+
+				// See how many data byte be read back, and make sure without I3C trandfer error happen
+				memset(read_buf, 0, read_len);
+				uint8_t error_cnt_cmd[13] = { 0x12, 0x05, 0x00,
+							      0x00, 0x00, 0x05,
+							      0xFF, bdf,  bios_rtbusu0_val,
+							      0xC4, 0x00, 0x00,
+							      0x00 };
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, error_cnt_cmd) != 0) {
+					LOG_ERR("PECI make sure without I3C trandfer error happen error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Make sure without I3C trandfer error happen unknown request");
+					} else {
+						LOG_ERR("Make sure without I3C trandfer error happen peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+				if (read_buf[1] != 0x01) {
+					LOG_ERR("Data byte be read back is not correct");
+					goto cleanup;
+				}
+				if (read_buf[4] != 0x00) {
+					LOG_ERR("I3C trandfer error happen");
+					goto cleanup;
+				}
+
+				// Read CPU I3C_SPD Controller DATA_PORT to receive PMIC data
+				memset(read_buf, 0, read_len);
+				uint8_t get_pmic_data_cmd[13] = { 0x12, 0x05, 0x00,
+								  0x00, 0x00, 0x05,
+								  0xFF, bdf,  bios_rtbusu0_val,
+								  0xC8, 0x00, 0x00,
+								  0x00 };
+				if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf,
+					       write_len, get_pmic_data_cmd) != 0) {
+					LOG_ERR("PECI get pmic data error");
+					goto cleanup;
+				}
+				if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+					if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+						LOG_ERR("Get pmic data unknown request");
+					} else {
+						LOG_ERR("Get pmic data peci control hardware, firmware or associated logic error");
+					}
+					goto cleanup;
+				}
+
+				dimm_data[dimm_id].pmic_error_data[pmic_err_index[offset]] =
+					read_buf[1];
+			}
+
+			// Check CPU I3C_SPD Controller INTR_STATUS, make sure CPU I3C SPD Controller back to normal state
+			memset(read_buf, 0, read_len);
+			back_normal_cmd[7] = bdf;
+			back_normal_cmd[8] = bios_rtbusu0_val;
+			if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       back_normal_cmd) != 0) {
+				LOG_ERR("PECI back to normal state error");
+				goto cleanup;
+			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Back to normal state unknown request");
+				} else {
+					LOG_ERR("Back to normal state peci control hardware, firmware or associated logic error");
+				}
+				goto cleanup;
+			}
+			if (read_buf[1] != 0x09) {
+				LOG_ERR("Back to normal state fail");
+				goto cleanup;
+			}
+
+			// Relase the semaphore
+			read_len = 0x01;
+			write_len = 0x11;
+			read_buf = (uint8_t *)realloc(read_buf, read_len);
+			rl_sem_cmd[11] = (sem_head >> 8) & 0xFF;
+			rl_sem_cmd[12] = sem_head & 0xFF;
+			if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len,
+				       rl_sem_cmd) != 0) {
+				LOG_ERR("PECI relase the semaphore error");
+				goto cleanup;
+			}
+			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+					LOG_ERR("Relase the semaphore unknown request");
+				} else {
+					LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+				}
+				goto cleanup;
+			}
+
 			// If the DIMM is ready for monitoring, BIC can send its temperature to CPU by PECI.
 			dimm_data[dimm_id].is_ready_monitor = true;
 		}
 
-		if (k_mutex_unlock(&i3c_dimm_mutex)) {
-			LOG_ERR("Failed to unlock I3C dimm MUX");
-		}
-
 		k_msleep(GET_DIMM_INFO_TIME_MS);
 	}
+cleanup:
+	SAFE_FREE(read_buf);
+	return false;
 }
 
 void init_i3c_dimm_prsnt_status()
@@ -330,48 +552,6 @@ uint8_t sensor_num_map_dimm_id(uint8_t sensor_num)
 	}
 
 	return dimm_id;
-}
-
-int switch_i3c_dimm_mux(uint8_t i3c_mux_position)
-{
-	I2C_MSG i2c_msg = { 0 };
-	int ret = 0, retry = 3;
-
-	i2c_msg.bus = I2C_BUS1;
-	i2c_msg.target_addr = CPLD_ADDR;
-	i2c_msg.tx_len = 2;
-	i2c_msg.rx_len = 0;
-	i2c_msg.data[0] = DIMM_I3C_MUX_CONTROL_OFFSET;
-
-	// BIT 0: PD_SPD1_REMOTE_EN
-	// 0: switch I3C mux to CPU 1: switch I3C mux to BIC
-	i2c_msg.data[1] = i3c_mux_position;
-
-	ret = i2c_master_write(&i2c_msg, retry);
-	if (ret != 0) {
-		LOG_ERR("Failed to switch I3C MUX: 0x%x, ret= %d", i3c_mux_position, ret);
-	}
-
-	return ret;
-}
-
-int all_brocast_ccc(I3C_MSG *i3c_msg)
-{
-	CHECK_NULL_ARG_WITH_RETURN(i3c_msg, -1);
-
-	int ret = 0;
-
-	ret = i3c_brocast_ccc(i3c_msg, I3C_CCC_RSTDAA, I3C_BROADCAST_ADDR);
-	if (ret != 0) {
-		return ret;
-	}
-
-	ret = i3c_brocast_ccc(i3c_msg, I3C_CCC_SETAASA, I3C_BROADCAST_ADDR);
-	if (ret != 0) {
-		return ret;
-	}
-
-	return ret;
 }
 
 int get_pmic_error_raw_data(int dimm_index, uint8_t *data)
