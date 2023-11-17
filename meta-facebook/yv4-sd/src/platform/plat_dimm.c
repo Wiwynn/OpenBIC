@@ -12,7 +12,7 @@
 #include "plat_i3c.h"
 #include "plat_spi.h"
 
-LOG_MODULE_REGISTER(plat_dimm);
+LOG_MODULE_REGISTER(plat_dimm, LOG_LEVEL_DBG);
 
 K_THREAD_STACK_DEFINE(get_dimm_info_stack, GET_DIMM_INFO_STACK_SIZE);
 struct k_thread get_dimm_info_thread;
@@ -41,6 +41,7 @@ void start_get_dimm_info_thread()
 
 void get_dimm_info_handler()
 {
+	LOG_DBG("Access get_dimm_info_handler");
 	I3C_MSG i3c_msg = { 0 };
 	/*
 	int i;
@@ -282,6 +283,7 @@ int pal_get_spd_temp(uint8_t sensor_num, uint8_t *data)
 
 	dimm_id = sensor_num_map_dimm_id(sensor_num);
 	if (dimm_id == DIMM_ID_UNKNOWN) {
+		LOG_DBG("dimm_id is DIMM_ID_UNKNOWN");
 		return -1;
 	}
 
@@ -289,9 +291,9 @@ int pal_get_spd_temp(uint8_t sensor_num, uint8_t *data)
 
 	// If sensor data is SENSOR_FAIL, return failed
 	if (data[0] == SENSOR_FAIL) {
+		LOG_DBG("dimm data[0] is SENSOR_FAIL");
 		return -1;
 	}
-
 	return 0;
 }
 
