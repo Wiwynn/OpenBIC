@@ -275,6 +275,11 @@ sensor_cfg plat_sensor_config[] = {
 	  PECI_POWER_CHANNEL7_PMIC0, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
 	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, pre_intel_peci_dimm_read, NULL, NULL, NULL,
 	  NULL },
+
+	// Total DIMM power
+	{ SENSOR_NUM_MB_TOTAL_DIMM_PWR_W, sensor_dev_intel_peci, NONE, CPU_PECI_ADDR,
+	  PECI_POWER_TOTAL_DIMM, post_access, 0, 0, SAMPLE_COUNT_DEFAULT, POLL_TIME_DEFAULT,
+	  ENABLE_SENSOR_POLLING, 0, SENSOR_INIT_STATUS, NULL, NULL, NULL, NULL, NULL },
 };
 
 sensor_cfg adm1278_sensor_config_table[] = {

@@ -191,3 +191,11 @@ void pal_cal_cpu_power(intel_peci_unit unit_info, uint32_t diff_energy, uint32_t
 
 	*reading = (time_unit_energy / (float)diff_time) * pwr_scale;
 }
+
+void pal_cal_total_dimm_power(intel_peci_unit unit_info, uint32_t diff_energy, uint32_t diff_time,
+			      int *reading)
+{
+	float pwr_scale = (float)(1 / (float)(1 << unit_info.energy_unit));
+
+	*reading = ((float)diff_energy / (float)diff_time) * pwr_scale;
+}
