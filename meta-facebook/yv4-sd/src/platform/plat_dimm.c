@@ -41,9 +41,7 @@ void start_get_dimm_info_thread()
 
 void get_dimm_info_handler()
 {
-	LOG_DBG("Access get_dimm_info_handler");
 	I3C_MSG i3c_msg = { 0 };
-	/*
 	int i;
 
 	i3c_msg.bus = I3C_BUS3;
@@ -53,25 +51,10 @@ void get_dimm_info_handler()
 		i3c_msg.target_addr = pmic_i3c_addr_list[i];
 		i3c_attach(&i3c_msg);
 	}
-	*/
 	// Init mutex
 	if (k_mutex_init(&i3c_dimm_mutex)) {
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
 	}
-
-	/*// Switch I3C mux to BIC when host post complete but BIC reset
-	if (get_post_status()) {
-		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
-			LOG_ERR("Failed to lock I3C dimm MUX");
-			return;
-		}
-
-		switch_i3c_dimm_mux(I3C_MUX_TO_BIC);
-
-		if (k_mutex_unlock(&i3c_dimm_mutex)) {
-			LOG_ERR("Failed to unlock I3C dimm MUX");
-		}
-	}*/
 
 	while (1) {
 		int ret = 0;
@@ -82,6 +65,8 @@ void get_dimm_info_handler()
 			k_msleep(GET_DIMM_INFO_TIME_MS);
 			continue;
 		}
+
+		// TODO: check DIMM present init
 
 		/*if (!is_dimm_prsnt_inited()) {
 			init_i3c_dimm_prsnt_status();
@@ -94,6 +79,8 @@ void get_dimm_info_handler()
 		}
 
 		for (dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
+			// TODO: check DIMM present
+
 			/*if (!dimm_data[dimm_id].is_present) {
 				continue;
 			}*/
@@ -142,7 +129,7 @@ void get_dimm_info_handler()
 				       sizeof(dimm_data[dimm_id].spd_temp_data));
 			}
 			i3c_detach(&i3c_msg);
-			/*
+
 			// Double check before read each DIMM info
 			if (!get_post_status()) {
 				dimm_data[dimm_id].is_ready_monitor = false;
@@ -167,35 +154,6 @@ void get_dimm_info_handler()
 				memcpy(&dimm_data[dimm_id].pmic_pwr_data, &i3c_msg.data,
 				       sizeof(dimm_data[dimm_id].pmic_pwr_data));
 			}
-			*/
-			/*
-			// Double check before read each DIMM info
-			if (!get_post_status()) {
-				dimm_data[dimm_id].is_ready_monitor = false;
-				break;
-			}
-
-			// Read DIMM PMIC error
-			memset(&i3c_msg, 0, sizeof(I3C_MSG));
-			i3c_msg.bus = I3C_BUS4;
-			i3c_msg.target_addr = pmic_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
-			i3c_msg.tx_len = 1;
-			i3c_msg.rx_len = MAX_LEN_I3C_GET_PMIC_ERR;
-			i3c_msg.data[0] = PMIC_POR_ERROR_LOG_ADDR_VAL;
-
-			ret = i3c_transfer(&i3c_msg);
-			if (ret != 0) {
-				clear_unaccessible_dimm_data(dimm_id);
-				LOG_ERR("Failed to read DIMM %d PMIC error via I3C, ret= %d",
-					dimm_id, ret);
-				continue;
-			} else {
-				memcpy(&dimm_data[dimm_id].pmic_error_data, &i3c_msg.data,
-				       sizeof(dimm_data[dimm_id].pmic_error_data));
-			}
-			// If the DIMM is ready for monitoring, BIC can send its temperature to CPU by PECI.
-			dimm_data[dimm_id].is_ready_monitor = true;
-			*/
 		}
 
 		if (k_mutex_unlock(&i3c_dimm_mutex)) {
