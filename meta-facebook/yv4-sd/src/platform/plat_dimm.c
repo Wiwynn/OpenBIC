@@ -42,15 +42,17 @@ void start_get_dimm_info_thread()
 void get_dimm_info_handler()
 {
 	I3C_MSG i3c_msg = { 0 };
+	/*
 	int i;
-
+	*/
 	i3c_msg.bus = I3C_BUS3;
-
+	/*
 	// Attach PMIC addr
 	for (i = 0; i < sizeof(pmic_i3c_addr_list); i++) {
 		i3c_msg.target_addr = pmic_i3c_addr_list[i];
 		i3c_attach(&i3c_msg);
 	}
+	*/
 	// Init mutex
 	if (k_mutex_init(&i3c_dimm_mutex)) {
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
@@ -140,6 +142,23 @@ void get_dimm_info_handler()
 			memset(&i3c_msg, 0, sizeof(I3C_MSG));
 			i3c_msg.bus = I3C_BUS3;
 			i3c_msg.target_addr = pmic_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
+
+			i3c_attach(&i3c_msg);
+
+			// I3C_CCC_RSTDAA: Reset dynamic address assignment
+			// I3C_CCC_SETAASA: Set all addresses to static address
+			ret = all_brocast_ccc(&i3c_msg);
+			if (ret != 0) {
+				clear_unaccessible_dimm_data(dimm_id);
+				i3c_detach(&i3c_msg);
+				continue;
+			}
+
+			if (!get_post_status()) {
+				i3c_detach(&i3c_msg);
+				break;
+			}
+
 			i3c_msg.tx_len = 1;
 			i3c_msg.rx_len = MAX_LEN_I3C_GET_PMIC_PWR;
 			i3c_msg.data[0] = DIMM_PMIC_SWA_PWR;
@@ -147,6 +166,7 @@ void get_dimm_info_handler()
 			ret = i3c_transfer(&i3c_msg);
 			if (ret != 0) {
 				clear_unaccessible_dimm_data(dimm_id);
+				i3c_detach(&i3c_msg);
 				LOG_ERR("Failed to read DIMM %d PMIC power via I3C, ret= %d",
 					dimm_id, ret);
 				continue;
@@ -154,6 +174,7 @@ void get_dimm_info_handler()
 				memcpy(&dimm_data[dimm_id].pmic_pwr_data, &i3c_msg.data,
 				       sizeof(dimm_data[dimm_id].pmic_pwr_data));
 			}
+			i3c_detach(&i3c_msg);
 		}
 
 		if (k_mutex_unlock(&i3c_dimm_mutex)) {
