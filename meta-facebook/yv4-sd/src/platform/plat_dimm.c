@@ -151,6 +151,7 @@ void get_dimm_info_handler()
 			if (ret != 0) {
 				clear_unaccessible_dimm_data(dimm_id);
 				i3c_detach(&i3c_msg);
+				LOG_DBG("debug[%d]: detach addr: 0x%x",__LINE__, i3c_msg.target_addr);
 				continue;
 			}
 
@@ -158,6 +159,7 @@ void get_dimm_info_handler()
 				i3c_detach(&i3c_msg);
 				break;
 			}
+
 
 			i3c_msg.tx_len = 1;
 			i3c_msg.rx_len = MAX_LEN_I3C_GET_PMIC_PWR;
@@ -173,6 +175,7 @@ void get_dimm_info_handler()
 			} else {
 				memcpy(&dimm_data[dimm_id].pmic_pwr_data, &i3c_msg.data,
 				       sizeof(dimm_data[dimm_id].pmic_pwr_data));
+				LOG_DBG("debug[%d]: dimm_data[%d]: 0x%x",__LINE__, dimm_id, *dimm_data[dimm_id].pmic_pwr_data);
 			}
 			i3c_detach(&i3c_msg);
 		}
