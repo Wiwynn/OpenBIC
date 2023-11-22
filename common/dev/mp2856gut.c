@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <logging/log.h>
+#include <math.h>
 #include "libutil.h"
 #include "sensor.h"
 #include "hal_i2c.h"
@@ -69,7 +70,8 @@ uint8_t mp2856gut_read(sensor_cfg *cfg, int *reading)
 
 		uint16_t mfg_vr_config2_data = (msg.data[1] << 8) | msg.data[0];
 		bool vout_mode = mfg_vr_config2_data && MFR_VR_CONFIG2_VOUT_MODE_BIT;
-
+		LOG_ERR("DEBUG_VR_DEV:%x, CMD:%x, DATA[0]: %x, DATA[1]: %x, MODE: %d",
+				cfg->target_addr, cfg->offset, msg.data[0], msg.data[1], vout_mode);
 		if (vout_mode) {
 			val *= 0.00390625;
 		} else {
@@ -88,7 +90,9 @@ uint8_t mp2856gut_read(sensor_cfg *cfg, int *reading)
 		return SENSOR_FAIL_TO_ACCESS;
 	}
 	sval->integer = val;
+	LOG_ERR("DEBUG_sval->integer: %d", sval->integer);
 	sval->fraction = (val - sval->integer) * 1000;
+	LOG_ERR("DEBUG_sval->fraction: %d", sval->fraction);
 
 	return SENSOR_READ_SUCCESS;
 }
