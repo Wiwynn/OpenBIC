@@ -66,7 +66,7 @@ void main(void)
 	pal_pre_init();
 	sensor_init();
 #ifdef ENABLE_PLDM_SENSOR
-	pldm_sensor_monitor_init();
+	//pldm_sensor_monitor_init();
 #endif
 	FRU_init();
 	ipmi_init();

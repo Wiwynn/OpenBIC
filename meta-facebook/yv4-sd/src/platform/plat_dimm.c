@@ -31,7 +31,7 @@ static bool dimm_prsnt_inited = false;
 void start_get_dimm_info_thread()
 {
 	LOG_INF("Start thread to get dimm information");
-
+	return;
 	get_dimm_info_tid =
 		k_thread_create(&get_dimm_info_thread, get_dimm_info_stack,
 				K_THREAD_STACK_SIZEOF(get_dimm_info_stack), get_dimm_info_handler,
