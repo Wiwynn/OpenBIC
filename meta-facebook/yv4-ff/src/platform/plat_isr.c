@@ -47,28 +47,9 @@ void ISR_MB_PCIE_RST()
 
 static void CXL_READY_handler()
 {
-	const struct device *heartbeat = NULL;
-	int heartbeat_status = 0;
 
-	heartbeat = device_get_binding(CXL_HEART_BEAT_LABEL);
-	if (heartbeat == NULL) {
-		LOG_ERR("%s device not found", CXL_HEART_BEAT_LABEL);
-		return;
-	}
-
-	for (int times = 0; times < CXL_READY_RETRY_TIMES; times++) {
-		heartbeat_status = sensor_sample_fetch(heartbeat);
-		if (heartbeat_status < 0) {
-			k_sleep(K_SECONDS(CXL_READY_INTERVAL_SECONDS));
-			continue;
-		}
-		/* Switch muxs to BIC*/
-		gpio_set(SEL_SMB_MUX_PMIC_R, GPIO_HIGH);
-		gpio_set(SEL_SMB_MUX_DIMM_R, GPIO_HIGH);
-		return;
-	}
-	LOG_ERR("Failed to read %s due to sensor_sample_fetch failed, ret: %d",
-		CXL_HEART_BEAT_LABEL, heartbeat_status);
+	gpio_set(SEL_SMB_MUX_PMIC_R, GPIO_HIGH);
+	gpio_set(SEL_SMB_MUX_DIMM_R, GPIO_HIGH);
 	return;
 }
 
@@ -79,5 +60,5 @@ void ISR_CXL_PG_ON()
 	if (k_work_cancel_delayable(&CXL_READY_thread) != 0) {
 		LOG_ERR("Failed to cancel CXL_READY thread");
 	}
-	k_work_schedule(&CXL_READY_thread, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
+	k_work_schedule(&CXL_READY_thread, K_SECONDS(1));
 }

@@ -286,5 +286,5 @@ void ISR_CXL_PG_ON()
 	if (k_work_cancel_delayable(&CXL_READY_thread) != 0) {
 		LOG_ERR("Failed to cancel CXL_READY thread");
 	}
-	k_work_schedule(&CXL_READY_thread, K_SECONDS(CXL_READY_SECONDS));
+	k_work_schedule(&CXL_READY_thread, K_SECONDS(3));
 }
