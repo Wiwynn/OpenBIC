@@ -252,7 +252,9 @@ static void pg_card_off_handler()
 	int ioe2_p0 = 0, ioe2_p3 = 3;
 
 	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &value) == 0) {
+		LOG_ERR("ioe2 before value: 0x%02x", value);
 		CLEARBITS(value, ioe2_p0, ioe2_p3)	// Disable P0~P3 to switch mux to CXL.
+		LOG_ERR("ioe2 after value: 0x%02x", value);
 		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, value);
 	}
 
