@@ -15,6 +15,7 @@
  */
 
 #include <logging/log.h>
+#include "libutil.h"
 #include "util_worker.h"
 #include "hal_gpio.h"
 #include "hal_i2c.h"
@@ -228,7 +229,7 @@ void set_asic_and_e1s_clk_handler()
 	set_ioe4_control(SET_CLK);
 }
 
-static void CXL_READY_handler()
+static void cxl_ready_handler()
 {
 	/* TODO:
 	 * In normal states, DIMM and PMIC muxs should be switch to BIC after checking CXL heartbeat is ready. However, WF's heartbeat is not ready yet
@@ -238,7 +239,20 @@ static void CXL_READY_handler()
 	uint8_t value = 0x0;
 
 	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &value) == 0) {
-		value |= IOE_SWITCH_MUX_TO_BIC; // Enable P0~P3 to switch mux to BIC.
+		value |= IOE2_SWITCH_MUX_TO_BIC; // Enable P0~P3 to switch mux to BIC.
+		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, value);
+	}
+
+	return;
+}
+
+static void pg_card_off_handler()
+{
+	uint8_t value = 0x0;
+	int ioe2_p0 = 0, ioe2_p3 = 3;
+
+	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &value) == 0) {
+		CLEARBITS(value, ioe2_p0, ioe2_p3)	// Disable P0~P3 to switch mux to CXL.
 		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, value);
 	}
 
@@ -268,7 +282,7 @@ void ISR_MB_PCIE_RST()
 	gpio_set(PERST_ASIC1_N_R, gpio_get(RST_PCIE_MB_EXP_N));
 	gpio_set(PERST_ASIC2_N_R, gpio_get(RST_PCIE_MB_EXP_N));
 
-	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
+	if (gpio_get(RST_PCIE_MB_EXP_N) == HIGH_ACTIVE) {
 		k_work_submit(&ioe_power_on_work);
 	}
 }
@@ -280,11 +294,23 @@ void ISR_E1S_PWR_ON()
 	k_work_submit(&e1s_pwr_on_work);
 }
 
-K_WORK_DELAYABLE_DEFINE(CXL_READY_thread, CXL_READY_handler);
-void ISR_CXL_PG_ON()
+K_WORK_DELAYABLE_DEFINE(CXL_READY_thread, cxl_ready_handler);
+K_WORK_DEFINE(pg_card_off_work, pg_card_off_handler);
+
+void ISR_PG_CARD_CHANGE()
 {
-	if (k_work_cancel_delayable(&CXL_READY_thread) != 0) {
-		LOG_ERR("Failed to cancel CXL_READY thread");
+	if(gpio_get(PG_CARD_OK) == POWER_ON)
+	{
+		if (k_work_cancel_delayable(&CXL_READY_thread) != 0) {
+			LOG_ERR("Failed to cancel CXL_READY thread");
+		}
+		k_work_schedule(&CXL_READY_thread, K_SECONDS(CXL_READY_SECONDS));
+
+	} else if (gpio_get(PG_CARD_OK) == POWER_OFF) {
+		k_work_submit(&pg_card_off_work);
+
+	} else {
+		LOG_ERR("GPIO PG_CARD_OK is abnormal. status: %d", gpio_get(PG_CARD_OK));
 	}
-	k_work_schedule(&CXL_READY_thread, K_SECONDS(CXL_READY_SECONDS));
+
 }
