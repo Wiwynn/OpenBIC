@@ -244,4 +244,30 @@ extern enum _GPIO_NUMS_ GPIO_NUMS;
 
 extern char *gpio_name[];
 
+/* IOE expander */
+
+typedef struct {
+	uint8_t addr;
+	uint8_t conf_reg;
+	uint8_t conf_dir;
+	uint8_t output_reg;
+	uint8_t output_val;
+} IOE_CFG;
+
+#define ADDR_IOE1 (0x40 >> 1)
+#define ADDR_IOE2 (0x42 >> 1)
+#define ADDR_IOE3 (0x44 >> 1)
+#define ADDR_IOE4 (0x46 >> 1)
+
+#define E1S_PRESENT_BIT BIT(2)
+#define ASIC_CLK_BIT BIT(4)
+#define E1S_CLK_BIT BIT(5)
+#define E1S_PE_RESET_BIT BIT(6)
+#define IOE2_SWITCH_MUX_TO_BIC 0x0f
+
+
+int get_ioe_value(uint8_t ioe_addr, uint8_t ioe_reg, uint8_t *value);
+int set_ioe_value(uint8_t ioe_addr, uint8_t ioe_reg, uint8_t value);
+void set_ioe_init();
+
 #endif

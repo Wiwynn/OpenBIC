@@ -346,6 +346,14 @@ void execute_power_off_sequence()
 		is_cxl_power_on[CXL_ID_1] = true;
 		LOG_ERR("CXL 2 power off fail");
 	}
+
+	uint8_t value = 0x0;
+	int ioe2_p0 = 0, ioe2_p3 = 3;
+
+	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &value) == 0) {
+		CLEARBITS(value, ioe2_p0, ioe2_p3)	// Disable P0~P3 to switch mux to CXL.
+		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, value);
+	}
 }
 
 int power_off_handler(int cxl_id, int power_stage)
