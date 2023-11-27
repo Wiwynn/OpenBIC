@@ -444,7 +444,7 @@ bool read_total_dimm_power(uint8_t addr, int *reading)
 	}
 
 	pal_cal_total_dimm_power(unit_info, diff_energy, diff_time, reading);
-
+	LOG_WRN("Debug: energy unit: 0x%02x, energy counter: 0x%08x, elapsed time: 0x%08x.", unit_info.energy_unit, diff_energy, diff_time);
 	return true;
 }
 
