@@ -50,6 +50,16 @@ vr_pre_proc_arg vr_pre_read_args[] = {
 	[1] = { 0x1 },
 };
 
+pt5161l_init_arg pt5081l_init_args[] = { [0] = { .is_init = false,
+						 .temp_cal_code_pma_a = { 0, 0, 0, 0 },
+						 .temp_cal_code_pma_b = { 0, 0, 0, 0 },
+						 .temp_cal_code_avg = 0 } };
+
+pt5161l_init_arg pt5161l_init_args[] = { [0] = { .is_init = false,
+.temp_cal_code_pma_a = { 0, 0, 0, 0 },
+.temp_cal_code_pma_b = { 0, 0, 0, 0 },
+.temp_cal_code_avg = 0 } };
+
 bool pre_vr_read(sensor_cfg *cfg, void *args)
 {
 	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
