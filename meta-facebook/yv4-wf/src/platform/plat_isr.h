@@ -36,7 +36,8 @@
 
 enum set_ioe4_cmd {
 	SET_CLK = 0,
-	SET_PE_RST,
+	SET_PE_RST_HIGH,
+	SET_PE_RST_LOW,
 };
 
 typedef struct {

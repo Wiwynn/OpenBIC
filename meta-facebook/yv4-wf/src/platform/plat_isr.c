@@ -116,8 +116,11 @@ int set_ioe4_control(int cmd)
 	case SET_CLK:
 		msg.data[1] = ((io_output_status & (~ASIC_CLK_BIT)) & (~E1S_CLK_BIT));
 		break;
-	case SET_PE_RST:
+	case SET_PE_RST_HIGH:
 		msg.data[1] = (io_output_status | E1S_PE_RESET_BIT);
+		break;
+	case SET_PE_RST_LOW:
+		msg.data[1] = (io_output_status & (~E1S_PE_RESET_BIT));
 		break;
 	default:
 		LOG_ERR("Unknown command to set IOE4. cmd: %d", cmd);
@@ -218,8 +221,14 @@ void set_ioe_init()
 
 void check_ioexp_status()
 {
-	if (check_e1s_present_status() == 0) {
-		set_ioe4_control(SET_PE_RST);
+	if (gpio_get(RST_PCIE_MB_EXP_N) == HIGH_ACTIVE) {
+		if (check_e1s_present_status() == 0) {
+			set_ioe4_control(SET_PE_RST_HIGH);
+		}
+	} else if (gpio_get(RST_PCIE_MB_EXP_N) == LOW_ACTIVE) {
+		set_ioe4_control(SET_PE_RST_LOW);
+	} else {
+		return;
 	}
 }
 
@@ -268,9 +277,7 @@ void ISR_MB_PCIE_RST()
 	gpio_set(PERST_ASIC1_N_R, gpio_get(RST_PCIE_MB_EXP_N));
 	gpio_set(PERST_ASIC2_N_R, gpio_get(RST_PCIE_MB_EXP_N));
 
-	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
-		k_work_submit(&ioe_power_on_work);
-	}
+	k_work_submit(&ioe_power_on_work);
 }
 
 K_WORK_DEFINE(e1s_pwr_on_work, set_asic_and_e1s_clk_handler);
