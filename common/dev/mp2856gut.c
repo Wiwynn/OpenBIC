@@ -57,7 +57,8 @@ uint8_t mp2856gut_read(sensor_cfg *cfg, int *reading)
 	float val;
 	if (cfg->offset == PMBUS_READ_VOUT) {
 		val = (msg.data[1] << 8) | msg.data[0];
-
+		LOG_ERR("DEBUG_VR_DEV:%x, CMD:%x, DATA[0]: %x, DATA[1]: %x",
+		cfg->target_addr, cfg->offset, msg.data[0], msg.data[1]);
 		msg.bus = cfg->port;
 		msg.target_addr = cfg->target_addr;
 		msg.tx_len = 1;
@@ -70,8 +71,6 @@ uint8_t mp2856gut_read(sensor_cfg *cfg, int *reading)
 
 		uint16_t mfg_vr_config2_data = (msg.data[1] << 8) | msg.data[0];
 		bool vout_mode = mfg_vr_config2_data && MFR_VR_CONFIG2_VOUT_MODE_BIT;
-		LOG_ERR("DEBUG_VR_DEV:%x, CMD:%x, DATA[0]: %x, DATA[1]: %x, MODE: %d",
-				cfg->target_addr, cfg->offset, msg.data[0], msg.data[1], vout_mode);
 		if (vout_mode) {
 			val *= 0.00390625;
 		} else {
@@ -80,6 +79,8 @@ uint8_t mp2856gut_read(sensor_cfg *cfg, int *reading)
 	} else if (cfg->offset == PMBUS_READ_IOUT || cfg->offset == PMBUS_READ_POUT) {
 		uint16_t read_value = (msg.data[1] << 8) | msg.data[0];
 		val = slinear11_to_float(read_value);
+		LOG_ERR("DEBUG_VR_DEV:%x, CMD:%x, DATA[0]: %x, DATA[1]: %x",
+				cfg->target_addr, cfg->offset, msg.data[0], msg.data[1]);
 	} else if (cfg->offset == PMBUS_READ_TEMPERATURE_1) {
 		if (msg.data[1] == 0x07) {
 			val = -(((~msg.data[0]) & 0xFF) + 1);

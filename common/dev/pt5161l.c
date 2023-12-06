@@ -1140,7 +1140,11 @@ bool get_temp_calibration_codes(I2C_MSG *msg, pt5161l_init_arg *init_args)
 		 init_args->temp_cal_code_pma_b[0] + init_args->temp_cal_code_pma_b[1] +
 		 init_args->temp_cal_code_pma_b[2] + init_args->temp_cal_code_pma_b[3] + 8 / 2) /
 		8; // Add denominator/2 to cause integer rounding
-
+		LOG_ERR("DEBUG_temp_cal_code_pma_a: %x, %x, %x, %x", init_args->temp_cal_code_pma_a[0],
+				init_args->temp_cal_code_pma_a[1], init_args->temp_cal_code_pma_a[2], init_args->temp_cal_code_pma_a[3]);
+		LOG_ERR("DEBUG_temp_cal_code_pma_b: %x, %x, %x, %x", init_args->temp_cal_code_pma_b[0],
+				init_args->temp_cal_code_pma_b[1], init_args->temp_cal_code_pma_b[2], init_args->temp_cal_code_pma_b[3]);
+		LOG_ERR("DEBUG_temp_cal_code_avg: %x", init_args->temp_cal_code_avg);
 unlock_exit:
 	if (k_mutex_unlock(&pt5161l_mutex)) {
 		LOG_ERR("pt5161l mutex unlock failed");
@@ -1169,7 +1173,7 @@ uint8_t pt5161l_read_avg_temp(I2C_MSG *i2c_msg, uint8_t temp_cal_code_avg, doubl
 
 	adc_code = (data_bytes[3] << 24) + (data_bytes[2] << 16) + (data_bytes[1] << 8) +
 		   data_bytes[0];
-
+	LOG_ERR("DEBUG_adc_code: %x, %x, %x, %x", data_bytes[0], data_bytes[1], data_bytes[2], data_bytes[3]);
 	//return 0 means temperature is not ready
 	if (adc_code == 0) {
 		LOG_INF("Avg Temperature is not ready");
@@ -1178,6 +1182,7 @@ uint8_t pt5161l_read_avg_temp(I2C_MSG *i2c_msg, uint8_t temp_cal_code_avg, doubl
 	}
 
 	*avg_temperature = 110 - ((adc_code - (temp_cal_code_avg + 250)) * 0.32);
+	LOG_ERR("DEBUG_avg_temperature: %lf", *avg_temperature);
 	ret = SENSOR_READ_SUCCESS;
 
 unlock_exit:
@@ -1270,5 +1275,6 @@ exit:
 	return SENSOR_INIT_SUCCESS;
 
 error:
+	LOG_ERR("DEBUG_RETIMER_INIT_FAILED");
 	return SENSOR_INIT_UNSPECIFIED_ERROR;
 }

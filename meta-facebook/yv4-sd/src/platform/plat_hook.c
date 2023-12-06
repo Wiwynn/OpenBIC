@@ -76,7 +76,6 @@ bool pre_vr_read(sensor_cfg *cfg, void *args)
 		LOG_ERR("pre_vr_read, set page fail");
 		return false;
 	}
-	LOG_ERR("DEBUG_SUCCESS_TO: 0x%x", pre_proc_args->vr_page);
 	return true;
 }
 
