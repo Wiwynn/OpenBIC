@@ -16,6 +16,7 @@
 
 #include <logging/log.h>
 #include "util_worker.h"
+#include "power_status.h"
 #include "hal_gpio.h"
 #include "hal_i2c.h"
 #include "plat_gpio.h"
@@ -208,6 +209,7 @@ void set_ioe_init()
 			msg.data[1] = (ioe_cfg[i].output_val |
 				       IOE_SWITCH_MUX_TO_BIC); // Enable P0~P3 to switch mux to BIC.
 			ret = i2c_master_write(&msg, retry);
+			set_vr_monitor_status(true);
 
 		} else {
 			msg.data[0] = ioe_cfg[i].output_reg;

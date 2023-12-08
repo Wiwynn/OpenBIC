@@ -48,6 +48,8 @@ void pal_pre_init()
 				index, (struct _i2c_target_config *)&I2C_TARGET_CONFIG_TABLE[index],
 				1);
 	}
+	set_vr_monitor_status(
+		false); // BIC starts monitoring VR only after the PMIC mux is switched to BIC.
 }
 
 void pal_post_init()

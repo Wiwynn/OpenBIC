@@ -363,6 +363,7 @@ void execute_power_off_sequence()
 			  IOE_P03) // Disable P0~P3 to switch mux to CXL.
 		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, ioe2_output_value);
 	}
+	set_vr_monitor_status(false);
 }
 
 int power_off_handler(int cxl_id, int power_stage)
@@ -514,6 +515,7 @@ static void cxl_ready_handler()
 		value |= IOE_SWITCH_MUX_TO_BIC; // Enable P0~P3 to switch mux to BIC.
 		set_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, value);
 	}
+	set_vr_monitor_status(true);
 
 	return;
 }
