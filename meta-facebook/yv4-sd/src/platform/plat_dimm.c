@@ -59,6 +59,8 @@ void get_dimm_info_handler()
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
 	}
 
+	init_dimm_prsnt_status();
+
 	while (1) {
 		int ret = 0;
 		uint8_t dimm_id;
@@ -101,10 +103,6 @@ void get_dimm_info_handler()
 			ret = all_brocast_ccc(&i3c_msg);
 			if (ret != 0) {
 				clear_unaccessible_dimm_data(dimm_id);
-				// TODO: BIC temporarily determines 'DIMM is not present' through 'CCC failed.'
-				// 		 Once the 'Check DIMM present' functionality is completed, this will be removed.
-				dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
-				LOG_DBG("Debug: DIMM(0x%02x) is not present because ccc failed", dimm_id);
 				i3c_detach(&i3c_msg);
 				continue;
 			}
@@ -263,15 +261,53 @@ int all_brocast_ccc(I3C_MSG *i3c_msg)
 	return ret;
 }
 
-/*
-void init_i3c_dimm_prsnt_status()
+void init_dimm_prsnt_status()
 {
+	I3C_MSG i3c_msg = { 0 };
+	int ret = 0;
+
+	// Clear DIMM data
+	memset(dimm_data, 0, sizeof(dimm_data));
+
+	i3c_msg.bus = I3C_BUS3;
+
+	// Init DIMM present status
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
-		dimm_data[dimm_id].is_present = true;
-		LOG_DBG("Debug: Init DIMM0x%02x success", dimm_id);
+		uint8_t i3c_ctrl_mux_data = (dimm_id / (DIMM_ID_MAX / 2)) ?
+						    I3C_MUX_BIC_TO_DIMMA_TO_F :
+						    I3C_MUX_BIC_TO_DIMMG_TO_L;
+
+		ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
+		if (ret != 0) {
+			clear_unaccessible_dimm_data(dimm_id);
+			continue;
+		}
+		i3c_attach(&i3c_msg);
+
+		ret = all_brocast_ccc(&i3c_msg);
+		if (ret != 0) {
+			clear_unaccessible_dimm_data(dimm_id);
+			i3c_detach(&i3c_msg);
+			continue;
+		}
+
+		// Read SPD vender to check dimm present
+		i3c_msg.target_addr = spd_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
+		i3c_msg.tx_len = 1;
+		i3c_msg.rx_len = 1;
+		i3c_msg.data[0] = 0x00;
+
+		ret = i3c_transfer(&i3c_msg);
+		if (ret == -EIO) {
+			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
+			clear_unaccessible_dimm_data(dimm_id);
+		} else {
+			dimm_data[dimm_id].is_present = DIMM_PRSNT;
+		}
+		i3c_detach(&i3c_msg);
 	}
 }
-*/
+
 uint8_t get_dimm_present(uint8_t dimm_id)
 {
 	if (dimm_id == DIMM_ID_UNKNOWN) {
