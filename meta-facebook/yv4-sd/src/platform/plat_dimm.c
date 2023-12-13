@@ -59,8 +59,6 @@ void get_dimm_info_handler()
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
 	}
 
-	init_dimm_prsnt_status();
-
 	while (1) {
 		int ret = 0;
 		uint8_t dimm_id;
@@ -70,6 +68,8 @@ void get_dimm_info_handler()
 			k_msleep(GET_DIMM_INFO_TIME_MS);
 			continue;
 		}
+
+		init_dimm_prsnt_status();
 
 		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
 			LOG_ERR("Failed to lock I3C dimm MUX");
