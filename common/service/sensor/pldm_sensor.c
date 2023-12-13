@@ -288,7 +288,8 @@ int pldm_polling_sensor_reading(pldm_sensor_info *pldm_snr_list, int pldm_sensor
 
 	pldm_sensor_get_reading(&pldm_snr_list->pldm_sensor_cfg, &pldm_snr_list->update_time,
 				pldm_sensor_count, thread_id, sensor_num);
-	if(thread_id == DIMM_SENSOR_THREAD_ID) {
+	//if(thread_id == DIMM_SENSOR_THREAD_ID) {
+	if(0) {
 	LOG_DBG("sensor0x%x, value0x%x, status 0x%x", pldm_snr_list->pdr_numeric_sensor.sensor_id,
 		pldm_snr_list->pldm_sensor_cfg.cache, pldm_snr_list->pldm_sensor_cfg.cache_status);
 }
