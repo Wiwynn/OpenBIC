@@ -21,6 +21,7 @@
 #include "plat_apml.h"
 #include "plat_hook.h"
 #include "plat_gpio.h"
+#include "plat_dimm.h"
 
 LOG_MODULE_REGISTER(plat_hook);
 
@@ -132,8 +133,8 @@ bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args)
 		return true;
 	}
 
-	// TODO: Check DIMM present
-	return true;
+	uint8_t dimm_id = sensor_num_map_dimm_id(cfg->num);
+	return get_dimm_present(dimm_id);
 }
 
 bool pre_p3v_bat_read(sensor_cfg *cfg, void *args)
