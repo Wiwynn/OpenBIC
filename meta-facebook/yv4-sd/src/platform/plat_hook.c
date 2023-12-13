@@ -23,7 +23,7 @@
 #include "plat_gpio.h"
 #include "plat_dimm.h"
 
-LOG_MODULE_REGISTER(plat_hook);
+LOG_MODULE_REGISTER(plat_hook, LOG_LEVEL_DBG);
 
 adc_asd_init_arg ast_adc_init_args[] = {
 	[0] = {
@@ -134,6 +134,7 @@ bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args)
 	}
 
 	uint8_t dimm_id = sensor_num_map_dimm_id(cfg->num);
+	LOG_DBG("Debug: DIMM(0x%02x, 0x%02x) present: %d", cfg->num, dimm_id, get_dimm_present(dimm_id));
 	return get_dimm_present(dimm_id);
 }
 

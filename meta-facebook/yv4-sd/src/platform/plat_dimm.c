@@ -27,7 +27,7 @@
 #include "plat_i2c.h"
 #include "plat_i3c.h"
 
-LOG_MODULE_REGISTER(plat_dimm);
+LOG_MODULE_REGISTER(plat_dimm, LOG_LEVEL_DBG);
 
 K_THREAD_STACK_DEFINE(get_dimm_info_stack, GET_DIMM_INFO_STACK_SIZE);
 struct k_thread get_dimm_info_thread;
@@ -79,6 +79,7 @@ void get_dimm_info_handler()
 
 		for (dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
 			if (!dimm_data[dimm_id].is_present) {
+				LOG_DBG("Debug: DIMM(0x%02x) is not present, so skip monitor", dimm_id);
 				continue;
 			}
 
@@ -105,6 +106,7 @@ void get_dimm_info_handler()
 				// TODO: BIC temporarily determines 'DIMM is not present' through 'CCC failed.'
 				// 		 Once the 'Check DIMM present' functionality is completed, this will be removed.
 				dimm_data[dimm_id].is_present = false;
+				LOG_DBG("Debug: DIMM(0x%02x) is not present because ccc failed", dimm_id);
 				i3c_detach(&i3c_msg);
 				continue;
 			}
@@ -267,6 +269,7 @@ void init_i3c_dimm_prsnt_status()
 {
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
 		dimm_data[dimm_id].is_present = true;
+		LOG_DBG("Debug: Init DIMM0x%02x success", dimm_id);
 	}
 }
 
