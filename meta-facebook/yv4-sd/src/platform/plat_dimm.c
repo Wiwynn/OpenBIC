@@ -299,7 +299,7 @@ void init_dimm_prsnt_status()
 		i3c_msg.data[0] = 0x00;
 
 		ret = i3c_transfer(&i3c_msg);
-		if (ret == -EIO) {
+		if (!ret) {
 			LOG_DBG("Debug: DIMM%d is not present", dimm_id);
 			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			clear_unaccessible_dimm_data(dimm_id);
