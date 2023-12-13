@@ -59,8 +59,6 @@ void get_dimm_info_handler()
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
 	}
 
-	init_i3c_dimm_prsnt_status();
-
 	while (1) {
 		int ret = 0;
 		uint8_t dimm_id;
@@ -78,7 +76,7 @@ void get_dimm_info_handler()
 		}
 
 		for (dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
-			if (!dimm_data[dimm_id].is_present) {
+			if (dimm_data[dimm_id].is_present != DIMM_PRSNT) {
 				LOG_DBG("Debug: DIMM(0x%02x) is not present, so skip monitor", dimm_id);
 				continue;
 			}
@@ -105,7 +103,7 @@ void get_dimm_info_handler()
 				clear_unaccessible_dimm_data(dimm_id);
 				// TODO: BIC temporarily determines 'DIMM is not present' through 'CCC failed.'
 				// 		 Once the 'Check DIMM present' functionality is completed, this will be removed.
-				dimm_data[dimm_id].is_present = false;
+				dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 				LOG_DBG("Debug: DIMM(0x%02x) is not present because ccc failed", dimm_id);
 				i3c_detach(&i3c_msg);
 				continue;
@@ -265,6 +263,7 @@ int all_brocast_ccc(I3C_MSG *i3c_msg)
 	return ret;
 }
 
+/*
 void init_i3c_dimm_prsnt_status()
 {
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
@@ -272,12 +271,12 @@ void init_i3c_dimm_prsnt_status()
 		LOG_DBG("Debug: Init DIMM0x%02x success", dimm_id);
 	}
 }
-
-bool get_dimm_present(uint8_t dimm_id)
+*/
+uint8_t get_dimm_present(uint8_t dimm_id)
 {
 	if (dimm_id == DIMM_ID_UNKNOWN) {
 		LOG_ERR("Failed to get DIMM's present. DIMM ID: 0x%02x", dimm_id);
-		return false;
+		return DIMM_NOT_PRSNT;
 	}
 	return dimm_data[dimm_id].is_present;
 }

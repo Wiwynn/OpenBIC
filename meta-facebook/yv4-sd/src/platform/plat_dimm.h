@@ -41,7 +41,7 @@
 #define GET_DIMM_INFO_STACK_SIZE 2304
 
 typedef struct dimm_info {
-	bool is_present;
+	uint8_t is_present;
 	bool is_ready_monitor;
 	uint8_t spd_temp_data[MAX_LEN_I3C_GET_SPD_TEMP];
 } dimm_info;
@@ -78,6 +78,11 @@ enum DIMM_ID {
 	DIMM_ID_UNKNOWN = 0xff,
 };
 
+enum DIMM_PRSNT_STATUS {
+	DIMM_PRSNT,
+	DIMM_NOT_PRSNT,
+};
+
 void start_get_dimm_info_thread();
 void get_dimm_info_handler();
 uint8_t sensor_num_map_dimm_id(uint8_t sensor_num);
@@ -87,6 +92,6 @@ void clear_unaccessible_dimm_data(uint8_t dimm_id);
 int switch_i3c_dimm_mux(uint8_t i3c_mux_switch_data);
 int all_brocast_ccc(I3C_MSG *i3c_msg);
 void init_i3c_dimm_prsnt_status();
-bool get_dimm_present(uint8_t dimm_id);
+uint8_t get_dimm_present(uint8_t dimm_id);
 
 #endif
