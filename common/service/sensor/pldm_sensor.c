@@ -24,7 +24,7 @@
 #include "plat_pldm_sensor.h"
 #include "pldm_sensor.h"
 
-LOG_MODULE_REGISTER(pldm_sensor);
+LOG_MODULE_REGISTER(pldm_sensor, LOG_LEVEL_DBG);
 
 static struct k_thread pldm_sensor_polling_thread[MAX_SENSOR_THREAD_ID];
 static k_tid_t pldm_sensor_polling_tid[MAX_SENSOR_THREAD_ID];
@@ -161,9 +161,22 @@ void pldm_sensor_get_reading(sensor_cfg *pldm_sensor_cfg, uint32_t *update_time,
 							   pldm_sensor_cfg->pre_sensor_read_args)) {
 			pldm_sensor_cfg->cache_status = PLDM_SENSOR_FAILED;
 			*update_time = (k_uptime_get_32() / 1000);
-			LOG_DBG("Failed to pre read sensor_num 0x%x of thread %d", sensor_num,
+			if(thread_id == DIMM_SENSOR_THREAD_ID) {
+				LOG_DBG("Failed to pre read sensor_num 0x%x of thread %d", sensor_num,
 				thread_id);
+			}
+		
 			return;
+		} else {
+			if(thread_id == DIMM_SENSOR_THREAD_ID) {
+			LOG_DBG("Success to pre read function. sensor_num 0x%x of thread %d", sensor_num,
+				thread_id);
+			}
+		}
+	} else {
+			if(thread_id == DIMM_SENSOR_THREAD_ID) {
+			LOG_DBG("No pre read function. sensor_num 0x%x of thread %d", sensor_num,
+				thread_id);
 		}
 	}
 
@@ -275,10 +288,10 @@ int pldm_polling_sensor_reading(pldm_sensor_info *pldm_snr_list, int pldm_sensor
 
 	pldm_sensor_get_reading(&pldm_snr_list->pldm_sensor_cfg, &pldm_snr_list->update_time,
 				pldm_sensor_count, thread_id, sensor_num);
-
+	if(thread_id == DIMM_SENSOR_THREAD_ID) {
 	LOG_DBG("sensor0x%x, value0x%x, status 0x%x", pldm_snr_list->pdr_numeric_sensor.sensor_id,
 		pldm_snr_list->pldm_sensor_cfg.cache, pldm_snr_list->pldm_sensor_cfg.cache_status);
-
+}
 	return 0;
 }
 

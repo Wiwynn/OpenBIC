@@ -134,11 +134,11 @@ bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args)
 	}
 
 	uint8_t dimm_id = sensor_num_map_dimm_id(cfg->num);
-	LOG_DBG("Debug: DIMM(0x%02x, 0x%02x) present: %d", cfg->num, dimm_id, get_dimm_present(dimm_id));
 	if (get_dimm_present(dimm_id) == DIMM_NOT_PRSNT) {
+		//LOG_DBG("Debug: false. DIMM(0x%02x, 0x%02x) present: %d", cfg->num, dimm_id, get_dimm_present(dimm_id));
 		return false;
 	}
-
+	LOG_DBG("Debug: true. DIMM(0x%02x, 0x%02x) present: %d", cfg->num, dimm_id, get_dimm_present(dimm_id));
 	return true;
 }
 

@@ -77,7 +77,7 @@ void get_dimm_info_handler()
 
 		for (dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
 			if (dimm_data[dimm_id].is_present != DIMM_PRSNT) {
-				LOG_DBG("Debug: DIMM(0x%02x) is not present, so skip monitor", dimm_id);
+				//LOG_DBG("Debug: DIMM(0x%02x) is not present, so skip monitor", dimm_id);
 				continue;
 			}
 
