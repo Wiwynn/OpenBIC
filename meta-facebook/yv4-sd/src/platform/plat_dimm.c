@@ -88,8 +88,8 @@ void get_dimm_info_handler()
 			}
 
 			uint8_t i3c_ctrl_mux_data = (dimm_id / (DIMM_ID_MAX / 2)) ?
-							    I3C_MUX_BIC_TO_DIMMA_TO_F :
-							    I3C_MUX_BIC_TO_DIMMG_TO_L;
+							    I3C_MUX_BIC_TO_DIMMG_TO_L :
+							    I3C_MUX_BIC_TO_DIMMA_TO_F;
 
 			ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
 			if (ret != 0) {
@@ -276,12 +276,13 @@ void init_dimm_prsnt_status()
 	// Init DIMM present status
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
 		uint8_t i3c_ctrl_mux_data = (dimm_id / (DIMM_ID_MAX / 2)) ?
-						    I3C_MUX_BIC_TO_DIMMA_TO_F :
-						    I3C_MUX_BIC_TO_DIMMG_TO_L;
+						    I3C_MUX_BIC_TO_DIMMG_TO_L :
+						    I3C_MUX_BIC_TO_DIMMA_TO_F;
 
 		ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
 		if (ret != 0) {
 			clear_unaccessible_dimm_data(dimm_id);
+			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			continue;
 		}
 
@@ -293,6 +294,7 @@ void init_dimm_prsnt_status()
 		if (ret != 0) {
 			clear_unaccessible_dimm_data(dimm_id);
 			i3c_detach(&i3c_msg);
+			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			continue;
 		}
 
@@ -303,15 +305,16 @@ void init_dimm_prsnt_status()
 
 		ret = i3c_transfer(&i3c_msg);
 		if (!ret) {
+			clear_unaccessible_dimm_data(dimm_id);
 			LOG_DBG("Debug: DIMM%d is not present", dimm_id);
 			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
-			clear_unaccessible_dimm_data(dimm_id);
 		} else {
 			LOG_DBG("Debug: DIMM%d is present", dimm_id);
 			dimm_data[dimm_id].is_present = DIMM_PRSNT;
 		}
 		i3c_detach(&i3c_msg);
 	}
+
 	is_dimm_checked_presnt = true;
 }
 
