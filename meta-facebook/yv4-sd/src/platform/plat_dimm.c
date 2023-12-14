@@ -36,6 +36,8 @@ k_tid_t get_dimm_info_tid;
 
 dimm_info dimm_data[DIMM_ID_MAX];
 
+bool is_dimm_checked_presnt = false;
+
 uint8_t spd_i3c_addr_list[] = { DIMM_SPD_A_G_ADDR, DIMM_SPD_B_H_ADDR, DIMM_SPD_C_I_ADDR,
 				DIMM_SPD_D_J_ADDR, DIMM_SPD_E_K_ADDR, DIMM_SPD_F_L_ADDR };
 
@@ -69,7 +71,10 @@ void get_dimm_info_handler()
 			continue;
 		}
 
-		init_dimm_prsnt_status();
+		if (is_dimm_checked_presnt == false) {
+			init_dimm_prsnt_status();
+		}
+
 		continue;
 
 		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
@@ -309,6 +314,7 @@ void init_dimm_prsnt_status()
 		}
 		i3c_detach(&i3c_msg);
 	}
+	is_dimm_checked_presnt = true;
 }
 
 uint8_t get_dimm_present(uint8_t dimm_id)
