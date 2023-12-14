@@ -282,6 +282,7 @@ void init_dimm_prsnt_status()
 		ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
 		if (ret != 0) {
 			clear_unaccessible_dimm_data(dimm_id);
+			LOG_DBG("Debug: DIMM%d is not present because switch mux failed", dimm_id);
 			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			continue;
 		}
@@ -294,6 +295,7 @@ void init_dimm_prsnt_status()
 		if (ret != 0) {
 			clear_unaccessible_dimm_data(dimm_id);
 			i3c_detach(&i3c_msg);
+			LOG_DBG("Debug: DIMM%d is not present because broadcast failed", dimm_id);
 			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			continue;
 		}
