@@ -273,8 +273,6 @@ void init_dimm_prsnt_status()
 	// Clear DIMM data
 	memset(dimm_data, 0, sizeof(dimm_data));
 
-	i3c_msg.bus = I3C_BUS3;
-
 	// Init DIMM present status
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
 		uint8_t i3c_ctrl_mux_data = (dimm_id / (DIMM_ID_MAX / 2)) ?
@@ -286,6 +284,9 @@ void init_dimm_prsnt_status()
 			clear_unaccessible_dimm_data(dimm_id);
 			continue;
 		}
+
+		i3c_msg.bus = I3C_BUS3;
+		i3c_msg.target_addr = spd_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
 		i3c_attach(&i3c_msg);
 
 		ret = all_brocast_ccc(&i3c_msg);
@@ -296,7 +297,6 @@ void init_dimm_prsnt_status()
 		}
 
 		// Read SPD vender to check dimm present
-		i3c_msg.target_addr = spd_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
 		i3c_msg.tx_len = 1;
 		i3c_msg.rx_len = 1;
 		i3c_msg.data[0] = 0x00;
