@@ -21,6 +21,8 @@
 #include "sensor.h"
 #include "hal_gpio.h"
 #include "pldm.h"
+#include "cci.h"
+#include "vistara.h"
 
 #include "plat_gpio.h"
 #include "plat_i2c.h"
