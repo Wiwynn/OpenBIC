@@ -327,13 +327,11 @@ bool read_cpu_power(uint8_t addr, int *reading)
 	return true;
 }
 
-__weak bool pal_get_dimm_total_power(uint8_t addr, uint32_t *pkg_energy, uint32_t *run_time)
+__weak bool pal_get_dimm_energy(uint8_t addr, uint32_t *pkg_energy)
 {
 	uint8_t command = PECI_RD_PKG_CFG0_CMD;
 	uint8_t readlen = 0x05;
-	uint8_t writelen = 0x05;
 	uint8_t energy_status_index = 0x04;
-	uint8_t writebuf[4] = { 0x12, 0x1F, 0x00, 0x00 };
 	uint16_t energy_status_param = 0x00FF;
 	int ret = 0;
 
@@ -362,28 +360,9 @@ __weak bool pal_get_dimm_total_power(uint8_t addr, uint32_t *pkg_energy, uint32_
 	*pkg_energy = (*pkg_energy << 8) | readbuf[2];
 	*pkg_energy = (*pkg_energy << 8) | readbuf[1];
 
-	memset(readbuf, 0, readlen);
-	ret = peci_write(command, addr, readlen, readbuf, writelen, writebuf);
-	if (ret) {
-		LOG_ERR("Get cpu time peci write error");
-		goto cleanup;
-	}
-	if (readbuf[0] != PECI_CC_RSP_SUCCESS) {
-		if (readbuf[0] == PECI_CC_ILLEGAL_REQUEST) {
-			LOG_ERR("Get cpu time unknown request");
-		} else {
-			LOG_ERR("Get cpu time PECI control hardware, firmware or associated logic error");
-		}
-		goto cleanup;
-	}
-
-	*run_time = readbuf[4];
-	*run_time = (*run_time << 8) | readbuf[3];
-	*run_time = (*run_time << 8) | readbuf[2];
-	*run_time = (*run_time << 8) | readbuf[1];
-
 	SAFE_FREE(readbuf);
 	return true;
+
 cleanup:
 	SAFE_FREE(readbuf);
 	return false;
@@ -407,10 +386,13 @@ bool read_total_dimm_power(uint8_t addr, int *reading)
 	CHECK_NULL_ARG_WITH_RETURN(reading, false);
 
 	bool ret = true;
-	uint32_t pkg_energy, run_time, diff_energy, diff_time;
+	uint32_t pkg_energy, diff_energy, run_time, diff_time;
 	static uint32_t last_pkg_energy = 0, last_run_time = 0;
 
-	ret = pal_get_dimm_total_power(addr, &pkg_energy, &run_time);
+	ret = pal_get_dimm_energy(addr, &pkg_energy);
+
+	run_time = k_uptime_get_32();
+
 	if (!ret) {
 		LOG_ERR("PECI pal get cpu energy failed!");
 		return false;
@@ -431,11 +413,7 @@ bool read_total_dimm_power(uint8_t addr, int *reading)
 	}
 	last_pkg_energy = pkg_energy;
 
-	if (run_time >= last_run_time) {
-		diff_time = run_time - last_run_time;
-	} else {
-		diff_time = run_time + (0xffffffff - last_run_time + 1);
-	}
+	diff_time = run_time - last_run_time;
 	last_run_time = run_time;
 
 	if (diff_time == 0) {
@@ -443,6 +421,7 @@ bool read_total_dimm_power(uint8_t addr, int *reading)
 		return false;
 	}
 
+	diff_energy *= 1000;
 	pal_cal_total_dimm_power(unit_info, diff_energy, diff_time, reading);
 	LOG_WRN("Debug: energy unit: 0x%02x, energy counter: 0x%08x, elapsed time: 0x%08x.", unit_info.energy_unit, diff_energy, diff_time);
 	return true;
