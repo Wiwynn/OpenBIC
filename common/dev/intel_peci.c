@@ -722,13 +722,13 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 	while (1) {
 		if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
 			       sys_sem_head_cmd) != 0) {
-			LOG_ERR("PECI read system semaphore head number error");
+			//LOG_ERR("PECI read system semaphore head number error");
 		}
 		if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 			if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-				LOG_ERR("Read system semaphore head number unknown request");
+				//LOG_ERR("Read system semaphore head number unknown request");
 			} else {
-				LOG_ERR("Read system semaphore head number peci control hardware, firmware or associated logic error");
+				//LOG_ERR("Read system semaphore head number peci control hardware, firmware or associated logic error");
 			}
 		}
 		sem_head = (read_buf[1] << 8) | read_buf[2];
@@ -737,13 +737,13 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 
 		if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
 			       sys_sem_tail_cmd) != 0) {
-			LOG_ERR("PECI read system semaphore tail number error");
+			//LOG_ERR("PECI read system semaphore tail number error");
 		}
 		if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 			if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-				LOG_ERR("Read system semaphore tail number unknown request");
+				//LOG_ERR("Read system semaphore tail number unknown request");
 			} else {
-				LOG_ERR("Read system semaphore tail number peci control hardware, firmware or associated logic error");
+				//LOG_ERR("Read system semaphore tail number peci control hardware, firmware or associated logic error");
 			}
 		}
 		sem_tail = (read_buf[1] << 8) | read_buf[2];
@@ -758,13 +758,13 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 			rl_sem_cmd[12] = sem_head & 0xFF;
 			if (peci_write(PECI_CMD_WR_END_PT_CFG0, addr, read_len, read_buf, write_len,
 				       rl_sem_cmd) != 0) {
-				LOG_ERR("PECI relase the semaphore error");
+				//LOG_ERR("PECI relase the semaphore error");
 			}
 			if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 				if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-					LOG_ERR("Relase the semaphore unknown request");
+					//LOG_ERR("Relase the semaphore unknown request");
 				} else {
-					LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+					//LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
 				}
 			}
 		}
@@ -776,20 +776,20 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 	read_buf = (uint8_t *)realloc(read_buf, read_len);
 	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
 		       sys_sem_app_cmd) != 0) {
-		LOG_ERR("PECI apply system semaphore error");
+		//LOG_ERR("PECI apply system semaphore error");
 		goto cleanup;
 	}
 	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-			LOG_ERR("Apply system semaphore unknown request");
+			//LOG_ERR("Apply system semaphore unknown request");
 		} else {
-			LOG_ERR("Apply system semaphore peci control hardware, firmware or associated logic error");
+			//LOG_ERR("Apply system semaphore peci control hardware, firmware or associated logic error");
 		}
 		goto cleanup;
 	}
 	sem_app = (read_buf[1] << 8) | read_buf[2];
 	if ((sem_app != sem_head) || (read_buf[4] != PECI_CC_RSP_SUCCESS)) {
-		LOG_ERR("Apply system semaphore error");
+		//LOG_ERR("Apply system semaphore error");
 		goto cleanup;
 	}
 
@@ -797,20 +797,20 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 	memset(read_buf, 0, read_len);
 	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
 		       bios_rtbus_rdy_cmd) != 0) {
-		LOG_ERR("PECI check BIOS assign RootBus_U0 ready error");
+		//LOG_ERR("PECI check BIOS assign RootBus_U0 ready error");
 		goto cleanup;
 	}
 	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-			LOG_ERR("Check BIOS assign RootBus_U0 ready unknown request");
+			//LOG_ERR("Check BIOS assign RootBus_U0 ready unknown request");
 		} else {
-			LOG_ERR("Check BIOS assign RootBus_U0 ready peci control hardware, firmware or associated logic error");
+			//LOG_ERR("Check BIOS assign RootBus_U0 ready peci control hardware, firmware or associated logic error");
 		}
 		goto cleanup;
 	}
 	// Bit 30 == 1 means ready
 	if (GETBIT(read_buf[4], 6) != 1) {
-		LOG_ERR("BIOS assign RootBus_U0 is not ready");
+		//LOG_ERR("BIOS assign RootBus_U0 is not ready");
 		goto cleanup;
 	}
 
@@ -818,14 +818,14 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 	memset(read_buf, 0, read_len);
 	if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
 		       bios_rtbus_get_cmd) != 0) {
-		LOG_ERR("PECI get BIOS RootBus_U0 value error");
+		//LOG_ERR("PECI get BIOS RootBus_U0 value error");
 		goto cleanup;
 	}
 	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
-			LOG_ERR("Get BIOS RootBus_U0 value unknown request");
+			//LOG_ERR("Get BIOS RootBus_U0 value unknown request");
 		} else {
-			LOG_ERR("Get BIOS RootBus_U0 value peci control hardware, firmware or associated logic error");
+			//LOG_ERR("Get BIOS RootBus_U0 value peci control hardware, firmware or associated logic error");
 		}
 		goto cleanup;
 	}
@@ -1142,7 +1142,7 @@ uint8_t intel_peci_read(sensor_cfg *cfg, int *reading)
 	}
 
 	if (!ret_val) {
-		LOG_ERR("Sensor access error");
+		//LOG_ERR("Sensor access error");
 	}
 
 	return ret_val ? SENSOR_READ_SUCCESS : SENSOR_FAIL_TO_ACCESS;
