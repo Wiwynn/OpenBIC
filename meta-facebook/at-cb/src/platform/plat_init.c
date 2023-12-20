@@ -25,6 +25,7 @@
 #include "util_worker.h"
 #include "plat_pldm_monitor.h"
 #include "plat_dev.h"
+#include "plat_pldm_fw_update.h"
 
 SCU_CFG scu_cfg[] = {
 	//register    value
@@ -53,6 +54,7 @@ void pal_post_init()
 	plat_mctp_init();
 	pldm_load_state_effecter_table(MAX_STATE_EFFECTER_IDX);
 	pldm_assign_gpio_effecter_id(PLAT_EFFECTER_ID_GPIO_HIGH_BYTE);
+	init_pldm_fw_update_table();
 	/* Send device presence log when the BIC is AC on */
 	if (is_ac_lost()) {
 		plat_fio_present_check();

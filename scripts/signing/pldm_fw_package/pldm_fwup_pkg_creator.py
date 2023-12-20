@@ -58,7 +58,9 @@ descriptor_type_name_length = {
     0x0102: ["PCI Subsystem ID", 2],
     0x0103: ["PCI Revision ID", 1],
     0x0104: ["PnP Product Identifier", 4],
-    0x0105: ["ACPI Product Identifier", 4]}
+    0x0105: ["ACPI Product Identifier", 4],
+    0x0106: ["ASCII Model Number (Long String)", 40],
+    0x0107: ["ASCII Model Number (Short String)", 10]}
 
 
 def check_string_length(string):
@@ -262,11 +264,10 @@ def prepare_record_descriptors(descriptors):
             descriptor_type = descriptor["DescriptorType"]
             descriptor_data = descriptor["DescriptorData"]
             descriptor_length = len(bytearray.fromhex(descriptor_data))
-            if descriptor_length != \
-                    descriptor_type_name_length.get(descriptor_type)[1]:
+            if descriptor_length != descriptor_type_name_length.get(descriptor_type)[1]:
                 err_string = "ERROR: Descriptor type - " + \
-                    descriptor_type_name_length.get(descriptor_type)[0] + \
-                    " length is incorrect"
+                descriptor_type_name_length.get(descriptor_type)[0] + \
+                " length is incorrect, data: " + descriptor_data
                 sys.exit(err_string)
             format_string = '<HH'
             record_descriptors.extend(struct.pack(
@@ -276,7 +277,6 @@ def prepare_record_descriptors(descriptors):
             record_descriptors.extend(bytearray.fromhex(descriptor_data))
             descriptor_count += 1
     return record_descriptors, descriptor_count
-
 
 def write_fw_device_identification_area(pldm_fw_up_pkg, metadata,
                                         component_bitmap_bit_length):

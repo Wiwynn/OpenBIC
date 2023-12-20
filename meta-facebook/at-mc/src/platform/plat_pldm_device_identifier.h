@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef _PLAT_FWUPDATE_H_
-#define _PLAT_FWUPDATE_H_
+#ifndef _PLAT_PLDM_DEVICE_IDENTIFIER_H_
+#define _PLAT_PLDM_DEVICE_IDENTIFIER_H_
 
-#include <stdbool.h>
-#include <stdint.h>
 #include "pldm_firmware_update.h"
 
-#define PLDM_FW_UPDATE_SUCCESS 0
-#define PLDM_FW_UPDATE_ERROR 1
+extern const uint8_t bic_descriptors_count;
+extern const uint8_t cpld_descriptors_count;
+extern const uint8_t downstream_table_count;
 
-void load_pldmupdate_comp_config(void);
-void clear_pending_version(uint8_t activate_method);
-void init_pldm_fw_update_table();
+extern struct pldm_descriptor_string PLDM_DEVICE_DESCRIPTOR_TABLE[];
+extern struct pldm_descriptor_string CPLD_DESCRIPTOR_TABLE[];
 
-#endif /* _PLAT_FWUPDATE_H_ */
+extern struct pldm_downstream_identifier_table downstream_table[];
+
+#endif
