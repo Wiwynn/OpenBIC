@@ -103,6 +103,7 @@ int do_update(const struct device *flash_device, off_t offset, uint8_t *buf, siz
 		goto end;
 	}
 
+
 	op_buf = (uint8_t *)malloc(sector_sz);
 	if (op_buf == NULL) {
 		LOG_ERR("Failed to allocate op_buf.");
@@ -110,12 +111,18 @@ int do_update(const struct device *flash_device, off_t offset, uint8_t *buf, siz
 		goto end;
 	}
 
+	extern struct sys_heap z_malloc_heap;
+    LOG_WRN("sector_sz is: %d", sector_sz);
+    sys_heap_print_info(&z_malloc_heap, false);
+
+
 	read_back_buf = (uint8_t *)malloc(sector_sz);
 	if (read_back_buf == NULL) {
 		LOG_ERR("Failed to allocate read_back_buf.");
 		ret = -EINVAL;
 		goto end;
 	}
+	sys_heap_print_info(&z_malloc_heap, false);
 
 	/* initial op_addr */
 	op_addr = (flash_offset / sector_sz) * sector_sz;
