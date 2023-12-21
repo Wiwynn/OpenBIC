@@ -448,6 +448,11 @@ uint8_t get_sensor_reading(sensor_cfg *cfg_table, uint8_t cfg_count, uint8_t sen
 	}
 
 	cfg->cache_status = current_status;
+
+	if (sensor_num >= 0x4 && sensor_num <= 0xc) {
+		printf("Debug: sensor (0x%02x)'s ipmi send is %d", sensor_num, *reading); // Jeff
+	}
+
 	return cfg->cache_status;
 }
 
