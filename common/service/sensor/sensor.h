@@ -154,6 +154,7 @@ enum SENSOR_DEV {
 	sensor_dev_mpro = 0x2C,
 	sensor_dev_bmr351 = 0x2D,
 	sensor_dev_cx7 = 0x2E,
+	sensor_dev_max11617 = 0x2F,
 	sensor_dev_max
 };
 
@@ -690,6 +691,10 @@ typedef struct _cx7_init_arg {
 	uint8_t endpoint;
 	uint16_t sensor_id;
 } cx7_init_arg;
+
+typedef struct _max11617_init_arg {
+	float scalefactor;
+} max11617_init_arg;
 
 extern bool enable_sensor_poll_thread;
 extern sensor_cfg *sensor_config;
