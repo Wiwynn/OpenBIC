@@ -616,7 +616,7 @@ static bool get_dimm_temp(uint8_t addr, uint8_t type, int *reading)
 	sval->integer = rbuf[temp_ofs];
 	return true;
 }
-
+/*
 static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(reading, false);
@@ -1054,7 +1054,7 @@ cleanup:
 	SAFE_FREE(read_buf);
 	return false;
 }
-
+*/
 static bool get_dimm_total_pwr(uint8_t addr, int *reading)
 {
 	CHECK_NULL_ARG_WITH_RETURN(reading, false);
@@ -1134,7 +1134,7 @@ uint8_t intel_peci_read(sensor_cfg *cfg, int *reading)
 	case PECI_POWER_CHANNEL6_PMIC1:
 	case PECI_POWER_CHANNEL7_PMIC0:
 	case PECI_POWER_CHANNEL7_PMIC1:
-		ret_val = get_pmic_power(cfg->target_addr, read_type, reading);
+		// ret_val = get_pmic_power(cfg->target_addr, read_type, reading);
 		break;
 	case PECI_POWER_TOTAL_DIMM:
 		ret_val = get_dimm_total_pwr(cfg->target_addr, reading);
