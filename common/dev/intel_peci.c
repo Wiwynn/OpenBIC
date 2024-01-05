@@ -724,6 +724,7 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 			       sys_sem_head_cmd) != 0) {
 			//LOG_ERR("PECI read system semaphore head number error");
 		}
+	LOG_ERR("Debug: Check semaphore haed CC code is 0x%x", read_buf[0]);
 		if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
 			if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
 				//LOG_ERR("Read system semaphore head number unknown request");
