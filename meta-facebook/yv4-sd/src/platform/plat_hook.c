@@ -136,6 +136,7 @@ bool post_amd_tsi_read(sensor_cfg *cfg, void *args, int *const reading)
 
 bool pre_dimm_i3c_read(sensor_cfg *cfg, void *args)
 {
+	return false;
 	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
 	ARG_UNUSED(args);
 
