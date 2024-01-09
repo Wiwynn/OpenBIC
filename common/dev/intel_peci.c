@@ -623,8 +623,8 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 
 	uint8_t pmic_addr = 0xFF;
 	uint8_t bdf = 0xFF;
-	uint8_t read_len = 0x05;
-	uint8_t write_len = 0x0C;
+	uint8_t read_len = 0x01;
+	uint8_t write_len = 0x0a;
 	uint8_t sys_sem_head_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
 					 0x00, 0xA8, 0x21, 0xE0, 0x01 };
 	uint8_t sys_sem_tail_cmd[11] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04,
@@ -637,6 +637,7 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 					   0x00, 0xCC, 0x81, 0x81, 0x00 };
 	uint8_t rl_sem_cmd[15] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0xC8,
 				   0x21, 0xE0, 0x01, 0x00, 0x00, 0x00, 0x00 };
+	uint8_t wk_peci_cmd[8] = { 0x12, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	uint16_t sem_head, sem_tail, sem_app;
 	uint8_t bios_rtbusu0_val;
 
@@ -718,6 +719,24 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 		return false;
 	}
 
+	// Enable wake on PECI
+	if (peci_write(PECI_CMD_WR_PKG_CFG0, addr, read_len, read_buf, write_len, wk_peci_cmd) !=
+	    0) {
+		LOG_ERR("Failed to wake on PECI");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Enable wake on PECI unknown request");
+		} else {
+			LOG_ERR("Enable wake on PECI control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+
+	read_len = 0x05;
+	write_len = 0x0C;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
 	// Check semaphore head and tail number
 	while (1) {
 		if (peci_write(PECI_CMD_RD_END_PT_CFG0, addr, read_len, read_buf, write_len,
@@ -1043,6 +1062,25 @@ static bool get_pmic_power(uint8_t addr, uint8_t type, int *reading)
 			LOG_ERR("Relase the semaphore unknown request");
 		} else {
 			LOG_ERR("Relase the semaphore peci control hardware, firmware or associated logic error");
+		}
+		goto cleanup;
+	}
+
+	// Disable wake on PECI
+	read_len = 0x01;
+	write_len = 0x0a;
+	read_buf = (uint8_t *)realloc(read_buf, read_len);
+	wk_peci_cmd[2] = 0x0; // Disable wake on PECI
+	if (peci_write(PECI_CMD_WR_PKG_CFG0, addr, read_len, read_buf, write_len, wk_peci_cmd) !=
+	    0) {
+		LOG_ERR("Failed to disable wake on PECI");
+		goto cleanup;
+	}
+	if (read_buf[0] != PECI_CC_RSP_SUCCESS) {
+		if (read_buf[0] == PECI_CC_ILLEGAL_REQUEST) {
+			LOG_ERR("Disable wake on PECI unknown request");
+		} else {
+			LOG_ERR("Disable wake on PECI control hardware, firmware or associated logic error");
 		}
 		goto cleanup;
 	}
