@@ -47,12 +47,12 @@ struct kcs_request {
 	uint8_t data[0];
 };
 
-struct kcs_response {
+typedef struct {
 	uint8_t netfn;
 	uint8_t cmd;
 	uint8_t cmplt_code;
 	uint8_t data[0];
-};
+} __attribute__((packed)) kcs_response;
 
 void kcs_device_init(char **config, uint8_t size);
 void kcs_write(uint8_t index, uint8_t *buf, uint32_t buf_sz);

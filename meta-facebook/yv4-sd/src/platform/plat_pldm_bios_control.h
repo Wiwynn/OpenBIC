@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_DEF_H
-#define PLAT_DEF_H
+#ifndef _PLAT_PLDM_BIOS_CONTROL_H_
+#define _PLAT_PLDM_BIOS_CONTROL_H_
 
-#define ENABLE_PLDM
-#define ENABLE_MCTP_I3C
-// #define ENABLE_PLDM_SENSOR
-#define ENABLE_PLDM_BOOT_CONFIG
-#define ENABLE_CCI
-#define ENABLE_APML
+#include "pldm_bios_control.h"
 
-#define HOST_KCS_PORT kcs3
-#define BMC_USB_PORT "CDC_ACM_0"
+int set_boot_order(uint8_t *boot_sequence);
 
-#endif
+#endif /* _PLAT_PLDM_BIOS_CONTROL_H_ */

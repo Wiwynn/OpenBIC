@@ -33,9 +33,10 @@
 #ifdef ENABLE_PLDM
 #include "plat_mctp.h"
 #include "pldm_smbios.h"
+#include "pldm_bios_control.h"
 #endif
 
-LOG_MODULE_REGISTER(kcs);
+LOG_MODULE_REGISTER(kcs, LOG_LEVEL_DBG);
 
 kcs_dev *kcs;
 static bool proc_kcs_ok = false;
@@ -65,6 +66,10 @@ void reset_kcs_ok()
 enum cmd_app_get_sys_info_params {
 	LENGTH_INDEX = 0x05, // skip netfun, cmd code, paramter selctor, set selctor, encoding
 	VERIONS_START_INDEX = 0x06,
+};
+
+enum cmd_oem_req_set_boot_order {
+	BOOT_ORDER_INDEX = 0x02,
 };
 
 static uint8_t init_text_string_value(const char *new_text_string, char **text_strings)
@@ -220,6 +225,44 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 					SAFE_FREE(kcs_buff);
 				} while (0);
 			}
+#ifdef ENABLE_PLDM_BOOT_CONFIG
+			if ((req->netfn == NETFN_OEM_REQ) && (req->cmd == CMD_OEM_SET_BOOT_ORDER)) {
+				uint8_t *boot_order = (ibuf + BOOT_ORDER_INDEX);
+				int ret = set_boot_order(boot_order);
+				if (!ret) {
+					LOG_ERR("%s:%s:%d: Failed to set boot sequence to BMC, ret=%d",
+						__FILE__, __func__, __LINE__, ret);
+					continue;
+				}
+			}
+
+			if ((req->netfn == NETFN_OEM_REQ) && (req->cmd == CMD_OEM_GET_BOOT_ORDER)) {
+				const uint16_t CMD_OEM_GET_BOOT_ORDER_RESP_SIZE = 6;
+				const uint8_t KCS_RESP_LEN =
+					sizeof(kcs_response) +
+					CMD_OEM_GET_BOOT_ORDER_RESP_SIZE * sizeof(uint8_t);
+
+				kcs_response *kcs_buff = malloc(KCS_RESP_LEN);
+				if (!kcs_buff) {
+					LOG_ERR("%s:%s:%d: Failed to allocate memory.", __FILE__,
+						__func__, __LINE__);
+					continue;
+				}
+				int ret = get_boot_order(kcs_buff->data,
+							 CMD_OEM_GET_BOOT_ORDER_RESP_SIZE);
+				if (!ret) {
+					LOG_ERR("%s:%s:%d: Failed to get boot sequence from BMC, ret=%d",
+						__FILE__, __func__, __LINE__, ret);
+					continue;
+				}
+
+				kcs_buff->netfn = req->netfn;
+				kcs_buff->cmd = req->cmd;
+				kcs_buff->cmplt_code = 0x0;
+				kcs_write(kcs_inst->index, (uint8_t *)kcs_buff, KCS_RESP_LEN);
+				SAFE_FREE(kcs_buff);
+			}
+#endif
 #ifdef ENABLE_PLDM
 			/*
 			Bios needs get self test and get system info before getting set system info
