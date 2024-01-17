@@ -3684,6 +3684,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -3753,6 +3754,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -3822,6 +3824,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -3891,6 +3894,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -3960,6 +3964,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4029,6 +4034,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4098,6 +4104,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4167,6 +4174,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4236,6 +4244,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4305,6 +4314,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4374,6 +4384,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 	{
@@ -4443,6 +4454,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
 			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.is_enable_polling = false,
 		},
 	},
 
