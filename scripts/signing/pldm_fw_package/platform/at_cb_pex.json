@@ -1,0 +1,100 @@
+{
+    "PackageHeaderInformation": {
+        "PackageHeaderIdentifier": "F018878CCB7D49439800A02F059ACA02",
+        "PackageHeaderFormatVersion": 1,
+        "PackageReleaseDateTime": "17/11/2023 00:00:00",
+        "PackageVersionString": "VersionString1"
+    },
+    "FirmwareDeviceIdentificationArea": [
+        {
+            "DeviceUpdateOptionFlags": [0],
+            "ComponentImageSetVersionString": "PLDM_UPDATE_SUPPORTED_DEVICE",
+            "ApplicableComponents": [0],
+            "Descriptors": [
+                {
+                    "DescriptorType": 1,
+                    "DescriptorData": "0000A015"
+                },
+		{
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Platform",
+                    "VendorDefinedDescriptorData" : "Artemis"
+                },
+                {
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Board",
+                    "VendorDefinedDescriptorData" : "ColterBay"
+                },
+		{
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Stage",
+                    "VendorDefinedDescriptorData" : "PVT"
+                },
+		{
+		    "DescriptorType": 262,
+		    "DescriptorData": "62726f6164636f6d5f70657838393030300000000000000000000000000000000000000000000000"
+		},
+		{
+                    "DescriptorType": 263,
+                    "DescriptorData": "31000000000000000000"
+                }
+            ]
+        },
+	{
+            "DeviceUpdateOptionFlags": [0],
+            "ComponentImageSetVersionString": "PLDM_UPDATE_SUPPORTED_DEVICE",
+            "ApplicableComponents": [0],
+            "Descriptors": [
+                {
+                    "DescriptorType": 1,
+                    "DescriptorData": "0000A015"
+                },
+                {
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Platform",
+                    "VendorDefinedDescriptorData" : "Artemis"
+                },
+                {
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Board",
+                    "VendorDefinedDescriptorData" : "ColterBay"
+                },
+		{
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Stage",
+                    "VendorDefinedDescriptorData" : "PVT"
+                },
+                {
+                    "DescriptorType": 262,
+                    "DescriptorData": "62726f6164636f6d5f70657838393030300000000000000000000000000000000000000000000000"
+                },
+                {
+                    "DescriptorType": 263,
+                    "DescriptorData": "32000000000000000000"
+                }
+            ]
+        }
+    ],
+    "ComponentImageInformationArea": [
+        {
+            "ComponentClassification": 65535,
+            "ComponentIdentifier": 3,
+            "ComponentOptions": [0],
+            "RequestedComponentActivationMethod": [0],
+            "ComponentVersionString": "pesw0 v52.D7.00.07"
+        },
+	{
+            "ComponentClassification": 65535,
+            "ComponentIdentifier": 4,
+            "ComponentOptions": [0],
+            "RequestedComponentActivationMethod": [0],
+            "ComponentVersionString": "pesw1 v52.D7.01.07"
+        }
+    ]
+}

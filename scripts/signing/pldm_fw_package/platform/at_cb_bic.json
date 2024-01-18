@@ -1,0 +1,56 @@
+{
+    "PackageHeaderInformation": {
+        "PackageHeaderIdentifier": "F018878CCB7D49439800A02F059ACA02",
+        "PackageHeaderFormatVersion": 1,
+        "PackageReleaseDateTime": "17/11/2023 00:00:00",
+        "PackageVersionString": "VersionString1"
+    },
+    "FirmwareDeviceIdentificationArea": [
+        {
+            "DeviceUpdateOptionFlags": [0],
+            "ComponentImageSetVersionString": "PLDM_UPDATE_SUPPORTED_DEVICE",
+            "ApplicableComponents": [0],
+            "Descriptors": [
+                {
+                    "DescriptorType": 1,
+                    "DescriptorData": "0000A015"
+                },
+		{
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Platform",
+                    "VendorDefinedDescriptorData" : "Artemis"
+                },
+                {
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Board",
+                    "VendorDefinedDescriptorData" : "ColterBay"
+                },
+		{
+                    "DescriptorType" : 65535,
+                    "VendorDefinedDescriptorTitleStringType" : 2,
+                    "VendorDefinedDescriptorTitleString" : "Stage",
+                    "VendorDefinedDescriptorData" : "PVT"
+                },
+		{
+		    "DescriptorType": 262,
+		    "DescriptorData": "617374313033305f6269630000000000000000000000000000000000000000000000000000000000"
+		},
+		{
+                    "DescriptorType": 263,
+                    "DescriptorData": "31000000000000000000"
+                }
+            ]
+        }
+    ],
+    "ComponentImageInformationArea": [
+        {
+            "ComponentClassification": 65535,
+            "ComponentIdentifier": 2,
+            "ComponentOptions": [0],
+            "RequestedComponentActivationMethod": [0],
+            "ComponentVersionString": "bic v2024.02.01"
+        }
+    ]
+}
