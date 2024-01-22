@@ -25,6 +25,55 @@
 
 LOG_MODULE_REGISTER(plat_isr);
 
+static bool is_asic_power_fault_assert = false;
+
+#define ISR_ASIC_POWER_FAULT_HANDLER(device, power)                                                 \
+	void ISR_##power##_##device##_POWER_FAULT()                                        \
+	{                                                                                          \
+		uint8_t value = 0;                                                                   \
+		value = gpio_get(PWRGD_##power##_##device##);                              \
+		LOG_DBG("WF BIC GPIO%d = %d", PWRGD_##power##_##device##, value);     \
+		if (gpio_get(FM_POWER_EN_R) == POWER_ON) {     \
+			if (gpio_get(EN_##power##_BIC_##device##_R) == POWER_OFF) {		\
+				//send "FW issue"		\
+				//send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,                  \
+							 //IPMI_EVENT_OFFSET_SYS_E1S_##power##_FAULT,        \
+							 //E1S_##device);                                    \
+				is_asic_power_fault_assert = true;		\
+			} else if ((gpio_get(EN_##power##_BIC_##device##_R) == POWER_ON) &&               \
+			    (gpio_get(PWRGD_##power##_##device##) == POWER_OFF)) {               \
+			    if (!is_asic_power_fault_assert) {		\
+				    //send "replace the board"		\
+					//send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,                  \
+								 //IPMI_EVENT_OFFSET_SYS_E1S_##power##_FAULT,        \
+								 //E1S_##device);                                    \
+					is_asic_power_fault_assert = true;                        \
+				}		\
+			} else {                                                                           \
+				if ((gpio_get(EN_##power##_BIC_##device##_R) == POWER_ON) &&       \
+				    (gpio_get(PWRGD_##power##_##device##) == POWER_ON)) {        \
+					if (is_asic_power_fault_assert) {                 \
+						//send "deassert"		\
+						//send_system_status_event(                                  \
+							//IPMI_OEM_EVENT_TYPE_DEASSERT,                      \
+							//IPMI_EVENT_OFFSET_SYS_E1S_##power##_FAULT,         \
+							//E1S_##device);                                     \
+						is_asic_power_fault_assert = false;       \
+					}                                                                  \
+				}                                                                          \
+			}                                                                                  \
+		}                                                                                  \
+	}
+
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC1, P0V85);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC1, P0V8);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC1, PVDDQ_AB);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC1, PVDDQ_CD);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC2, P0V85);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC2, P0V8);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC2, PVDDQ_AB);
+ISR_ASIC_POWER_FAULT_HANDLER(ASIC2, PVDDQ_CD);
+
 IOE_CFG ioe_cfg[] = {
 	{ ADDR_IOE1, TCA9555_CONFIG_REG_0, 0x18, TCA9555_OUTPUT_PORT_REG_0, 0x18 },
 	{ ADDR_IOE1, TCA9555_CONFIG_REG_1, 0xC0, TCA9555_OUTPUT_PORT_REG_1, 0xFE },

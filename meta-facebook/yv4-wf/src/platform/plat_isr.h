@@ -57,4 +57,13 @@ void set_ioe_init();
 int get_ioe_value(uint8_t ioe_addr, uint8_t ioe_reg, uint8_t *value);
 int set_ioe_value(uint8_t ioe_addr, uint8_t ioe_reg, uint8_t value);
 
+void ISR_P0V85_ASIC1_POWER_FAULT();
+void ISR_P0V8_ASIC1_POWER_FAULT();
+void ISR_PVDDQ_AB_ASIC1_POWER_FAULT();
+void ISR_PVDDQ_CD_ASIC1_POWER_FAULT();
+void ISR_P0V85_ASIC2_POWER_FAULT();
+void ISR_P0V8_ASIC2_POWER_FAULT();
+void ISR_PVDDQ_AB_ASIC2_POWER_FAULT();
+void ISR_PVDDQ_CD_ASIC2_POWER_FAULT();
+
 #endif

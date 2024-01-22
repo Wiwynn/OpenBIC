@@ -17,6 +17,7 @@
 #include "info_shell.h"
 #include "plat_version.h"
 #include "util_sys.h"
+#include "plat_isr.h"
 
 #ifndef CONFIG_BOARD
 #define CONFIG_BOARD "unknown"
@@ -46,5 +47,7 @@ int cmd_info_print(const struct shell *shell, size_t argc, char **argv)
 	shell_print(
 		shell,
 		"========================{SHELL COMMAND INFO}========================================");
+	shell_print(shell, "Sean test");
+	ISR_P0V85_ASIC_POWER_FAULT();
 	return 0;
 }

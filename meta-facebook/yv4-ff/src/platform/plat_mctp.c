@@ -426,3 +426,14 @@ uint8_t plat_get_cxl_eid(uint8_t cxl_id)
 	// Only one CXL
 	return (plat_eid + 2);
 }
+
+void send_event_to_bmc(uint8_t *buf, uint8_t len) {
+	mctp_ext_params ext_params = {0};
+	ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+	ext_params.smbus_ext_params.addr = I3C_ADDR_SD_BIC;
+	ext_params.ep = MCTP_EID_BMC;
+	if (pldm_platform_event_message_req(
+		find_mctp_by_bus(I3C_BUS_SD_BIC), ext_params, PLDM_OEM_EVENT, buf, len) != PLDM_SUCCESS) {
+		LOG_ERR("Sent SEL to BMC fail");
+	}
+}

@@ -356,7 +356,7 @@ uint8_t pldm_platform_event_message_req(void *mctp_inst, mctp_ext_params ext_par
 
 	req.event_class = event_class;
 	req.format_version = 0x01;
-	req.tid = DEFAULT_TID;
+	req.tid = plat_pldm_get_tid();
 
 	memcpy(&req.event_data, event_data, event_data_length);
 
@@ -364,18 +364,15 @@ uint8_t pldm_platform_event_message_req(void *mctp_inst, mctp_ext_params ext_par
 	uint16_t read_len = pldm_platform_monitor_read(mctp_inst, ext_params,
 						       PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE,
 						       (uint8_t *)&req, req_len, rbuf, resp_len);
-
 	if ((!read_len) || (resp_p->completion_code != PLDM_SUCCESS)) {
 		LOG_ERR("Send event message failed, read_len (%d) comp_code (0x%x)", read_len,
 			resp_p->completion_code);
 		return PLDM_ERROR;
 	}
-
 	if (resp_p->platform_event_status != PLDM_EVENT_LOGGED) {
 		LOG_ERR("Event not logged, status (0x%x)", resp_p->platform_event_status);
 		return PLDM_ERROR;
 	}
-
 	return PLDM_SUCCESS;
 }
 

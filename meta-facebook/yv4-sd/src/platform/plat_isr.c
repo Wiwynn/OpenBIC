@@ -122,3 +122,15 @@ void ISR_BMC_READY()
 {
 	sync_bmc_ready_pin();
 }
+
+void ISR_PVDDCR_CPU0_OCP() {
+	if (gpio_get(FM_CPU_BIC_SLP_S3_N) == POWER_ON && VR_page0_7Bh_status_IOUT) {
+		//check VR page0 78h status BYTE
+	}
+}
+
+void ISR_PVDDCR_CPU1_OCP() {
+	if (gpio_get(FM_CPU_BIC_SLP_S3_N) == POWER_ON && VR_page0_7Bh_status_IOUT) {
+		//check VR page0 78h status BYTE
+	}
+}
