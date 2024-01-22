@@ -61,6 +61,7 @@ k_tid_t sw_heartbeat_tid;
 #define PAYLOAD_HEADER_UID2 0xE2BC907E
 #define PAYLOAD_HEADER_SIZE 0x10
 #define PAYLOAD_HEADER_VER 0x02
+#define PAYLOAD_HEADER_TYPE_BOOT1 0x01
 #define PAYLOAD_HEADER_TYPE_QSPI 0x16
 #define PAYLOAD_HEADER_TYPE_PSOC 0x1C
 
@@ -71,6 +72,7 @@ k_tid_t sw_heartbeat_tid;
 #define TRANSFER_MEM_INFO_LEN 8
 #define BLOCK_DATA_COUNT 32
 #define WAIT_FIRMWARE_READY_DELAY_TIMEOUT_S 5
+#define WAIT_BOOT1_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S 20
 #define WAIT_QSPI_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S 15
 #define WAIT_PSOC_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S 55
 #define FW_ABORT_UPDATE_RETURN_VAL -2
@@ -78,6 +80,7 @@ k_tid_t sw_heartbeat_tid;
 #define FW_EXEC_STATUS_RUNNING_RETURN_VAL 1
 
 #define CHECK_IS_PROGRESS_DELAY_MS 1000
+#define BOOT1_COMPLETE_BIT BIT(7)
 
 enum ATM_FW_UPDATE_REG_OFFSET {
 	SB_CMD_FW_SMBUS_ERROR_CODE = 0x82,
@@ -86,6 +89,7 @@ enum ATM_FW_UPDATE_REG_OFFSET {
 	SB_CMD_FW_UPDATE_EXT = 0x87,
 	SB_CMD_FW_UPDATE_ERROR_CODE = 0x94,
 	TRANSFER_MEM_START = 0xA4,
+	LCS_STATE = 0xBF,
 	TRANSFER_HEADER_PAGE = 0xC1,
 	TRANSFER_DATA_PACKET = 0xC7,
 	EXEC_STATUS = 0xEB,
@@ -173,6 +177,7 @@ typedef struct _sb_transferdata_packet {
 } __attribute__((__packed__)) sb_transferdata_packet;
 
 wait_fw_update_status_info atm_wait_fw_info = { .is_init = false,
+						.type = UNKNOWN_TYPE,
 						.status = EXEC_STATUS_DEFAULT,
 						.result = EXEC_RESULT_DEFAULT };
 
@@ -597,6 +602,26 @@ bool init_vr_write_protect(uint8_t bus, uint8_t addr, uint8_t default_val)
 	return true;
 }
 
+int get_boot1_complete_bit(uint8_t bus, uint8_t addr, uint8_t *bit)
+{
+	CHECK_NULL_ARG_WITH_RETURN(bit, -1);
+
+	int ret = 0;
+	int retry = 5;
+	uint8_t offset = LCS_STATE;
+	I2C_MSG msg = { 0 };
+
+	msg = construct_i2c_message(bus, addr, 1, &offset, 1);
+	ret = i2c_master_read(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Get boot1 complete bit fail, bus: 0x%x, addr: 0x%x", bus, addr);
+		return ret;
+	}
+
+	*bit = (msg.data[0] & BOOT1_COMPLETE_BIT);
+	return ret;
+}
+
 int sb_cmd_fw_update_bit_operation(uint8_t bus, uint8_t addr, uint8_t optional, uint8_t bit_value)
 {
 	int ret = 0;
@@ -750,7 +775,8 @@ int pre_atm_fw_update_check(uint8_t *msg_buf, uint16_t buf_len, hbin_header *h_h
 	}
 
 	if ((p_header->type != PAYLOAD_HEADER_TYPE_QSPI) &&
-	    (p_header->type != PAYLOAD_HEADER_TYPE_PSOC)) {
+	    (p_header->type != PAYLOAD_HEADER_TYPE_PSOC) &&
+	    (p_header->type != PAYLOAD_HEADER_TYPE_BOOT1)) {
 		LOG_ERR("Invalid payload header type: 0x%x", p_header->type);
 		return -1;
 	}
@@ -922,29 +948,51 @@ void wait_firmware_work_handler(struct k_work *work_item)
 
 	int ret = -1;
 	int index = 0;
+	uint8_t bit = 0;
 
 	for (index = 0; index < work_info->timeout_s; ++index) {
 		k_sleep(K_SECONDS(WAIT_FIRMWARE_READY_DELAY_S));
 
-		ret = check_exec_status(work_info->bus, work_info->addr, &work_info->status,
-					&work_info->result);
-		if (ret != 0) {
-			LOG_WRN("Check exec status fail on waiting firmware work, current time: 0x%x",
-				index + 1);
-			continue;
-		}
-
-		if (work_info->status == EXEC_STATUS_COMPLETE) {
-			if (work_info->result != EXEC_RESULT_PASS) {
-				LOG_ERR("Error: exec result is %s",
-					(work_info->result == EXEC_RESULT_ABORTED ? "aborted" :
-										    "fail"));
+		if (work_info->type == PAYLOAD_HEADER_TYPE_BOOT1) {
+			ret = get_boot1_complete_bit(work_info->bus, work_info->addr, &bit);
+			if (ret < 0) {
+				LOG_WRN("Get boot1 complete bit fail on waiting firmware work, current time: 0x%x",
+					index + 1);
+				continue;
 			}
-			return;
+
+			if (bit != 0) {
+				LOG_INF("Boot1 complete");
+				work_info->status = EXEC_STATUS_RUNNING;
+				work_info->result = EXEC_RESULT_PASS;
+				return;
+			} else {
+				work_info->status = EXEC_STATUS_RUNNING;
+				work_info->result = EXEC_RESULT_FAIL;
+			}
+		} else {
+			ret = check_exec_status(work_info->bus, work_info->addr, &work_info->status,
+						&work_info->result);
+			if (ret != 0) {
+				LOG_WRN("Check exec status fail on waiting firmware work, current time: 0x%x",
+					index + 1);
+				continue;
+			}
+
+			if (work_info->status == EXEC_STATUS_COMPLETE) {
+				if (work_info->result != EXEC_RESULT_PASS) {
+					LOG_ERR("Error: exec result is %s",
+						(work_info->result == EXEC_RESULT_ABORTED ?
+							 "aborted" :
+							 "fail"));
+				}
+				return;
+			}
 		}
 	}
 
-	LOG_ERR("Wait firmware exec status timeout, total wait: %d seconds", work_info->timeout_s);
+	LOG_ERR("Wait firmware exec status timeout, total wait: %d seconds, type: 0x%x",
+		work_info->timeout_s, work_info->type);
 	work_info->status = EXEC_STATUS_TIMEOUT;
 	return;
 }
@@ -1121,6 +1169,18 @@ int atm_fw_update(uint8_t bus, uint8_t addr, uint32_t offset, uint8_t *msg_buf, 
 		}
 
 		/* Step 9: Check error_code, exec_status, exec_result */
+		if (p_header.type == PAYLOAD_HEADER_TYPE_BOOT1) {
+			uint8_t bit = 0;
+			ret = get_boot1_complete_bit(bus, addr, &bit);
+			if (ret < 0) {
+				LOG_ERR("Get boot1 complete bit fail on Step 9");
+			}
+
+			if (ret != 0) {
+				LOG_WRN("Boot1 complete bit should be 0");
+			}
+		}
+
 		ret = check_error_status(bus, addr, &error_code, &smbus_error_code);
 		if (ret != 0) {
 			LOG_ERR("Get error code fail on Step 9, bus: 0x%x, addr: 0x%x", bus, addr);
@@ -1144,9 +1204,14 @@ int atm_fw_update(uint8_t bus, uint8_t addr, uint32_t offset, uint8_t *msg_buf, 
 
 		atm_wait_fw_info.bus = bus;
 		atm_wait_fw_info.addr = addr;
-		atm_wait_fw_info.timeout_s = (p_header.type == PAYLOAD_HEADER_TYPE_QSPI ?
-						      WAIT_QSPI_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S :
-						      WAIT_PSOC_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S);
+		atm_wait_fw_info.type = p_header.type;
+		if (p_header.type == PAYLOAD_HEADER_TYPE_QSPI) {
+			atm_wait_fw_info.timeout_s = WAIT_QSPI_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S;
+		} else if (p_header.type == PAYLOAD_HEADER_TYPE_PSOC) {
+			atm_wait_fw_info.timeout_s = WAIT_PSOC_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S;
+		} else {
+			atm_wait_fw_info.timeout_s = WAIT_BOOT1_FIRMWARE_UPDATE_COMPLETE_TIMEOUT_S;
+		}
 
 		k_work_schedule_for_queue(&plat_work_q, &atm_wait_fw_info.wait_firmware_work,
 					  K_NO_WAIT);

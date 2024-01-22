@@ -27,6 +27,7 @@ extern const uint8_t sw_0_descriptors_count;
 extern const uint8_t sw_1_descriptors_count;
 extern const uint8_t asic_psoc_descriptors_count;
 extern const uint8_t asic_qspi_descriptors_count;
+extern const uint8_t asic_boot1_descriptors_count;
 
 extern const uint8_t downstream_table_count;
 
@@ -38,6 +39,7 @@ extern struct pldm_descriptor_string SWITCH_0_DESCRIPTOR_TABLE[];
 extern struct pldm_descriptor_string SWITCH_1_DESCRIPTOR_TABLE[];
 extern struct pldm_descriptor_string ASIC_PSOC_DESCRIPTOR_TABLE[];
 extern struct pldm_descriptor_string ASIC_QSPI_DESCRIPTOR_TABLE[];
+extern struct pldm_descriptor_string ASIC_BOOT1_DESCRIPTOR_TABLE[];
 
 extern struct pldm_downstream_identifier_table downstream_table[];
 
