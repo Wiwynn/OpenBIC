@@ -19,11 +19,13 @@
 #include <string.h>
 #include <logging/log.h>
 #include "libutil.h"
+#include "util_spi.h"
 #include "plat_pldm_fw_update.h"
 #include "plat_i2c.h"
 #include "pldm.h"
 #include "pldm_firmware_update.h"
 #include "plat_pldm_sensor.h"
+#include "plat_gpio.h"
 #include "power_status.h"
 #include "mctp_ctrl.h"
 #include "xdpe12284c.h"
@@ -34,11 +36,15 @@ static bool plat_pldm_vr_i2c_info_get(int comp_identifier, uint8_t *bus, uint8_t
 static uint8_t plat_pldm_pre_vr_update(void *fw_update_param);
 static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
 static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
+static uint8_t plat_pldm_pre_cxl_update(void *fw_update_param);
+static uint8_t plat_pldm_post_cxl_update(void *fw_update_param);
+static uint8_t pldm_cxl_update(void *fw_update_param);
 
 enum FIRMWARE_COMPONENT {
 	FF_COMPNT_BIC,
 	FF_COMPNT_VR_PVDDQ_AB_ASIC,
 	FF_COMPNT_VR_PVDDQ_CD_ASIC,
+	FF_COMPNT_CXL,
 };
 
 /* PLDM FW update table */
@@ -81,6 +87,19 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 		.activate_method = COMP_ACT_AC_PWR_CYCLE,
 		.self_act_func = NULL,
 		.get_fw_version_fn = plat_get_vr_fw_version,
+	},
+	{
+		.enable = true,
+		.comp_classification = COMP_CLASS_TYPE_DOWNSTREAM,
+		.comp_identifier = FF_COMPNT_CXL,
+		.comp_classification_index = 0x00,
+		.pre_update_func = plat_pldm_pre_cxl_update,
+		.update_func = pldm_cxl_update,
+		.pos_update_func = plat_pldm_post_cxl_update,
+		.inf = COMP_UPDATE_VIA_SPI,
+		.activate_method = COMP_ACT_DC_PWR_CYCLE,
+		.self_act_func = NULL,
+		.get_fw_version_fn = NULL,
 	},
 };
 
@@ -274,4 +293,54 @@ static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len)
 	ret = true;
 
 	return ret;
+}
+
+static uint8_t plat_pldm_pre_cxl_update(void *fw_update_param)
+{
+	// Switch SPI MUX to BIC
+	gpio_set(SEL_SPI_MUX_R, GPIO_HIGH);
+
+	return 0;
+}
+
+static uint8_t plat_pldm_post_cxl_update(void *fw_update_param)
+{
+	// Switch SPI MUX to CXL
+	gpio_set(SEL_SPI_MUX_R, GPIO_LOW);
+
+	return 0;
+}
+
+static uint8_t pldm_cxl_update(void *fw_update_param)
+{
+	CHECK_NULL_ARG_WITH_RETURN(fw_update_param, 1);
+
+	pldm_fw_update_param_t *p = (pldm_fw_update_param_t *)fw_update_param;
+
+	CHECK_NULL_ARG_WITH_RETURN(p->data, 1);
+
+	uint8_t update_flag = 0;
+
+	// Prepare next data offset and length
+	p->next_ofs = p->data_ofs + p->data_len;
+	p->next_len = fw_update_cfg.max_buff_size;
+
+	if (p->next_ofs < fw_update_cfg.image_size) {
+		if (p->next_ofs + p->next_len > fw_update_cfg.image_size)
+			p->next_len = fw_update_cfg.image_size - p->next_ofs;
+
+		if (((p->next_ofs % SECTOR_SZ_64K) + p->next_len) > SECTOR_SZ_64K)
+			p->next_len = SECTOR_SZ_64K - (p->next_ofs % SECTOR_SZ_64K);
+	} else {
+		// Current data is the last packet
+		// Set the next data length to 0 to inform the update completely
+		p->next_len = 0;
+		update_flag = (SECTOR_END_FLAG | NO_RESET_FLAG);
+	}
+
+	uint8_t ret = fw_update(p->data_ofs, p->data_len, p->data, update_flag, DEVSPI_SPI1_CS0);
+
+	CHECK_PLDM_FW_UPDATE_RESULT_WITH_RETURN(p->comp_id, p->data_ofs, p->data_len, ret, 1);
+
+	return 0;
 }
