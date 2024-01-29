@@ -4548,23 +4548,6 @@ pldm_sensor_info plat_pldm_sensor_vr_table[] = {
 // clang-format off
 PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
 	{
-		// WF_1OU_BOARD_INLET_TEMP_C
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0001,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_1OU_BOARD_INLET_TEMP_C",
-	},
-	{
 		// WF_CXL1_CNTR_TEMP_C
 		/*** PDR common header***/
 		{
@@ -4733,40 +4716,6 @@ PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
 		.nameStringCount = 0x1,
 		.nameLanguageTag = "en",
 		.sensorName = u"WF_VR_PVDDQ_AB_ASIC2_TEMP_C",
-	},
-	{
-		// WF_INA233_P12V_STBY_VOLT_V
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0020,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_STBY_VOLT_V",
-	},
-	{
-		// WF_INA233_P12V_E1S_0_L_VOLT_V
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0021,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_E1S_0_L_VOLT_V",
 	},
 	{
 		// WF_ADC_P3V3_STBY_VOLT_V
@@ -5194,40 +5143,6 @@ PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
 		.sensorName = u"WF_ADC_PVTT_CD_ASIC2_VOLT_V ",
 	},
 	{
-		// WF_INA233_P12V_STBY_CURR_A
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0040,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_STBY_CURR_A",
-	},
-	{
-		// WF_INA233_P12V_E1S_0_L_CURR_A
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0041,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_E1S_0_L_CURR_A",
-	},
-	{
 		// WF_VR_P0V8_ASIC1_CURR_A
 		/*** PDR common header***/
 		{
@@ -5362,40 +5277,6 @@ PDR_sensor_auxiliary_names plat_pdr_sensor_aux_names_table[] = {
 		.nameStringCount = 0x1,
 		.nameLanguageTag = "en",
 		.sensorName = u"WF_VR_PVDDQ_AB_ASIC2_CURR_A",
-	},
-	{
-		// WF_INA233_P12V_STBY_PWR_W
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0050,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_STBY_PWR_W",
-	},
-	{
-		// WF_INA233_P12V_E1S_0_L_PWR_W
-		/*** PDR common header***/
-		{
-			.record_handle = 0x00000000,
-			.PDR_header_version = 0x01,
-			.PDR_type = PLDM_SENSOR_AUXILIARY_NAMES_PDR,
-			.record_change_number = 0x0000,
-			.data_length = 0x0000,
-		},
-		.terminus_handle = 0x0000,
-		.sensor_id = 0x0051,
-		.sensor_count = 0x1,
-		.nameStringCount = 0x1,
-		.nameLanguageTag = "en",
-		.sensorName = u"WF_INA233_P12V_E1S_0_L_PWR_W",
 	},
 	{
 		// WF_VR_P0V8_ASIC1_PWR_W
