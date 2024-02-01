@@ -15,6 +15,7 @@
  */
 
 #include "pldm.h"
+#include "plat_mctp.h"
 #include "pldm_shell.h"
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,53 @@
 /*
  * Command Functions
  */
+
+void cmd_pldm_send_req_new(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc < 4) {
+		shell_warn(
+			shell,
+			"Help: platform pldm sendreq <mctp_dest_eid> <pldm_type> <cmd> <data...>, BMC EID: 0x08");
+		return;
+	}
+
+	uint8_t mctp_dest_eid = strtol(argv[1], NULL, 16);
+	uint8_t pldm_type = strtol(argv[2], NULL, 16);
+	uint8_t pldm_cmd = strtol(argv[3], NULL, 16);
+	uint16_t pldm_data_len = argc - 4;
+
+	uint8_t resp_buf[PLDM_MAX_DATA_SIZE] = { 0 };
+	pldm_msg msg = { 0 };
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.ep = MCTP_EID_BMC;
+
+	msg.hdr.pldm_type = pldm_type;
+	msg.hdr.cmd = pldm_cmd;
+	msg.hdr.rq = PLDM_REQUEST;
+	msg.len = pldm_data_len;
+
+	for (int i = 0; i < msg.len; i++)
+		msg.buf[i] = strtol(argv[4 + i], NULL, 16);
+
+	uint16_t resp_len = mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, resp_buf, sizeof(resp_buf));
+	if (!resp_len) {
+		shell_error(shell, "Failed to get mctp response");
+		return;
+	}
+
+	shell_print(shell, "* mctp: 0x%x addr: 0x%x eid: 0x%x", find_mctp_by_bus(I2C_BUS_BMC)->endpoint,
+		    msg.ext_params.smbus_ext_params.addr, mctp_dest_eid);
+	shell_print(shell, "  pldm_type: 0x%x pldm cmd: 0x%x", pldm_type, pldm_cmd);
+	shell_hexdump(shell, msg.buf, msg.len);
+
+	if (resp_buf[0] != PLDM_SUCCESS)
+		shell_error(shell, "Response with bad cc 0x%x", resp_buf[0]);
+	else {
+		shell_hexdump(shell, resp_buf, resp_len);
+		shell_print(shell, "");
+	}
+}
 
 void cmd_pldm_send_req(const struct shell *shell, size_t argc, char **argv)
 {
