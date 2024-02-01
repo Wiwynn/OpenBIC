@@ -19,11 +19,15 @@
 
 #include <shell/shell.h>
 
+void cmd_pldm_send_req_new(const struct shell *shell, size_t argc, char **argv);
+
 void cmd_pldm_send_req(const struct shell *shell, size_t argc, char **argv);
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_pldm_cmds,
 			       SHELL_CMD(sendreq, NULL, "Send out PLDM request.",
 					 cmd_pldm_send_req),
+				   SHELL_CMD(sendreq_new, NULL, "Send out PLDM request rev2.",
+					 cmd_pldm_send_req_new),
 			       SHELL_SUBCMD_SET_END);
 
 #endif
