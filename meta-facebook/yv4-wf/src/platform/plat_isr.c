@@ -27,18 +27,18 @@ LOG_MODULE_REGISTER(plat_isr);
 void enable_e1s_pe_reset()
 {
 	if (check_ioe4_e1s_prsnt_pin() == 0) {
-		uint8_t io_output_status = 0;
+		uint8_t ioe_reg_value = 0;
 		int ret = 0;
 
-		ret = get_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, &io_output_status);
+		ret = get_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, &ioe_reg_value);
 
 		if (ret != 0) {
 			LOG_ERR("Failed to enable E1S PE reset while reading IOE4 register");
 		}
 
-		io_output_status = (io_output_status | E1S_PE_RESET_BIT);
+		ioe_reg_value = (ioe_reg_value | E1S_PE_RESET_BIT);
 
-		ret = set_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, io_output_status);
+		ret = set_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, ioe_reg_value);
 
 		if (ret != 0) {
 			LOG_ERR("Failed to enable E1S PE reset while writing IOE4 register");
@@ -48,22 +48,38 @@ void enable_e1s_pe_reset()
 
 void set_asic_and_e1s_clk_handler()
 {
-	uint8_t io_output_status = 0;
+	uint8_t ioe_reg_value = 0;
 	int ret = 0;
 
-	ret = get_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, &io_output_status);
+	ret = get_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, &ioe_reg_value);
 
 	if (ret != 0) {
-		LOG_ERR("Failed to set ASIC and E1S clock while reading IOE4 register");
+		LOG_ERR("Failed to get ASIC and E1S clock while reading IOE4 register");
 	}
 
-	io_output_status = ((io_output_status & (~ASIC_CLK_BIT)) & (~E1S_CLK_BIT));
+	ioe_reg_value = ((ioe_reg_value & (~ASIC_CLK_BIT)) & (~E1S_CLK_BIT));
 
-	ret = set_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, io_output_status);
+	ret = set_ioe_value(ADDR_IOE4, TCA9555_OUTPUT_PORT_REG_1, ioe_reg_value);
 
 	if (ret != 0) {
 		LOG_ERR("Failed to set ASIC and E1S clock while writing IOE4 register");
 	}
+}
+
+void set_cxl_led()
+{
+	uint8_t ioe_reg_value = 0;
+
+	get_ioe_value(ADDR_IOE3, TCA9555_OUTPUT_PORT_REG_1, &ioe_reg_value);
+
+	if ((gpio_get(PWRGD_PVTT_CD_ASIC1) == HIGH_ACTIVE) &&
+	    (gpio_get(PWRGD_PVTT_CD_ASIC2) == HIGH_ACTIVE)) {
+		ioe_reg_value = (ioe_reg_value | CXL_LED_BIT);
+	} else { // If any of the ASIC is not powered up, turn off the CXL LED
+		ioe_reg_value = (ioe_reg_value & (~CXL_LED_BIT));
+	}
+
+	set_ioe_value(ADDR_IOE3, TCA9555_OUTPUT_PORT_REG_1, ioe_reg_value);
 }
 
 K_WORK_DEFINE(cxl_power_on_work, execute_power_on_sequence);
@@ -82,7 +98,7 @@ void ISR_MB_DC_STAGUS_CHAGNE()
 	}
 }
 
-K_WORK_DEFINE(ioe_power_on_work, enable_e1s_pe_reset);
+K_WORK_DEFINE(_enable_e1s_pe_reset, enable_e1s_pe_reset);
 
 void ISR_MB_PCIE_RST()
 {
@@ -90,7 +106,7 @@ void ISR_MB_PCIE_RST()
 	gpio_set(PERST_ASIC2_N_R, gpio_get(RST_PCIE_MB_EXP_N));
 
 	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
-		k_work_submit(&ioe_power_on_work);
+		k_work_submit(&_enable_e1s_pe_reset);
 	}
 }
 
@@ -99,4 +115,11 @@ K_WORK_DEFINE(e1s_pwr_on_work, set_asic_and_e1s_clk_handler);
 void ISR_E1S_PWR_ON()
 {
 	k_work_submit(&e1s_pwr_on_work);
+}
+
+K_WORK_DEFINE(_set_cxl_led, set_cxl_led);
+
+void ISR_SET_CXL_LED()
+{
+	k_work_submit(&_set_cxl_led);
 }

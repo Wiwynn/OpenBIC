@@ -29,6 +29,7 @@
 #define ASIC_CLK_BIT BIT(4)
 #define E1S_CLK_BIT BIT(5)
 #define E1S_PE_RESET_BIT BIT(6)
+#define CXL_LED_BIT BIT(2)
 // Only switch VR MUX
 #define IOE_SWITCH_MUX_TO_BIC 0x05
 
@@ -51,5 +52,6 @@ void ISR_MB_DC_STAGUS_CHAGNE();
 void ISR_MB_PCIE_RST();
 void ISR_E1S_PWR_ON();
 void ISR_CXL_PG_ON();
+void ISR_SET_CXL_LED();
 
 #endif
