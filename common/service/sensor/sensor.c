@@ -124,6 +124,7 @@ const char *const sensor_type_name[] = {
 	sensor_name_to_num(mpro)
 	sensor_name_to_num(bmr351)
 	sensor_name_to_num(cx7)
+	sensor_name_to_num(max11617)
 };
 // clang-format on
 
@@ -179,6 +180,7 @@ SENSOR_DRIVE_INIT_DECLARE(mpro);
 #endif
 SENSOR_DRIVE_INIT_DECLARE(bmr351);
 SENSOR_DRIVE_INIT_DECLARE(cx7);
+SENSOR_DRIVE_INIT_DECLARE(max11617);
 
 // The sequence needs to same with SENSOR_DEV ID
 sensor_drive_api sensor_drive_tbl[] = {
@@ -246,6 +248,7 @@ sensor_drive_api sensor_drive_tbl[] = {
 #endif
 	SENSOR_DRIVE_TYPE_INIT_MAP(bmr351),
 	SENSOR_DRIVE_TYPE_INIT_MAP(cx7),
+	SENSOR_DRIVE_TYPE_INIT_MAP(max11617),
 };
 
 static void init_sensor_num(void)
