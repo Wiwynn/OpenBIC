@@ -108,6 +108,10 @@ bool pre_vr_read(sensor_cfg *cfg, void *args)
 	uint8_t retry = 5;
 	I2C_MSG msg;
 
+	if (gpio_get(VR_TYPE_1) == GPIO_HIGH) {
+		cfg->type = sensor_dev_raa229621;
+	}
+
 	/* set page */
 	msg.bus = cfg->port;
 	msg.target_addr = cfg->target_addr;
