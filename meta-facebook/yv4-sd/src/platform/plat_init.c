@@ -46,7 +46,7 @@ SCU_CFG scu_cfg[] = {
 void pal_pre_init()
 {
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
-	apml_init();
+	// apml_init();
 
 	/* init i2c target */
 	for (int index = 0; index < MAX_TARGET_NUM; index++) {
@@ -105,6 +105,7 @@ void pal_set_sys_status()
 	sync_bmc_ready_pin();
 
 	if (get_post_status()) {
+		apml_init();
 		apml_recovery();
 		set_tsi_threshold();
 		read_cpuid();

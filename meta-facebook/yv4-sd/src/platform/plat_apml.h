@@ -37,5 +37,6 @@ bool get_tsi_status();
 void reset_tsi_status();
 void set_tsi_threshold();
 void read_cpuid();
+void print_cpuid();
 
 #endif

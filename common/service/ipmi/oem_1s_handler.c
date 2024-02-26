@@ -1816,23 +1816,28 @@ __weak void OEM_1S_APML_READ(ipmi_msg *msg)
 	case 0x00: /* RMI */
 		if (apml_read_byte(APML_BUS, SB_RMI_ADDR, msg->data[1], &read_data)) {
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			LOG_WRN("APML RMI read fail");
 		} else {
 			msg->data[0] = read_data;
 			msg->data_len = 1;
 			msg->completion_code = CC_SUCCESS;
+			LOG_WRN("APML RMI read data: %x", read_data);
 		}
 		break;
 	case 0x01: /* TSI */
 		if (apml_read_byte(APML_BUS, SB_TSI_ADDR, msg->data[1], &read_data)) {
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			LOG_WRN("APML TSI read fail");
 		} else {
 			msg->data[0] = read_data;
 			msg->data_len = 1;
 			msg->completion_code = CC_SUCCESS;
+			LOG_WRN("APML TSI read data: %x", read_data);
 		}
 		break;
 	default:
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		LOG_WRN("APML read byte fail");
 		break;
 	}
 	return;
@@ -1851,19 +1856,24 @@ __weak void OEM_1S_APML_WRITE(ipmi_msg *msg)
 	case 0x00: /* RMI */
 		if (apml_write_byte(APML_BUS, SB_RMI_ADDR, msg->data[1], msg->data[2])) {
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			LOG_WRN("APML RMI write fail");
 		} else {
 			msg->completion_code = CC_SUCCESS;
+			LOG_WRN("APML RMI write success");
 		}
 		break;
 	case 0x01: /* TSI */
 		if (apml_write_byte(APML_BUS, SB_TSI_ADDR, msg->data[1], msg->data[2])) {
 			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			LOG_WRN("APML TSI write fail");
 		} else {
 			msg->completion_code = CC_SUCCESS;
+			LOG_WRN("APML TSI write success");
 		}
 		break;
 	default:
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		LOG_WRN("APML write fail");
 		break;
 	}
 	msg->data_len = 0;
@@ -1876,6 +1886,7 @@ __weak void OEM_1S_SEND_APML_REQUEST(ipmi_msg *msg)
 
 	if (msg->data_len < 1) {
 		msg->completion_code = CC_INVALID_LENGTH;
+		LOG_WRN("APML request invalid length");
 		return;
 	}
 
@@ -1886,6 +1897,7 @@ __weak void OEM_1S_SEND_APML_REQUEST(ipmi_msg *msg)
 	case APML_MSG_TYPE_MAILBOX: /* Mailbox */
 		if (msg->data_len != 1 + sizeof(mailbox_WrData)) {
 			msg->completion_code = CC_INVALID_LENGTH;
+			LOG_WRN("APML mailbox invalid length");
 			return;
 		}
 		memcpy(apml_data.WrData, &msg->data[1], sizeof(mailbox_WrData));
@@ -1893,6 +1905,7 @@ __weak void OEM_1S_SEND_APML_REQUEST(ipmi_msg *msg)
 	case APML_MSG_TYPE_CPUID: /* CPUID */
 		if (msg->data_len != 1 + sizeof(cpuid_WrData)) {
 			msg->completion_code = CC_INVALID_LENGTH;
+			LOG_WRN("APML cpuid invalid length");
 			return;
 		}
 		memcpy(apml_data.WrData, &msg->data[1], sizeof(cpuid_WrData));
@@ -1900,11 +1913,13 @@ __weak void OEM_1S_SEND_APML_REQUEST(ipmi_msg *msg)
 	case APML_MSG_TYPE_MCA: /* MCA */
 		if (msg->data_len != 1 + sizeof(mca_WrData)) {
 			msg->completion_code = CC_INVALID_LENGTH;
+			LOG_WRN("APML mca invalid length");
 			return;
 		}
 		memcpy(apml_data.WrData, &msg->data[1], sizeof(mca_WrData));
 		break;
 	default:
+		LOG_WRN("APML request error");
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		return;
 	}
@@ -1914,6 +1929,7 @@ __weak void OEM_1S_SEND_APML_REQUEST(ipmi_msg *msg)
 	apml_data.cb_fn = apml_request_callback;
 	apml_data.ui32_arg = index;
 	if (apml_read(&apml_data)) {
+		LOG_WRN("APML request read error");
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		return;
 	}
@@ -2226,6 +2242,7 @@ __weak void OEM_1S_SET_DEVICE_ACTIVE(ipmi_msg *msg)
 void IPMI_OEM_1S_handler(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
+	LOG_WRN("IPMI_OEM_1S_handler");
 	switch (msg->cmd) {
 	case CMD_OEM_1S_MSG_IN:
 		LOG_DBG("Received 1S Message In command");
@@ -2365,19 +2382,19 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 #endif
 #ifdef ENABLE_APML
 	case CMD_OEM_1S_APML_READ:
-		LOG_DBG("Received 1S APML Read command");
+		LOG_WRN("Received 1S APML Read command");
 		OEM_1S_APML_READ(msg);
 		break;
 	case CMD_OEM_1S_APML_WRITE:
-		LOG_DBG("Received 1S APML Write command");
+		LOG_WRN("Received 1S APML Write command");
 		OEM_1S_APML_WRITE(msg);
 		break;
 	case CMD_OEM_1S_SEND_APML_REQUEST:
-		LOG_DBG("Received 1S Send APML Request command");
+		LOG_WRN("Received 1S Send APML Request command");
 		OEM_1S_SEND_APML_REQUEST(msg);
 		break;
 	case CMD_OEM_1S_GET_APML_RESPONSE:
-		LOG_DBG("Received 1S Get APML Response command");
+		LOG_WRN("Received 1S Get APML Response command");
 		OEM_1S_GET_APML_RESPONSE(msg);
 		break;
 #endif

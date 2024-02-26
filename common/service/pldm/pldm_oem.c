@@ -104,14 +104,14 @@ static uint8_t ipmi_cmd(void *mctp_inst, uint8_t *buf, uint16_t len, uint8_t ins
 		return PLDM_SUCCESS;
 	}
 
-	LOG_DBG("ipmi over pldm, len = %d", len);
-	LOG_DBG("netfn %x, cmd %x", req_p->netfn_lun, req_p->cmd);
-	LOG_HEXDUMP_DBG(buf, len, "ipmi cmd data");
+	LOG_WRN("ipmi over pldm, len = %d", len);
+	LOG_WRN("netfn %x, cmd %x", req_p->netfn_lun, req_p->cmd);
+	LOG_HEXDUMP_WRN(buf, len, "ipmi cmd data");
 
 	ipmi_msg_cfg msg = { 0 };
 
 	/* Setup ipmi data */
-	msg.buffer.netfn = req_p->netfn_lun >> 2;
+	msg.buffer.netfn = req_p->netfn_lun;
 	msg.buffer.cmd = req_p->cmd;
 	msg.buffer.data_len = len - sizeof(*req_p) + 1;
 	msg.buffer.pldm_inst_id = instance_id;
