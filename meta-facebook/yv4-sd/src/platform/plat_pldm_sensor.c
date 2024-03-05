@@ -27,8 +27,11 @@
 #include "plat_i2c.h"
 #include "plat_pldm_sensor.h"
 #include "plat_dimm.h"
+#include "plat_gpio.h"
 
 LOG_MODULE_REGISTER(plat_pldm_sensor);
+
+void plat_pldm_sensor_change_vr_dev();
 
 static struct pldm_sensor_thread pal_pldm_sensor_thread[MAX_SENSOR_THREAD_ID] = {
 	// thread id, thread name
@@ -5775,6 +5778,7 @@ pldm_sensor_info *plat_pldm_sensor_load(int thread_id)
 	case ADC_SENSOR_THREAD_ID:
 		return plat_pldm_sensor_adc_table;
 	case VR_SENSOR_THREAD_ID:
+		plat_pldm_sensor_change_vr_dev();
 		return plat_pldm_sensor_vr_table;
 	case MB_TEMP_SENSOR_THREAD_ID:
 		return plat_pldm_sensor_mb_temp_table;
@@ -5881,4 +5885,47 @@ void plat_load_aux_sensor_names_pdr_table(PDR_sensor_auxiliary_names *aux_sensor
 {
 	memcpy(aux_sensor_name_table, &plat_pdr_sensor_aux_names_table,
 	       sizeof(plat_pdr_sensor_aux_names_table));
+}
+
+void plat_pldm_sensor_change_vr_dev()
+{
+	uint8_t vr_dev = VR_DEVICE_UNKNOWN;
+	if (plat_pldm_sensor_get_vr_dev(&vr_dev) != GET_VR_DEV_SUCCESS) {
+		LOG_ERR("Unable to change the VR device due to its unknown status.");
+		return;
+	}
+
+	for (int index = 0; index < plat_pldm_sensor_get_sensor_count(VR_SENSOR_THREAD_ID);
+	     index++) {
+		plat_pldm_sensor_vr_table[index].pldm_sensor_cfg.type = vr_dev;
+	}
+}
+
+uint8_t plat_pldm_sensor_get_vr_dev(uint8_t *vr_dev)
+{
+	/*
+	 * GPIO VR_TYPE_0 and VR_TYPE_1 are used to determine the VR type.
+	 * 
+	 * VR_TYPE[1:0]
+	 * 00 - MPS
+	 * 01 - RNS
+	 * 10 - IFX
+	 * 11 - TI
+	 */
+
+	if (gpio_get(VR_TYPE_1) == HIGH_INACTIVE && gpio_get(VR_TYPE_0) == HIGH_INACTIVE) {
+		*vr_dev = sensor_dev_mp2856gut;
+	} else if (gpio_get(VR_TYPE_1) == HIGH_INACTIVE && gpio_get(VR_TYPE_0) == HIGH_ACTIVE) {
+		*vr_dev = sensor_dev_raa229621;
+	} else if (gpio_get(VR_TYPE_1) == HIGH_ACTIVE && gpio_get(VR_TYPE_0) == HIGH_INACTIVE) {
+		*vr_dev = sensor_dev_xdpe19283b;
+	} else if (gpio_get(VR_TYPE_1) == HIGH_ACTIVE && gpio_get(VR_TYPE_0) == HIGH_ACTIVE) {
+		*vr_dev = sensor_dev_tps53689;
+	} else {
+		LOG_DBG("GPIO VR_TYPE_0:%d VR_TYPE_1:%d", gpio_get(VR_TYPE_0), gpio_get(VR_TYPE_1));
+		*vr_dev = VR_DEVICE_UNKNOWN;
+		return GET_VR_DEV_FAILED;
+	}
+
+	return GET_VR_DEV_SUCCESS;
 }
