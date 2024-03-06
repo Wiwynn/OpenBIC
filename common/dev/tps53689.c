@@ -23,7 +23,33 @@
 #include "pmbus.h"
 #include "util_pmbus.h"
 
+#define VR_TI_REG_CRC 0xF4
+
 LOG_MODULE_REGISTER(tps53689);
+
+int tps53689_get_crc(uint8_t bus, uint8_t addr, uint32_t *crc)
+{
+	CHECK_NULL_ARG_WITH_RETURN(crc, false);
+
+	I2C_MSG i2c_msg = { 0 };
+
+	uint8_t retry = 5;
+	i2c_msg.bus = bus;
+	i2c_msg.target_addr = addr;
+	i2c_msg.tx_len = 1;
+	i2c_msg.rx_len = 2;
+	i2c_msg.data[0] = VR_TI_REG_CRC;
+
+	if (i2c_master_read(&i2c_msg, retry)) {
+		LOG_DBG("read register 0x%02X failed", i2c_msg.data[0]);
+		return false;
+	}
+
+	*crc = (i2c_msg.data[3] << 24) | (i2c_msg.data[2] << 16) | (i2c_msg.data[1] << 8) |
+	       i2c_msg.data[0];
+
+	return true;
+}
 
 uint8_t tps53689_read(sensor_cfg *cfg, int *reading)
 {
