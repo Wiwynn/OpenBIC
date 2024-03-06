@@ -31,6 +31,7 @@
 #include "pt5161l.h"
 #include "mp2985.h"
 #include "raa229621.h"
+#include "tps53689.h"
 
 LOG_MODULE_DECLARE(pldm);
 
@@ -229,6 +230,12 @@ uint8_t pldm_vr_update(void *fw_update_param)
 			     ARRAY_SIZE(KEYWORD_VR_RAA229621) - 1))) {
 		if (raa229621_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) ==
 		    false)
+			goto exit;
+	} else if ((!strncmp(p->comp_version_str, KEYWORD_VR_TPS53685,
+			     ARRAY_SIZE(KEYWORD_VR_TPS53685) - 1)) ||
+		   (!strncmp(p->comp_version_str, KEYWORD_VR_TPS536C5,
+			     ARRAY_SIZE(KEYWORD_VR_TPS536C5) - 1))) {
+		if (tps536xx_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
 	} else {
 		LOG_ERR("Non-support VR detected with component string %s!",

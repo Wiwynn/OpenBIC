@@ -17,13 +17,228 @@
 #include <stdio.h>
 #include <string.h>
 #include <logging/log.h>
+#include <stdlib.h>
+
 #include "libutil.h"
 #include "sensor.h"
 #include "hal_i2c.h"
 #include "pmbus.h"
 #include "util_pmbus.h"
+#include "tps53689.h"
+
+#define VR_TI_REG_CRC 0xF4
 
 LOG_MODULE_REGISTER(tps53689);
+
+enum LINE_INDEX {
+	FIRST_LINE = 1,
+	DEV_ID_LINE = 2,
+	LAST_LINE = 11,
+};
+
+enum LINE_FORMAT {
+	HEADER_LEN = 8,
+	DATA_LEN = 32,
+};
+
+enum DEV_ID_LINE_OFFSET {
+	DEV_REV1_OFFSET = 6,
+	DEV_REV2_OFFSET = 7,
+	ADDR_OFFSET = 8,
+	CRC1_OFFSET = 9,
+	CRC2_OFFSET = 10,
+};
+
+uint8_t tps536c5_dev_id[] = { 0x54, 0x49, 0x53, 0x6C, 0x50, 0x00 };
+
+/*
+ * VR image format:
+ *
+ * :020000040000FA			// Line 1, 20000004 is header
+ * :200000005449536C5000010076A1AE969610FFFFBFFFFFF516F69A039A0300000006CD0465
+ * :200020009933000C0000000046289780223763622524246060E060202060AA2525AA252550
+ * ```
+ * :200100000000000000000000000000000000000000000000000000000000000000000000DF
+ * :00000001FF				// Line 11
+*/
+
+
+// This feature is for parsing hex file
+bool tps536xx_parse_image(uint8_t *img_buff, uint32_t img_size, struct tps_config *cfg)
+{
+	CHECK_NULL_ARG_WITH_RETURN(img_buff, false);
+	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
+
+	int line = FIRST_LINE, buff_index = 0, cfg_data_index = 0, line_data_bytes = 0;
+
+	while (buff_index < img_size) {
+		if (img_buff[buff_index] == '\n') {
+			line++;
+			buff_index++;
+			printf("access \\n, %d %d %d %d\n", line, buff_index, cfg_data_index,
+			       line_data_bytes);
+			continue;
+		}
+
+		if (line == FIRST_LINE) {
+			// The first line is unused. Ignore it.
+			buff_index++;
+			printf("access FIRST_LINE, %d %d %d %d\n", line, buff_index, cfg_data_index,
+			       line_data_bytes);
+			continue;
+		}
+
+		if (line == LAST_LINE) {
+			// The last line is unused. Ignore it.
+			printf("access LAST_LINE, %d %d %d %d\n", line, buff_index, cfg_data_index,
+			       line_data_bytes);
+			break;
+		}
+
+		if (img_buff[buff_index] == ':') {
+			// The header is unused. Igonre it.
+			buff_index += HEADER_LEN + 1;
+			printf("access ':', %d %d %d %d\n", line, buff_index, cfg_data_index,
+			       line_data_bytes);
+			continue;
+		}
+
+		if (line_data_bytes == DATA_LEN) {
+			// Ignore the last byte and '\r'
+			line_data_bytes = 0;
+			buff_index += 3;
+			printf("access 'line_data_bytes == DATA_LEN', %d %d %d %d\n", line,
+			       buff_index, cfg_data_index, line_data_bytes);
+			printf("Check sum: %c%c latest char: %x\n", img_buff[buff_index - 2],
+			       img_buff[buff_index - 1], img_buff[buff_index]);
+			continue;
+		}
+
+		// There are DATA_LEN bytes of updating data in each line
+		for (; line_data_bytes < DATA_LEN;
+		     line_data_bytes++, cfg_data_index++, buff_index += 2) {
+			char str[2];
+			str[0] = img_buff[buff_index];
+			str[1] = img_buff[buff_index + 1];
+			uint8_t byte = (uint8_t)strtoul(str, NULL, 16);
+
+			// According to the TPS536XX specification, BYTE 0 ~ 8 must be written as 0xFF when programming.
+			if (line == DEV_ID_LINE) {
+				if (line_data_bytes < DEV_REV1_OFFSET) { //Device ID
+					cfg->devid[line_data_bytes] = byte;
+					byte = 0xFF;
+				} else if (line_data_bytes == DEV_REV1_OFFSET ||
+					   line_data_bytes == DEV_REV2_OFFSET) {
+					byte = 0xFF;
+				} else if (line_data_bytes == ADDR_OFFSET) {
+					cfg->addr = byte;
+					byte = 0xFF;
+				} else if (line_data_bytes == CRC1_OFFSET ||
+					   line_data_bytes == CRC2_OFFSET) {
+					cfg->crc[line_data_bytes - CRC1_OFFSET] = byte;
+				}
+			}
+
+			cfg->data[cfg_data_index] = byte;
+			printf("cfg->data[%d]: 0x%02X. buff_index: %d\n", cfg_data_index,
+			       cfg->data[cfg_data_index], buff_index);
+		}
+	}
+	return true;
+}
+
+bool tps536xx_get_crc(uint8_t bus, uint8_t addr, uint32_t *crc)
+{
+	CHECK_NULL_ARG_WITH_RETURN(crc, false);
+
+	I2C_MSG i2c_msg = { 0 };
+
+	uint8_t retry = 5;
+	i2c_msg.bus = bus;
+	i2c_msg.target_addr = addr;
+	i2c_msg.tx_len = 1;
+	i2c_msg.rx_len = 2;
+	i2c_msg.data[0] = VR_TI_REG_CRC;
+
+	if (i2c_master_read(&i2c_msg, retry)) {
+		LOG_DBG("read register 0x%02X failed", i2c_msg.data[0]);
+		return false;
+	}
+
+	*crc = (i2c_msg.data[3] << 24) | (i2c_msg.data[2] << 16) | (i2c_msg.data[1] << 8) |
+	       i2c_msg.data[0];
+
+	return true;
+}
+
+bool tps536xx_fwupdate(uint8_t bus, uint8_t addr, uint8_t *img_buff, uint32_t img_size)
+{
+	CHECK_NULL_ARG_WITH_RETURN(img_buff, false);
+
+	// Parse image
+	struct tps_config config = { 0 };
+	if (tps536xx_parse_image(img_buff, img_size, &config) == false) {
+		LOG_ERR("Failed to parse image!");
+		return false;
+	}
+
+	for (int index = 0; index < 6; index++) {
+		if (config.devid[index] != tps536c5_dev_id[index]) {
+			LOG_ERR("Failed to update firmware, device ID is not matched!");
+			return false;
+		}
+	}
+
+	if (config.addr != addr) {
+		LOG_ERR("Failed to update firmware, address is not matched!");
+		return false;
+	}
+
+	uint32_t dev_crc = 0;
+	if (tps536xx_get_crc(bus, addr, &dev_crc) == true) {
+		uint32_t img_crc = (config.crc[1] << 8) | config.crc[0];
+		if (dev_crc == img_crc) {
+			LOG_ERR("Failed to update firmware becasue CRC is matched!");
+			return false;
+		}
+	}
+
+	//uint8_t retry = 5;
+	I2C_MSG msg;
+
+	msg.bus = bus;
+	msg.target_addr = addr;
+	msg.tx_len = 1;
+	msg.rx_len = 0;
+
+	// set USER_NVM_INDEX 00h
+	msg.data[0] = TI_REG_USER_NVM_INDEX;
+	msg.data[1] = 0x00;
+	/*
+	if (i2c_master_write(&msg, retry) != 0) {
+		LOG_ERR("Failed to set USER_NVM_INDEX 00h");
+		return false;
+	}
+	*/
+	// program the image
+	msg.data[0] = TI_REG_USER_NVM_EXECUTE;
+	int offset = 0;
+	for (int index = 0; index < 9; index++) {
+		memcpy(&msg.data[index], &config.data[offset], TPS536XX_UPDATE_INFO_BYTES);
+		/*
+		if (i2c_master_write(&msg, retry) != 0) {
+			LOG_ERR("Failed to program the image");
+			return false;
+		}
+		*/
+		printf("msg.data[%d]: 0x%02X\n", index, msg.data[index]);
+		offset += TPS536XX_UPDATE_INFO_BYTES;
+	}
+
+	k_msleep(100); // Wait 100 ms for non-volatile memory programming to complete successfully.
+
+	return true;
+}
 
 uint8_t tps53689_read(sensor_cfg *cfg, int *reading)
 {
