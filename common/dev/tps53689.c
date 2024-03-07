@@ -22,12 +22,80 @@
 #include "hal_i2c.h"
 #include "pmbus.h"
 #include "util_pmbus.h"
+#include "tps53689.h"
 
 #define VR_TI_REG_CRC 0xF4
 
 LOG_MODULE_REGISTER(tps53689);
 
-int tps53689_get_crc(uint8_t bus, uint8_t addr, uint32_t *crc)
+// This feature is for parsing hex file
+void tps536xx_parse_image(struct mp2856_config *dev_cfg)
+{
+	FILE *fp;
+	char line[80];
+	char *token;
+	int config_data_idx = 0;
+	struct tps_config *config = NULL;
+
+	if (info == NULL || path == NULL) {
+		return NULL;
+	}
+
+	fp = fopen(path, "r");
+	if (!fp) {
+		printf("Failed to open VR image\n");
+		return NULL;
+	}
+
+	config = (struct tps_config *)calloc(1, sizeof(struct tps_config));
+	if (config == NULL) {
+		printf("ERROR: no space for creating config!\n");
+		fclose(fp);
+		return NULL;
+	}
+
+	/*
+	 * Hex image format:
+	 * Line 1  ":020000040000FA"
+	 * Line 2  ":200000005449536C5000010076A1AE969610FFFFBFFFFFF516F69A039A0300000006CD0465"
+	 * ```
+	 * Line 10 ":200100000000000000000000000000000000000000000000000000000000000000000000DF"
+	 * Line 11 ":00000001FF"
+	 * 
+	 * The information about updating is in line 1 to line 10, from the 5th byte to the 32th byte
+	 * 
+	 */
+	while (fgets(line + 1, sizeof(line) - 1, fp) !=
+	       NULL) { // Ths first character ":" is not useful, so use "+1" to skip it
+		// The first and last line are not useful
+		if (strlen(line) != TPS536XX_UPDATE_INFO_LENS) {
+			continue;
+		}
+
+		for (int index = 0; index < TPS536XX_UPDATE_INFO_BYTES; index++) {
+			char c[2];
+			c[0] = line[index * 2 + TPS536XX_UPDATE_INFO_START_BYTE];
+			c[1] = line[index * 2 + (TPS536XX_UPDATE_INFO_START_BYTE + 1)];
+
+			if (config_data_idx <= 5) { //Device ID
+				config->devid[config_data_idx] = strtol(c, NULL, 16);
+				config->data[config_data_idx++] = 0xFF;
+			} else if (config_data_idx == 8) { // address
+				config->addr = strtol(c, NULL, 16);
+				config->data[config_data_idx++] = 0xFF;
+			} else if (config_data_idx == 9 && config_data_idx == 10) { // CRC
+				config->crc[config_data_idx - 9] = strtol(c, NULL, 16);
+				config->data[config_data_idx++] = 0xFF;
+			} else {
+				config->data[config_data_idx++] = strtol(c, NULL, 16);
+			}
+		}
+	}
+
+	fclose(fp);
+}
+
+bool tps536xx_get_crc(uint8_t bus, uint8_t addr, uint32_t *crc)
 {
 	CHECK_NULL_ARG_WITH_RETURN(crc, false);
 
@@ -49,6 +117,61 @@ int tps53689_get_crc(uint8_t bus, uint8_t addr, uint32_t *crc)
 	       i2c_msg.data[0];
 
 	return true;
+}
+
+bool tps53689_fwupdate(uint8_t bus, uint8_t addr, uint8_t *img_buff, uint32_t img_size)
+{
+	CHECK_NULL_ARG_WITH_RETURN(img_buff, false);
+
+	uint8_t ret = false;
+
+	// Parse image
+	struct tps_config *config = { 0 };
+	if (tps536xx_parse_image(config) == false) {
+		LOG_ERR("Failed to parse image!");
+		goto exit;
+	}
+
+	// TODO
+
+	for (int index = 0; index < 6; index++) {
+		if (config->devid[index] != tps536c5_dev_id[index]) {
+			LOG_ERR("Failed to update firmware, device ID is not matched!");
+			goto exit;
+		}
+	}
+	// TODO
+	if (config->addr != ADDR) {
+		LOG_ERR("Failed to update firmware, address is not matched!");
+		goto exit;
+	}
+	// TODO
+	if (config->crc[0] == CRC[0] && config->crc[1] == CRC[1]) {
+		LOG_ERR("Failed to update firmware, CRC is matched!");
+		goto exit;
+	}
+
+	uint8_t retry = 5;
+	I2C_MSG msg;
+
+	msg.bus = ;
+	msg.target_addr = config->addr;
+	msg.tx_len = 1;
+	msg.rx_len = 0;
+
+	// set USER_NVM_INDEX 00h
+	msg.data[0] = TI_REG_USER_NVM_INDEX;
+	msg.data[1] = 0x00;
+	i2c_master_write(&msg, retry);
+
+	// program the image
+	msg.data[0] = TI_REG_USER_NVM_EXECUTE;
+	int offset = 0;
+	for (int index = 0; index < 9; index++) {
+		memcpy(&msg.data[1], &config->data[offset], TPS536XX_UPDATE_INFO_BYTES);
+		i2c_master_write(&msg, retry);
+		offset += TPS536XX_UPDATE_INFO_BYTES;
+	}
 }
 
 uint8_t tps53689_read(sensor_cfg *cfg, int *reading)

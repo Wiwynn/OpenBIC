@@ -181,6 +181,12 @@ uint8_t pldm_vr_update(void *fw_update_param)
 		if (raa229621_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) ==
 		    false)
 			goto exit;
+	} else if ((!strncmp(p->comp_version_str, KEYWORD_VR_TPS53685,
+			     ARRAY_SIZE(KEYWORD_VR_TPS53685) - 1)) ||
+		   (!strncmp(p->comp_version_str, KEYWORD_VR_TPS536C5,
+			     ARRAY_SIZE(KEYWORD_VR_TPS536C5) - 1))) {
+		if (tps53689_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
+			goto exit;
 	} else {
 		LOG_ERR("Non-support VR detected with component string %s!",
 			log_strdup(p->comp_version_str));
