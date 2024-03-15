@@ -163,3 +163,35 @@ void init_platform_config()
 	LOG_INF("Slot EID = %d", slot_eid);
 	i3c_set_pid(&i3c_msg, slot_pid);
 }
+
+extern struct sys_heap _system_heap;
+void cmd_libc()
+{
+	sys_heap_print_info(&_system_heap, false);
+}
+
+extern struct sys_heap z_malloc_heap;
+void cmd_system()
+{
+	sys_heap_print_info(&z_malloc_heap, false);
+}
+
+K_THREAD_STACK_DEFINE(print_heap_stack, 512);
+struct k_thread print_heap_thread;
+
+void create_print_heap_thread()
+{
+	k_thread_create(&print_heap_thread, print_heap_stack,
+		K_THREAD_STACK_SIZEOF(print_heap_stack), print_heap,
+		NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+
+}
+
+void print_heap()
+{
+	while(1) {
+		cmd_system();
+		cmd_libc();
+		k_msleep(10000);
+	}
+}

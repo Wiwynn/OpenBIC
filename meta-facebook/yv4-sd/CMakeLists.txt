@@ -6,7 +6,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(yv4-sd)
 
 set(common_path ../../common)
-FILE(GLOB app_sources src/ipmi/*.c src/platform/*.c src/lib/*.c)
+FILE(GLOB app_sources src/ipmi/*.c src/platform/*.c src/lib/*.c src/shell/*.c)
 FILE(GLOB common_sources ${common_path}/service/*.c ${common_path}/service/*/*.c ${common_path}/hal/*.c ${common_path}/dev/*.c ${common_path}/shell/*.c ${common_path}/shell/commands/*.c)
 
 target_sources(app PRIVATE ${app_sources})

@@ -34,5 +34,9 @@ enum SLOT_PID {
 bool get_adc_voltage(int channel, float *voltage);
 uint8_t get_slot_eid();
 void init_platform_config();
+void create_print_heap_thread();
+void print_heap();
+void cmd_libc();
+void cmd_system();
 
 #endif

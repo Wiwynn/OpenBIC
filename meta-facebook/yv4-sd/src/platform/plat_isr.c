@@ -61,20 +61,23 @@ void reinit_i3c_hub()
 		}
 	}
 
+	ret = i3c_attach(&i3c_msg);
+	LOG_INF("=====1 %s i3c_attach ret%d\n", __func__, ret);
+
 	ret = i3c_brocast_ccc(&i3c_msg, I3C_CCC_SETAASA, I3C_BROADCAST_ADDR);
 	if (ret != 0) {
 		printf("Error to set daa\n");
 	}
 
-	i3c_attach(&i3c_msg);
-
 	// Initialize I3C HUB
 	if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, LDO_VOLT)) {
 		printk("failed to initialize 1ou rg3mxxb12\n");
 	}
+	LOG_INF("=====2 %s after i3c hub init\n", __func__);
 
 	// Set FF/WF's EID
 	send_cmd_to_dev_handler(NULL);
+	LOG_INF("=====Out %s", __func__);
 }
 
 void switch_i3c_dimm_mux_to_cpu()
@@ -89,6 +92,7 @@ K_WORK_DEFINE(switch_i3c_dimm_work, switch_i3c_dimm_mux_to_cpu);
 #define DC_ON_5_SECOND 5
 void ISR_DC_ON()
 {
+	LOG_INF("=====In %s", __func__);
 	set_DC_status(PWRGD_CPU_LVC3);
 
 	bool dc_status = get_DC_status();
@@ -100,10 +104,23 @@ void ISR_DC_ON()
 	} else {
 		set_DC_on_delayed_status();
 	}
+
+	LOG_INF("=====Out %s", __func__);
+}
+
+void ISR_SLP3()
+{
+	LOG_INF("=====%s SLP3 %d", __func__, gpio_get(FM_CPU_BIC_SLP_S3_N));
+}
+
+void ISR_SLP5()
+{
+	LOG_INF("=====%s SLP5 %d", __func__, gpio_get(FM_CPU_BIC_SLP_S5_N));
 }
 
 void ISR_POST_COMPLETE()
 {
+	LOG_INF("=====In %s", __func__);
 	set_post_status(FM_BIOS_POST_CMPLT_BIC_N);
 
 	pal_check_sbrmi_command_code_length();
@@ -116,9 +133,13 @@ void ISR_POST_COMPLETE()
 			k_work_submit(&switch_i3c_dimm_work);
 		}
 	}
+
+	LOG_INF("=====Out %s", __func__);
 }
 
 void ISR_BMC_READY()
 {
+	LOG_INF("=====In %s", __func__);
 	sync_bmc_ready_pin();
+	LOG_INF("=====Out %s", __func__);
 }

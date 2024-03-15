@@ -72,7 +72,10 @@ void get_dimm_info_handler()
 		}
 
 		if (is_dimm_checked_presnt == false) {
-			init_dimm_prsnt_status();
+			if (init_dimm_prsnt_status() < 0){
+				k_msleep(GET_DIMM_INFO_TIME_MS);
+				continue;
+			}
 		}
 
 		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
@@ -122,7 +125,6 @@ void get_dimm_info_handler()
 			ret = i3c_spd_reg_read(&i3c_msg, false);
 			if (ret != 0) {
 				clear_unaccessible_dimm_data(dimm_id);
-				i3c_detach(&i3c_msg);
 				LOG_ERR("Failed to read DIMM %d SPD temperature via I3C, ret= %d",
 					dimm_id, ret);
 			} else {
@@ -264,13 +266,18 @@ int all_brocast_ccc(I3C_MSG *i3c_msg)
 	return ret;
 }
 
-void init_dimm_prsnt_status()
+int init_dimm_prsnt_status()
 {
 	I3C_MSG i3c_msg = { 0 };
 	int ret = 0;
 
 	// Clear DIMM data
 	memset(dimm_data, 0, sizeof(dimm_data));
+
+	if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
+		LOG_ERR("Failed to lock I3C dimm MUX");
+		return -1;
+	}
 
 	// Init DIMM present status
 	for (uint8_t dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
@@ -280,12 +287,10 @@ void init_dimm_prsnt_status()
 
 		ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
 		if (ret != 0) {
-			clear_unaccessible_dimm_data(dimm_id);
-			LOG_DBG("[%s]DIMM ID 0x%02x is not present", __func__, dimm_id);
-			dimm_data[dimm_id].is_present = DIMM_NOT_PRSNT;
 			continue;
 		}
 
+		memset(&i3c_msg, 0, sizeof(I3C_MSG));
 		i3c_msg.bus = I3C_BUS3;
 		i3c_msg.target_addr = spd_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
 		i3c_attach(&i3c_msg);
@@ -316,7 +321,12 @@ void init_dimm_prsnt_status()
 		i3c_detach(&i3c_msg);
 	}
 
+	if (k_mutex_unlock(&i3c_dimm_mutex)) {
+		LOG_ERR("Failed to unlock I3C dimm MUX");
+	}
+
 	is_dimm_checked_presnt = true;
+	return 0;
 }
 
 uint8_t get_dimm_present(uint8_t dimm_id)

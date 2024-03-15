@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <zephyr.h>
+#include <soc.h>
 #include "hal_gpio.h"
 #include "hal_peci.h"
 #include "power_status.h"
@@ -45,6 +47,7 @@ SCU_CFG scu_cfg[] = {
 
 void pal_pre_init()
 {
+	aspeed_print_sysrst_info();
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 	apml_init();
 
@@ -95,6 +98,7 @@ void pal_post_init()
 	pldm_load_state_effecter_table(PLAT_PLDM_MAX_STATE_EFFECTER_IDX);
 	pldm_assign_gpio_effecter_id(PLAT_EFFECTER_ID_GPIO_HIGH_BYTE);
 	start_get_dimm_info_thread();
+	create_print_heap_thread();
 }
 
 void pal_set_sys_status()

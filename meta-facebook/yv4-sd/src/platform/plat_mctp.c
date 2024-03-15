@@ -153,6 +153,8 @@ static void set_dev_endpoint(void)
 			msg.timeout_cb_fn = set_endpoint_resp_timeout;
 			msg.timeout_cb_fn_args = p;
 
+			LOG_INF("=====%s device eid%d", __func__, p->endpoint);
+
 			uint8_t rc = mctp_ctrl_send_msg(find_mctp_by_addr(p->addr), &msg);
 			if (rc)
 				LOG_ERR("Fail to set endpoint %d", p->endpoint);
