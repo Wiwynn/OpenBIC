@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include "sensor.h"
 
+#define CLOCK_GEN_ADDR (0xD0 >> 1)
 #define FREYA_STATUS_BLOCK_OFFSET 0x00
 #define FREYA_STATUS_BLOCK_LENGTH 0x08
 #define FREYA_READY_STATUS_BIT BIT(6)
@@ -88,5 +89,6 @@ bool is_sw_ready(uint8_t sensor_num);
 void init_sw_heartbeat_work();
 void clear_sw_error_check_flag();
 void get_switch_error_status(uint8_t sensor_num, uint8_t bus, uint8_t addr, uint8_t index);
+bool init_clk_gen_spread_spectrum_control_register();
 
 #endif

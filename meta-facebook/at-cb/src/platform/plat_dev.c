@@ -369,3 +369,26 @@ void get_switch_error_status(uint8_t sensor_num, uint8_t bus, uint8_t addr, uint
 		sw_error_check_info[sw_index].is_addsel = true;
 	}
 }
+
+bool init_clk_gen_spread_spectrum_control_register()
+{
+	int ret = -1;
+	int retry = 5;
+	I2C_MSG msg = { 0 };
+
+	msg.bus = I2C_BUS3;
+	msg.target_addr = CLOCK_GEN_ADDR;
+	msg.rx_len = 0;
+	msg.tx_len = 3;
+	msg.data[0] = 0x01;
+	msg.data[1] = 0x01;
+	msg.data[2] = 0xF6;
+
+	ret = i2c_master_write(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("Set spread spectrum control register fail data %x", msg.data[3]);
+		return false;
+	}
+
+	return true;
+}
