@@ -254,6 +254,31 @@ uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uin
 	return PLDM_SUCCESS;
 }
 
+uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uint8_t *resp,
+						  uint16_t *resp_len)
+{
+	LOG_WRN("plat_pldm_query_downstream_devices");
+	CHECK_NULL_ARG_WITH_RETURN(buf, false);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+
+	struct pldm_query_downstream_devices_resp *resp_p =
+		(struct pldm_query_downstream_devices_resp *)resp;
+
+	resp_p->completion_code = PLDM_SUCCESS;
+	resp_p->downstream_device_update_supported = PLDM_FW_UPDATE_SUPPORT_DOWNSTREAM_DEVICES;
+	resp_p->number_of_downstream_devices = 5;
+	resp_p->max_number_of_downstream_devices = 5;
+
+	resp_p->capabilities.dynamically_attached = 0;
+	resp_p->capabilities.dynamically_removed = 0;
+	resp_p->capabilities.support_update_simultaneously = 0;
+
+	*resp_len = sizeof(struct pldm_query_downstream_devices_resp);
+
+	return PLDM_SUCCESS;
+}
+
 void load_pldmupdate_comp_config(void)
 {
 	if (comp_config) {

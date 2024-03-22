@@ -1224,6 +1224,19 @@ static uint8_t query_device_identifiers(void *mctp_inst, uint8_t *buf, uint16_t 
 	return plat_pldm_query_device_identifiers(buf, len, resp, resp_len);
 }
 
+static uint8_t query_downstream_devices(void *mctp_inst, uint8_t *buf, uint16_t len,
+					uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
+					void *ext_params)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(ext_params, PLDM_ERROR);
+
+	return plat_pldm_query_downstream_devices(buf, len, resp, resp_len);
+}
+
 static uint8_t query_downstream_identifiers(void *mctp_inst, uint8_t *buf, uint16_t len,
 					    uint8_t instance_id, uint8_t *resp, uint16_t *resp_len,
 					    void *ext_params)
@@ -1240,6 +1253,23 @@ static uint8_t query_downstream_identifiers(void *mctp_inst, uint8_t *buf, uint1
 __weak uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 						  uint16_t *resp_len)
 {
+	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+
+	uint8_t *completion_code_p = resp;
+
+	*completion_code_p = PLDM_ERROR_UNSUPPORTED_PLDM_CMD;
+	*resp_len = 1;
+	LOG_WRN("Not supported command");
+
+	return PLDM_ERROR_UNSUPPORTED_PLDM_CMD;
+}
+
+__weak uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uint8_t *resp,
+						  uint16_t *resp_len)
+{
+	LOG_WRN("plat_pldm_query_downstream_devices Not supported command");
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -1272,6 +1302,7 @@ __weak uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16
 static pldm_cmd_handler pldm_fw_update_cmd_tbl[] = {
 	{ PLDM_FW_UPDATE_CMD_CODE_QUERY_DEVICE_IDENTIFIERS, query_device_identifiers },
 	{ PLDM_FW_UPDATE_CMD_CODE_GET_FIRMWARE_PARAMETERS, get_firmware_parameter },
+	{ PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_DEVICES, query_downstream_devices },
 	{ PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_IDENTIFIERS, query_downstream_identifiers },
 	{ PLDM_FW_UPDATE_CMD_CODE_REQUEST_UPDATE, request_update },
 	{ PLDM_FW_UPDATE_CMD_CODE_PASS_COMPONENT_TABLE, pass_component_table },

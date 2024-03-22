@@ -68,6 +68,7 @@ enum pldm_firmware_update_commands {
 	/* inventory commands */
 	PLDM_FW_UPDATE_CMD_CODE_QUERY_DEVICE_IDENTIFIERS = 0x01,
 	PLDM_FW_UPDATE_CMD_CODE_GET_FIRMWARE_PARAMETERS = 0x02,
+	PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_DEVICES = 0x03,
 	PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_IDENTIFIERS = 0x04,
 
 	/* update commands */
@@ -120,6 +121,14 @@ enum pldm_firmware_update_string_type {
 	PLDM_COMP_UTF_16 = 3,
 	PLDM_COMP_UTF_16LE = 4,
 	PLDM_COMP_UTF_16BE = 5,
+};
+
+/**
+ * Table 15 - QueryDeviceIdentifiers command format in DSP0267 1.1.0
+ */
+enum pldm_firmware_update_support_downstream_devices {
+	PLDM_FW_UPDATE_NOT_SUPPORT_DOWNSTREAM_DEVICES = 0x00,
+	PLDM_FW_UPDATE_SUPPORT_DOWNSTREAM_DEVICES = 0x01,
 };
 
 /**
@@ -548,6 +557,24 @@ struct component_parameter_table {
 	uint32_t capabilities_during_update;
 } __attribute__((packed));
 
+/* Table 15 - QueryDownstreamDevices command format
+ * defined in DSP0267 1.1.0
+ */
+struct pldm_query_downstream_devices_resp {
+	uint8_t completion_code;
+	uint8_t downstream_device_update_supported;
+	uint16_t number_of_downstream_devices;
+	uint16_t max_number_of_downstream_devices;
+	struct capabilities {
+		uint8_t dynamically_attached : 1;
+		uint8_t dynamically_removed : 1;
+		uint8_t support_update_simultaneously : 1;
+		/* Bit [31:3] reserved */
+		uint16_t : 13;
+		uint16_t : 16;
+	} capabilities;
+} __attribute__((packed));
+
 struct pldm_query_downstream_identifier_req {
 	uint32_t datatransferhandle;
 	uint8_t transferoperationflag;
@@ -579,6 +606,8 @@ uint8_t pldm_bic_activate(void *arg);
 
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len);
+uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uint8_t *resp,
+						  uint16_t *resp_len);
 uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					       uint16_t *resp_len);
 
