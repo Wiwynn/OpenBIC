@@ -164,6 +164,8 @@ void plat_pldm_power_cycle(void *arg1, void *arg2, void *arg3)
 	i2c_msg.rx_len = 0;
 	i2c_msg.data[0] = 0x00;
 
+	LOG_INF("=====%s", __func__);
+
 	// Do power off when current power is ON
 	if (get_DC_status() == true) {
 		// Power off
@@ -191,6 +193,8 @@ void plat_pldm_power_cycle(void *arg1, void *arg2, void *arg3)
 			k_msleep(PLAT_PLDM_POWER_ON_BUTTON_MSEC);
 		}
 	}
+
+	LOG_INF("===== PWRGD_CPU_LVC3%d", gpio_get(PWRGD_CPU_LVC3));
 
 	k_sem_give(&cmd_sem);
 }
@@ -246,6 +250,8 @@ void plat_pldm_set_effecter_state_host_power_control(const uint8_t *buf, uint16_
 		*completion_code_p = PLDM_PLATFORM_UNSUPPORTED_EFFECTERSTATE;
 		return;
 	}
+
+	LOG_INF("=====%s execute 0x%x", __func__, host_power_state->effecter_state);
 
 	switch (host_power_state->effecter_state) {
 	case EFFECTER_STATE_POWER_STATUS_ON:

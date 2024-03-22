@@ -122,3 +122,13 @@ void ISR_BMC_READY()
 {
 	sync_bmc_ready_pin();
 }
+
+void ISR_SLP3()
+{
+	LOG_INF("=====%s SLP3 %d", __func__, gpio_get(FM_CPU_BIC_SLP_S3_N));
+}
+
+void ISR_SLP5()
+{
+	LOG_INF("=====%s SLP5 %d", __func__, gpio_get(FM_CPU_BIC_SLP_S5_N));
+}
