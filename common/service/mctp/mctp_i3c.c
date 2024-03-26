@@ -26,7 +26,7 @@
 #include "libutil.h"
 #include "hal_i3c.h"
 
-LOG_MODULE_REGISTER(mctp_i3c);
+LOG_MODULE_REGISTER(mctp_i3c, LOG_LEVEL_DBG);
 
 #ifndef MCTP_I3C_PEC_ENABLE
 #define MCTP_I3C_PEC_ENABLE 0
