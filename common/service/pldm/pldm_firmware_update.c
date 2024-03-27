@@ -331,6 +331,28 @@ uint8_t pldm_retimer_update(void *fw_update_param)
 	return 0;
 }
 
+uint8_t pldm_retimer_recovery(void *fw_update_param)
+{
+	CHECK_NULL_ARG_WITH_RETURN(fw_update_param, 1);
+
+	pldm_fw_update_param_t *p = (pldm_fw_update_param_t *)fw_update_param;
+
+	CHECK_NULL_ARG_WITH_RETURN(p->data, 1);
+
+	I2C_MSG i2c_msg;
+
+	i2c_msg.bus = p->bus;
+	i2c_msg.target_addr = p->addr;
+
+	if (p->data_ofs == 0) {
+		LOG_INF("First block for retimer update");
+	}
+
+	// fw_recovery_eeprom(uint32_t offset, uint16_t msg_len, uint8_t *msg_buf, uint8_t flag)
+
+	return 0;
+}
+
 K_WORK_DELAYABLE_DEFINE(submit_warm_reset_work, submit_bic_warm_reset);
 uint8_t pldm_bic_activate(void *arg)
 {

@@ -18,6 +18,7 @@ target_sources(app PRIVATE ${common_path}/lib/power_status.c)
 target_sources(app PRIVATE ${common_path}/lib/timer.c)
 target_sources(app PRIVATE ${common_path}/lib/util_pmbus.c)
 target_sources(app PRIVATE ${common_path}/lib/util_spi.c)
+target_sources(app PRIVATE ${common_path}/lib/util_eeprom.c)
 target_sources(app PRIVATE ${common_path}/lib/util_sys.c)
 target_sources(app PRIVATE ${common_path}/lib/util_worker.c)
 

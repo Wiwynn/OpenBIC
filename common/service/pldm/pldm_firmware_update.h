@@ -575,6 +575,7 @@ uint8_t pldm_bic_update(void *fw_update_param);
 uint8_t pldm_vr_update(void *fw_update_param);
 uint8_t pldm_cpld_update(void *fw_update_param);
 uint8_t pldm_retimer_update(void *fw_update_param);
+uint8_t pldm_retimer_recovery(void *fw_update_param);
 uint8_t pldm_bic_activate(void *arg);
 
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,

@@ -32,6 +32,7 @@
 #include "plat_sensor_table.h"
 #include "plat_hook.h"
 #include "plat_led.h"
+#include "util_eeprom.h"
 #include "util_spi.h"
 
 LOG_MODULE_REGISTER(plat_ipmi);
@@ -261,6 +262,26 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 			LOG_ERR("firmware update unknown pcie retimer type");
 			break;
 		}
+		break;
+	case OL2_COMPNT_RETIMER_RECOVERY:
+	case (OL2_COMPNT_RETIMER_RECOVERY | IS_SECTOR_END_MASK):
+		if (!get_DC_status()) {
+			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+			return;
+		}
+
+		if (card_type != CARD_TYPE_OPA) {
+			msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+			return;
+		}
+
+		if (offset > PCIE_RETIMER_UPDATE_MAX_OFFSET) {
+			msg->completion_code = CC_PARAM_OUT_OF_RANGE;
+			return;
+		}
+
+		status = fw_recovery_eeprom(offset, length, &msg->data[7], (target & IS_SECTOR_END_MASK));
+
 		break;
 	default:
 		msg->completion_code = CC_INVALID_DATA_FIELD;
