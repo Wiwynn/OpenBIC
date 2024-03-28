@@ -559,8 +559,12 @@ struct pldm_query_downstream_identifier_resp {
 	uint8_t transferflag;
 	uint32_t downstreamdevicelength;
 	uint16_t numbwerofdownstreamdevice;
+} __attribute__((packed));
+
+struct pldm_downstream_device {
 	uint16_t downstreamdeviceindex;
 	uint8_t downstreamdescriptorcount;
+	uint8_t downstreamDescriptors[0];
 } __attribute__((packed));
 
 struct pldm_downstream_identifier_table {
