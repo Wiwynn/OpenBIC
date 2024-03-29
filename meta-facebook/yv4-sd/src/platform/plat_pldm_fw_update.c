@@ -31,6 +31,7 @@
 #include "pt5161l.h"
 #include "raa229621.h"
 #include "plat_class.h"
+#include "plat_pldm_device_identifier.h"
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
@@ -275,6 +276,165 @@ uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uin
 	resp_p->capabilities.support_update_simultaneously = 0;
 
 	*resp_len = sizeof(struct pldm_query_downstream_devices_resp);
+
+	return PLDM_SUCCESS;
+}
+
+static uint8_t get_returned_devices_start_index(struct pldm_query_downstream_identifier_req *req,
+						uint32_t *index)
+{
+	switch (req->transferoperationflag) {
+	case PLDM_FW_UPDATE_GET_FIRST_PART:
+		*(index) = 0;
+		break;
+	case PLDM_FW_UPDATE_GET_NEXT_PART:
+		if (req->datatransferhandle >= downstream_devices_count) {
+			LOG_ERR("%s:%s:%d: Invalid data transfer handle: 0x%x", __FILE__, __func__,
+				__LINE__, req->datatransferhandle);
+			return PLDM_FW_UPDATE_CC_INVALID_TRANSFER_HANDLE;
+		}
+		*(index) = req->datatransferhandle;
+		break;
+	default:
+		LOG_ERR("%s:%s:%d: Invalid transfer operation flag: 0x%x", __FILE__, __func__,
+			__LINE__, req->transferoperationflag);
+		return PLDM_FW_UPDATE_CC_INVALID_TRANSFER_OPERATION_FLAG;
+	}
+
+	LOG_WRN("get_returned_devices_start_index: %d", *index);
+
+	return PLDM_SUCCESS;
+}
+
+static size_t calculate_descriptors_size(struct pldm_descriptor_string *descriptors, uint8_t count)
+{
+	size_t size = 0;
+	for (size_t i = 0; i < count; i++) {
+		size += strlen(descriptors[i].descriptor_data);
+		switch (descriptors[i].descriptor_type) {
+		case PLDM_FWUP_VENDOR_DEFINED:
+			size += sizeof(struct pldm_vendor_defined_descriptor_tlv) +
+						descriptors[i].title_string ?
+					strlen(descriptors[i].title_string) :
+					0;
+			break;
+		default:
+			size += sizeof(struct pldm_descriptor_tlv);
+			break;
+		}
+	}
+	LOG_WRN("calculate_descriptors_size: %d", size);
+
+	return size;
+}
+
+static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_index,
+							      uint32_t *next_transaction_index)
+{
+	size_t total_size = sizeof(pldm_hdr) + sizeof(struct pldm_query_downstream_identifier_resp);
+	uint32_t i = start_index;
+	while (i < downstream_devices_count) {
+		total_size += sizeof(struct pldm_downstream_device) +
+			      calculate_descriptors_size(downstream_table[i].descriptor,
+							 downstream_table[i].descriptor_count);
+		LOG_WRN("total_size: %d", total_size);
+		if (total_size >= PLDM_MAX_DATA_SIZE) {
+			*next_transaction_index = i;
+			return false;
+		}
+
+		i++;
+	}
+	*next_transaction_index = 0;
+
+	return true;
+}
+
+uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
+					       uint16_t *resp_len)
+{
+	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
+
+	uint8_t rc = PLDM_ERROR;
+
+	struct pldm_query_downstream_identifier_req *req_p =
+		(struct pldm_query_downstream_identifier_req *)buf;
+	struct pldm_query_downstream_identifier_resp *resp_p =
+		(struct pldm_query_downstream_identifier_resp *)resp;
+
+	resp_p->completion_code = PLDM_ERROR;
+
+	uint32_t start_index = 0;
+	rc = get_returned_devices_start_index(req_p, &start_index);
+	if (rc) {
+		LOG_ERR("%s:%s:%d: Failed to get returning devices start index.", __FILE__,
+			__func__, __LINE__);
+		return rc;
+	}
+
+	uint32_t next_transaction_index = 0;
+	if (remaining_data_can_be_returned_in_one_transaction(start_index,
+							      &next_transaction_index)) {
+		LOG_WRN("remaining_data_can_be_returned_in_one_transaction");
+		resp_p->nextdatatransferhandle = 0;
+		resp_p->numbwerofdownstreamdevice = downstream_devices_count - start_index;
+		switch (req_p->transferoperationflag) {
+		case PLDM_FW_UPDATE_GET_FIRST_PART:
+			resp_p->transferflag = PLDM_FW_UPDATE_TRANSFER_START_AND_END;
+			break;
+		case PLDM_FW_UPDATE_GET_NEXT_PART:
+			resp_p->transferflag = PLDM_FW_UPDATE_TRANSFER_END;
+			break;
+		}
+	} else {
+		LOG_WRN("remaining_data_can_not_be_returned_in_one_transaction");
+		resp_p->nextdatatransferhandle = next_transaction_index;
+		resp_p->numbwerofdownstreamdevice = resp_p->nextdatatransferhandle - start_index;
+		switch (req_p->transferoperationflag) {
+		case PLDM_FW_UPDATE_GET_FIRST_PART:
+			resp_p->transferflag = PLDM_FW_UPDATE_TRANSFER_START;
+			break;
+		case PLDM_FW_UPDATE_GET_NEXT_PART:
+			resp_p->transferflag = PLDM_FW_UPDATE_TRANSFER_MIDDLE;
+			break;
+		}
+	}
+
+	uint32_t downstream_devices_length = 0;
+	uint8_t curr_descriptor_length = 0;
+	struct pldm_downstream_device *curr_device =
+		(struct pldm_downstream_device
+			 *)(resp + sizeof(struct pldm_query_downstream_identifier_resp));
+	struct pldm_descriptor_string *curr_descriptors_tbl;
+
+	for (uint32_t i = start_index; i < start_index + resp_p->numbwerofdownstreamdevice; i++) {
+		curr_descriptors_tbl = downstream_table[i].descriptor;
+		curr_device->downstreamdeviceindex = i + 1;
+		curr_device->downstreamdescriptorcount = downstream_table[i].descriptor_count;
+		downstream_devices_length += sizeof(struct pldm_downstream_device);
+		uint8_t *descriptor_ptr = curr_device->downstreamdescriptors;
+		for (uint32_t j = 0; j < downstream_table[i].descriptor_count; j++) {
+			rc = fill_descriptor_into_buf(&curr_descriptors_tbl[j], descriptor_ptr,
+						      &curr_descriptor_length,
+						      downstream_devices_length);
+			if (rc) {
+				LOG_ERR("%s:%s:%d: Fill device descriptor into buffer fail.",
+					__FILE__, __func__, __LINE__);
+				return PLDM_ERROR;
+			}
+			downstream_devices_length += curr_descriptor_length;
+			descriptor_ptr += curr_descriptor_length;
+		}
+
+		curr_device = (struct pldm_downstream_device *)descriptor_ptr;
+	}
+
+	resp_p->downstreamdevicelength = downstream_devices_length;
+	*resp_len =
+		sizeof(struct pldm_query_downstream_identifier_resp) + downstream_devices_length;
+	resp_p->completion_code = PLDM_SUCCESS;
 
 	return PLDM_SUCCESS;
 }

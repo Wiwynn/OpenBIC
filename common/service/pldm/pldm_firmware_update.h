@@ -591,7 +591,7 @@ struct pldm_query_downstream_identifier_resp {
 struct pldm_downstream_device {
 	uint16_t downstreamdeviceindex;
 	uint8_t downstreamdescriptorcount;
-	uint8_t downstreamDescriptors[0];
+	uint8_t downstreamdescriptors[0];
 } __attribute__((packed));
 
 struct pldm_downstream_identifier_table {
