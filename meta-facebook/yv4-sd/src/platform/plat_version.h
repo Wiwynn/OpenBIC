@@ -42,7 +42,7 @@
 #define BIC_FW_YEAR_MSB 0x20
 #define BIC_FW_YEAR_LSB 0x24
 #define BIC_FW_WEEK 0x12
-#define BIC_FW_VER 0x03
+#define BIC_FW_VER 0xe4
 #define BIC_FW_platform_0 0x73 // char: s
 #define BIC_FW_platform_1 0x64 // char: d
 #define BIC_FW_platform_2 0x00 // char: '\0'
