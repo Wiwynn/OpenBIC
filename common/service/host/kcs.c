@@ -158,8 +158,8 @@ exit:
 static int send_bios_version_to_bmc(char *bios_version, uint8_t bios_version_len)
 {
 	pldm_msg msg = { 0 };
-	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
-	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+	msg.ext_params.smbus_ext_params.addr = I3C_BUS_BMC;
 	msg.ext_params.ep = MCTP_EID_BMC;
 
 	msg.hdr.pldm_type = PLDM_TYPE_OEM;
@@ -184,7 +184,7 @@ static int send_bios_version_to_bmc(char *bios_version, uint8_t bios_version_len
 	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
 	uint8_t rbuf[resp_len];
 
-	if (!mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+	if (!mctp_pldm_read(find_mctp_by_bus(I3C_BUS_BMC), &msg, rbuf, resp_len)) {
 		LOG_ERR("mctp_pldm_read fail");
 		return 2;
 	}
@@ -282,12 +282,12 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 			    (req->cmd == CMD_STORAGE_ADD_SEL)) {
 				// Send SEL to BMC via PLDM over MCTP
 				mctp_ext_params ext_params = {0};
-				ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
-				ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+				ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+				ext_params.i3c_ext_params.addr = I3C_BUS_BMC;
 				ext_params.ep = MCTP_EID_BMC;
 				uint8_t pldm_event_length = rc - 5; // exclude netfn, cmd, record_id, record_type
 				pldm_platform_event_message_req(
-					find_mctp_by_bus(I2C_BUS_BMC), ext_params, 0xFB, &ibuf[5], pldm_event_length);
+					find_mctp_by_bus(I3C_BUS_BMC), ext_params, 0xFB, &ibuf[5], pldm_event_length);
 			}
 #endif
 #endif
