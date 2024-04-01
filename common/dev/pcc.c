@@ -211,8 +211,8 @@ void check_ABL_error(uint32_t postcode)
 bool pldm_send_post_code_to_bmc(uint16_t send_index)
 {
 	pldm_msg msg = { 0 };
-	msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
-	msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+	msg.ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+	msg.ext_params.i3c_ext_params.addr = I3C_BUS_BMC;
 	msg.ext_params.ep = MCTP_EID_BMC;
 
 	msg.hdr.pldm_type = PLDM_TYPE_OEM;
@@ -240,7 +240,7 @@ bool pldm_send_post_code_to_bmc(uint16_t send_index)
 	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
 	uint8_t rbuf[resp_len];
 
-	if (!mctp_pldm_read(find_mctp_by_bus(I2C_BUS_BMC), &msg, rbuf, resp_len)) {
+	if (!mctp_pldm_read(find_mctp_by_bus(I3C_BUS_BMC), &msg, rbuf, resp_len)) {
 		LOG_ERR("mctp_pldm_read fail");
 		return false;
 	}
