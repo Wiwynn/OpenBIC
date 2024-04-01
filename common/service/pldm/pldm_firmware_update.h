@@ -70,6 +70,7 @@ enum pldm_firmware_update_commands {
 	PLDM_FW_UPDATE_CMD_CODE_GET_FIRMWARE_PARAMETERS = 0x02,
 	PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_DEVICES = 0x03,
 	PLDM_FW_UPDATE_CMD_CODE_QUERY_DOWNSTREAM_IDENTIFIERS = 0x04,
+	PLDM_FW_UPDATE_CMD_CODE_GET_DOWNSTREAM_FW_PARAMETERS = 0x05,
 
 	/* update commands */
 	PLDM_FW_UPDATE_CMD_CODE_REQUEST_UPDATE = 0x10,
@@ -597,7 +598,33 @@ struct pldm_downstream_device {
 struct pldm_downstream_identifier_table {
 	struct pldm_descriptor_string *descriptor;
 	uint8_t descriptor_count;
-};
+} __attribute__((packed));
+
+struct pldm_get_downstream_firmware_parameters_req {
+	uint32_t data_transfer_handle;
+	uint8_t transfer_operation_flag;
+} __attribute__((packed));
+
+struct pldm_get_downstream_firmware_parameters_resp {
+	uint8_t completion_code;
+	uint32_t next_data_transfer_handle;
+	uint8_t transfer_flag;
+	union {
+		struct {
+			uint8_t fail_recovery : 1;
+			uint8_t fail_retry : 1;
+			uint8_t func_during_update : 1;
+			uint8_t : 1; // reserved
+			uint8_t update_mode_restrict : 4;
+			uint8_t downgrade_restrictions : 1;
+			/* Bit [31:9] reserved */
+			uint8_t : 7;
+			uint16_t : 16;
+		};
+		uint32_t fdp_capabilities_during_update;
+	};
+	uint16_t downstream_device_count;
+} __attribute__((packed));
 
 uint8_t pldm_fw_update_handler_query(uint8_t code, void **ret_fn);
 uint16_t pldm_fw_update_read(void *mctp_p, enum pldm_firmware_update_commands cmd, uint8_t *req,
