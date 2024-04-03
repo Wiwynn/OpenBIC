@@ -40,6 +40,7 @@ static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
 static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 static uint8_t plat_pldm_pre_retimer_update(void *fw_update_param);
 static bool plat_get_retimer_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
+static bool plat_get_bios_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 
 enum FIRMWARE_COMPONENT {
 	SD_COMPNT_BIC,
@@ -48,6 +49,7 @@ enum FIRMWARE_COMPONENT {
 	SD_COMPNT_VR_PVDDCR_CPU0,
 	SD_COMPNT_X16_RETIMER,
 	SD_COMPNT_X8_RETIMER,
+	SD_COMPNT_BIOS,
 };
 
 uint8_t MCTP_SUPPORTED_MESSAGES_TYPES[] = {
@@ -155,6 +157,21 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 		.activate_method = COMP_ACT_SELF,
 		.self_act_func = NULL,
 		.get_fw_version_fn = plat_get_retimer_fw_version,
+		.self_apply_work_func = NULL,
+		.comp_version_str = NULL,
+	},
+	{
+		.enable = true,
+		.comp_classification = COMP_CLASS_TYPE_DOWNSTREAM,
+		.comp_identifier = SD_COMPNT_BIOS,
+		.comp_classification_index = 0x00,
+		.pre_update_func = NULL,
+		.update_func = NULL,
+		.pos_update_func = NULL,
+		.inf = COMP_UPDATE_VIA_SPI,
+		.activate_method = COMP_ACT_SYS_REBOOT,
+		.self_act_func = NULL,
+		.get_fw_version_fn = plat_get_bios_fw_version,
 		.self_apply_work_func = NULL,
 		.comp_version_str = NULL,
 	},
@@ -637,6 +654,27 @@ static bool plat_get_retimer_fw_version(void *info_p, uint8_t *buf, uint8_t *len
 	memcpy(buf_p, version, RETIMER_PT5161L_FW_VER_LEN);
 	*len += bin2hex(version, 4, buf_p, 8);
 	buf_p += 8;
+
+	return ret;
+}
+
+static bool plat_get_bios_fw_version(void *info_p, uint8_t *buf, uint8_t *len)
+{
+	CHECK_NULL_ARG_WITH_RETURN(info_p, false);
+	CHECK_NULL_ARG_WITH_RETURN(buf, false);
+	CHECK_NULL_ARG_WITH_RETURN(len, false);
+
+	bool ret = false;
+	const char *bios_version = pldm_smbios_get_bios_version();
+	if (!bios_version) {
+		memcpy(buf, "N/A", 3);
+		*len = 3;
+	} else {
+		memcpy(buf, bios_version, strlen(bios_version));
+	}
+
+	ret = true;
+	*len = strlen(bios_version);
 
 	return ret;
 }
