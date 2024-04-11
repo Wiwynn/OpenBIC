@@ -185,8 +185,6 @@ void enable_powers(int cxl_id, int pwr_stage)
 {
 	switch (pwr_stage) {
 	case CLK_POWER_ON_STAGE:
-		gpio_set(cxl_power_ctrl_pin[cxl_id].enclk_100m_osc, POWER_ON);
-		k_msleep(SYS_CLK_STABLE_DELAY_MSEC);
 		break;
 	case ASIC_POWER_ON_STAGE_1:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p075v_asic_en, POWER_ON);
@@ -196,6 +194,10 @@ void enable_powers(int cxl_id, int pwr_stage)
 	case ASIC_POWER_ON_STAGE_2:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v2_asic_en, POWER_ON);
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v8_asic_en, POWER_ON);
+		break;
+	case ASIC_POWER_ON_STAGE_3:
+		gpio_set(cxl_power_ctrl_pin[cxl_id].enclk_100m_osc, POWER_ON);
+		k_msleep(SYS_CLK_STABLE_DELAY_MSEC);
 		break;
 	case DIMM_POWER_ON_STAGE_1:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].pvpp_ab_dimm_en, POWER_ON);
@@ -258,6 +260,9 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 					 "P1V8_ASIC")) {
 			return -1;
 		}
+		break;
+	case ASIC_POWER_ON_STAGE_3:
+		// Doesn't need to check
 		break;
 	case DIMM_POWER_ON_STAGE_1:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].pvpp_ab_dimm_pg,
