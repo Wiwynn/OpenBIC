@@ -138,7 +138,7 @@ void execute_power_on_sequence()
 	}
 	gpio_set(EN_P12V_E1S_0_R, POWER_ON);
 
-	ret = power_on_handler(CXL_ID_0, CLK_POWER_ON_STAGE);
+	ret = power_on_handler(CXL_ID_0, ASIC_POWER_ON_STAGE_1);
 	if (ret == 0) {
 		is_cxl_power_on[CXL_ID_0] = true;
 		LOG_INF("CXL 1 power on success");
@@ -147,7 +147,7 @@ void execute_power_on_sequence()
 		LOG_ERR("CXL 1 power on fail");
 	}
 
-	ret = power_on_handler(CXL_ID_1, CLK_POWER_ON_STAGE);
+	ret = power_on_handler(CXL_ID_1, ASIC_POWER_ON_STAGE_1);
 	if (ret == 0) {
 		is_cxl_power_on[CXL_ID_1] = true;
 		LOG_INF("CXL 2 power on success");
