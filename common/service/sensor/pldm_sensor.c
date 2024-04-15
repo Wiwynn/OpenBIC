@@ -219,6 +219,9 @@ void pldm_sensor_get_reading(sensor_cfg *pldm_sensor_cfg, uint32_t *update_time,
 	}
 
 	*update_time = (k_uptime_get_32() / 1000);
+	if ((pldm_sensor_cfg->type == 0x01) && (pldm_sensor_cfg->port == 4)) { // Jeff
+		LOG_WRN("BAT sensor reading: %d", reading);
+	}
 	pldm_sensor_cfg->cache = reading;
 	pldm_sensor_cfg->cache_status = PLDM_SENSOR_ENABLED;
 }

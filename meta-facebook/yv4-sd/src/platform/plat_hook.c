@@ -172,6 +172,8 @@ bool pre_p3v_bat_read(sensor_cfg *cfg, void *args)
 	if (gpio_set(P3V_BAT_SCALED_R_EN, GPIO_HIGH)) {
 		LOG_ERR("failed to enable p3v bat read");
 		return false;
+	} else {
+		LOG_WRN("pre p3v bat read");
 	}
 	k_msleep(60);
 	return true;
@@ -182,6 +184,8 @@ bool post_p3v_bat_read(sensor_cfg *cfg, void *args, int *const reading)
 	if (gpio_set(P3V_BAT_SCALED_R_EN, GPIO_LOW)) {
 		LOG_ERR("failed to disable p3v bat read");
 		return false;
+	} else {
+		LOG_WRN("post p3v bat read");
 	}
 	return true;
 }
