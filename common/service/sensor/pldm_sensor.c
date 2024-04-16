@@ -55,6 +55,9 @@ bool pldm_sensor_is_interval_ready(pldm_sensor_info *pldm_sensor_list)
 	CHECK_NULL_ARG_WITH_RETURN(pldm_sensor_list, false);
 
 	if (pldm_sensor_list->update_time == 0) { // First time to read sensor
+		if (pldm_sensor_list->pdr_numeric_sensor.sensor_id == 0x0023) {
+			LOG_WRN("First time to read BAT");
+		}
 		return true;
 	}
 
