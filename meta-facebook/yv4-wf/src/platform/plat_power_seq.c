@@ -173,11 +173,11 @@ int power_on_handler(int cxl_id, int power_stage)
 	for (ctrl_stage = power_stage; ctrl_stage < MAX_POWER_ON_STAGES; ctrl_stage++) {
 		// Set power enable pin to enable power
 		enable_powers(cxl_id, ctrl_stage);
-
+		/*
 		if (ctrl_stage != CLK_POWER_ON_STAGE) {
 			k_msleep(CHK_PWR_DELAY_MSEC);
 		}
-
+		*/
 		// Get power good pin to check power
 		ret = check_powers_enabled(cxl_id, ctrl_stage);
 		if (ret < 0) {
