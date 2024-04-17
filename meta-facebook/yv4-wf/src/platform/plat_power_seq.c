@@ -174,9 +174,7 @@ int power_on_handler(int cxl_id, int power_stage)
 		// Set power enable pin to enable power
 		enable_powers(cxl_id, ctrl_stage);
 
-		if (ctrl_stage != CLK_POWER_ON_STAGE) {
-			k_msleep(CHK_PWR_DELAY_MSEC);
-		}
+		k_msleep(CHK_PWR_DELAY_MSEC);
 
 		// Get power good pin to check power
 		ret = check_powers_enabled(cxl_id, ctrl_stage);
@@ -193,6 +191,7 @@ void enable_powers(int cxl_id, int pwr_stage)
 	switch (pwr_stage) {
 	case ASIC_POWER_ON_STAGE_1:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p075v_asic_en, POWER_ON);
+		gpio_set(cxl_power_ctrl_pin[cxl_id].p085v_asic_en, POWER_ON);
 		break;
 	case ASIC_POWER_ON_STAGE_2:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v8_asic_en, POWER_ON);
@@ -205,9 +204,6 @@ void enable_powers(int cxl_id, int pwr_stage)
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p08v_asic_en, POWER_ON);
 		break;
 	case ASIC_POWER_ON_STAGE_4:
-		gpio_set(cxl_power_ctrl_pin[cxl_id].p085v_asic_en, POWER_ON);
-		break;
-	case ASIC_POWER_ON_STAGE_5:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v2_asic_en, POWER_ON);
 		break;
 	case DIMM_POWER_ON_STAGE_1:
@@ -247,6 +243,10 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 					 "P0V75_ASIC")) {
 			return -1;
 		}
+		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p085v_asic_pg, POWER_ON,
+					 "P0V85_ASIC")) {
+			return -1;
+		}
 		break;
 	case ASIC_POWER_ON_STAGE_2:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p1v8_asic_pg, POWER_ON,
@@ -264,12 +264,6 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 		}
 		break;
 	case ASIC_POWER_ON_STAGE_4:
-		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p085v_asic_pg, POWER_ON,
-					 "P0V85_ASIC")) {
-			return -1;
-		}
-		break;
-	case ASIC_POWER_ON_STAGE_5:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p1v2_asic_pg, POWER_ON,
 					 "P1V2_ASIC")) {
 			return -1;
