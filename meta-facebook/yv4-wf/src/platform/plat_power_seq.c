@@ -251,12 +251,14 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 					 "P0V75_ASIC")) {
 			return -1;
 		}
+		break;
+	case ASIC_POWER_ON_STAGE_2:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p085v_asic_pg, POWER_ON,
 					 "P0V85_ASIC")) {
 			return -1;
 		}
 		break;
-	case ASIC_POWER_ON_STAGE_2:
+	case ASIC_POWER_ON_STAGE_3:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p1v8_asic_pg, POWER_ON,
 					 "P1V8_ASIC")) {
 			return -1;
@@ -265,13 +267,13 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 	case CLK_POWER_ON_STAGE:
 		// Doesn't need to check
 		break;
-	case ASIC_POWER_ON_STAGE_3:
+	case ASIC_POWER_ON_STAGE_4:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p08v_asic_pg, POWER_ON,
 					 "P0V8_ASIC")) {
 			return -1;
 		}
 		break;
-	case ASIC_POWER_ON_STAGE_4:
+	case ASIC_POWER_ON_STAGE_5:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p1v2_asic_pg, POWER_ON,
 					 "P1V2_ASIC")) {
 			return -1;
