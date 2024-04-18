@@ -198,19 +198,20 @@ void enable_powers(int cxl_id, int pwr_stage)
 	switch (pwr_stage) {
 	case ASIC_POWER_ON_STAGE_1:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p075v_asic_en, POWER_ON);
-		gpio_set(cxl_power_ctrl_pin[cxl_id].p085v_asic_en, POWER_ON);
 		break;
 	case ASIC_POWER_ON_STAGE_2:
+		gpio_set(cxl_power_ctrl_pin[cxl_id].p085v_asic_en, POWER_ON);
+		break;
+	case ASIC_POWER_ON_STAGE_3:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v8_asic_en, POWER_ON);
 		break;
 	case CLK_POWER_ON_STAGE:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].enclk_100m_osc, POWER_ON);
-		k_msleep(SYS_CLK_STABLE_DELAY_MSEC);
-		break;
-	case ASIC_POWER_ON_STAGE_3:
-		gpio_set(cxl_power_ctrl_pin[cxl_id].p08v_asic_en, POWER_ON);
 		break;
 	case ASIC_POWER_ON_STAGE_4:
+		gpio_set(cxl_power_ctrl_pin[cxl_id].p08v_asic_en, POWER_ON);
+		break;
+	case ASIC_POWER_ON_STAGE_5:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v2_asic_en, POWER_ON);
 		break;
 	case DIMM_POWER_ON_STAGE_1:
