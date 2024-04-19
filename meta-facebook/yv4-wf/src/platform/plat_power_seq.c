@@ -619,6 +619,12 @@ bool cxl2_vr_access(uint8_t sensor_num)
 	return is_cxl_vr_accessible[CXL_ID_1];
 }
 
+void set_cxl_ready_status(uint8_t cxl_id, bool value)
+{
+	is_cxl_ready[cxl_id] = value;
+	return;
+}
+
 bool get_cxl_ready_status(uint8_t cxl_id)
 {
 	return is_cxl_ready[cxl_id];
