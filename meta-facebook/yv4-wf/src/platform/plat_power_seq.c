@@ -198,11 +198,7 @@ void enable_powers(int cxl_id, int pwr_stage)
 	switch (pwr_stage) {
 	case ASIC_POWER_ON_STAGE_1:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p075v_asic_en, POWER_ON);
-		break;
-	case ASIC_POWER_ON_STAGE_2:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p085v_asic_en, POWER_ON);
-		break;
-	case ASIC_POWER_ON_STAGE_3:
 		gpio_set(cxl_power_ctrl_pin[cxl_id].p1v8_asic_en, POWER_ON);
 		break;
 	case CLK_POWER_ON_STAGE:
@@ -251,14 +247,10 @@ int check_powers_enabled(int cxl_id, int pwr_stage)
 					 "P0V75_ASIC")) {
 			return -1;
 		}
-		break;
-	case ASIC_POWER_ON_STAGE_2:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p085v_asic_pg, POWER_ON,
 					 "P0V85_ASIC")) {
 			return -1;
 		}
-		break;
-	case ASIC_POWER_ON_STAGE_3:
 		if (!is_power_controlled(cxl_id, cxl_power_good_pin[cxl_id].p1v8_asic_pg, POWER_ON,
 					 "P1V8_ASIC")) {
 			return -1;
