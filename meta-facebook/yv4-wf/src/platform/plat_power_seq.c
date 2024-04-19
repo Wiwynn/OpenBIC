@@ -34,6 +34,13 @@ K_WORK_DELAYABLE_DEFINE(cxl2_ready_thread, cxl2_ready_handler);
 K_WORK_DELAYABLE_DEFINE(enable_asic1_rst_work, enable_asic1_rst);
 K_WORK_DELAYABLE_DEFINE(enable_asic2_rst_work, enable_asic2_rst);
 
+
+K_THREAD_STACK_DEFINE(cxl1_stack_area, 1024);
+struct k_thread cxl1_thread_data;
+
+K_THREAD_STACK_DEFINE(cxl2_stack_area, 1024);
+struct k_thread cxl2_thread_data;
+
 K_MUTEX_DEFINE(switch_ioe_mux_mutex);
 
 static bool is_cxl_power_on[MAX_CXL_ID] = { false, false };
@@ -160,8 +167,23 @@ void execute_power_on_sequence()
 		gpio_set(PG_CARD_OK, POWER_ON);
 		set_DC_status(PG_CARD_OK);
 		k_work_schedule(&set_dc_on_5s_work, K_SECONDS(DC_ON_DELAY5_SEC));
-		k_work_schedule(&cxl1_ready_thread, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
-		k_work_schedule(&cxl2_ready_thread, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
+		// k_work_schedule(&cxl1_ready_thread, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
+		// k_work_schedule(&cxl2_ready_thread, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
+		k_tid_t cxl1_tid = k_thread_create(&cxl1_thread_data, cxl1_stack_area,
+                                        K_THREAD_STACK_SIZEOF(cxl1_stack_area),
+                                        cxl1_ready_handler, NULL, NULL, NULL,
+                                        CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+
+    	k_tid_t cxl2_tid = k_thread_create(&cxl2_thread_data, cxl2_stack_area,
+                                        K_THREAD_STACK_SIZEOF(cxl2_stack_area),
+                                        cxl2_ready_handler, NULL, NULL, NULL,
+                                        CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+
+		k_thread_name_set(cxl1_tid, "cxl1_ready_thread");
+		k_thread_name_set(cxl2_tid, "cxl2_ready_thread");
+
+		k_thread_start(cxl1_tid);
+		k_thread_start(cxl2_tid);
 	}
 }
 
@@ -539,7 +561,7 @@ void cxl1_ready_handler()
 {
 	const struct device *heartbeat = NULL;
 	int heartbeat_status = 0;
-
+	LOG_INF("cxl1_ready_handler running...");
 	heartbeat = device_get_binding(CXL1_HEART_BEAT_LABEL);
 	if (heartbeat == NULL) {
 		LOG_ERR("%s device not found", CXL1_HEART_BEAT_LABEL);
@@ -547,8 +569,10 @@ void cxl1_ready_handler()
 	}
 
 	for (int times = 0; times < CXL_READY_RETRY_TIMES; times++) {
+		LOG_INF("Fetching CXL1 heartbeat...");
 		heartbeat_status = sensor_sample_fetch(heartbeat);
 		if (heartbeat_status < 0) {
+			LOG_INF("CXL1 not ready sleeping...");
 			k_sleep(K_SECONDS(CXL_READY_INTERVAL_SECONDS));
 			continue;
 		}
@@ -570,7 +594,7 @@ void cxl2_ready_handler()
 {
 	const struct device *heartbeat = NULL;
 	int heartbeat_status = 0;
-
+	LOG_INF("cxl2_ready_handler running...");
 	heartbeat = device_get_binding(CXL2_HEART_BEAT_LABEL);
 	if (heartbeat == NULL) {
 		LOG_ERR("%s device not found", CXL2_HEART_BEAT_LABEL);
@@ -578,8 +602,10 @@ void cxl2_ready_handler()
 	}
 
 	for (int times = 0; times < CXL_READY_RETRY_TIMES; times++) {
+		LOG_INF("Fetching CXL2 heartbeat...");
 		heartbeat_status = sensor_sample_fetch(heartbeat);
 		if (heartbeat_status < 0) {
+			LOG_INF("CXL2 not ready sleeping...");
 			k_sleep(K_SECONDS(CXL_READY_INTERVAL_SECONDS));
 			continue;
 		}
