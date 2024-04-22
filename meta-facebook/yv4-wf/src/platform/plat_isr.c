@@ -82,7 +82,6 @@ void set_cxl_led()
 	set_ioe_value(ADDR_IOE3, TCA9555_OUTPUT_PORT_REG_1, ioe_reg_value);
 }
 
-K_WORK_DEFINE(cxl_power_on_work, execute_power_on_sequence);
 K_WORK_DEFINE(cxl_power_off_work, execute_power_off_sequence);
 
 void ISR_MB_DC_STAGUS_CHAGNE()
@@ -91,7 +90,6 @@ void ISR_MB_DC_STAGUS_CHAGNE()
 
 	if (gpio_get(FM_POWER_EN_R) == POWER_ON) {
 		//init_power_on_thread(CLK_POWER_ON_STAGE);
-		k_work_submit(&cxl_power_on_work);
 	} else {
 		//init_power_off_thread(DIMM_POWER_OFF_STAGE_1);
 		k_work_submit(&cxl_power_off_work);

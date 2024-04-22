@@ -45,6 +45,7 @@ DEVICE_DEFINE(PRE_DEF_PROJ_GPIO, "PRE_DEF_PROJ_GPIO_NAME", &gpio_init, NULL, NUL
 
 K_WORK_DELAYABLE_DEFINE(cxl1_ready_check, cxl1_ready_handler);
 K_WORK_DELAYABLE_DEFINE(cxl2_ready_check, cxl2_ready_handler);
+K_WORK_DEFINE(cxl_power_on, execute_power_on_sequence);
 void pal_set_sys_status()
 {
 	set_mb_dc_status(FM_POWER_EN_R);
@@ -56,6 +57,7 @@ void pal_set_sys_status()
 		k_work_schedule(&cxl2_ready_check, K_SECONDS(CXL_READY_INTERVAL_SECONDS));
 	}
 	set_sys_ready_pin(BIC_READY_R);
+	k_work_submit(&cxl_power_on);
 }
 
 void pal_pre_init()
