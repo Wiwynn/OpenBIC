@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <logging/log.h>
+#include <sys/crc.h>
 
 #include "libutil.h"
 #include "ipmb.h"
@@ -25,6 +26,7 @@
 #include "plat_sys.h"
 #include "plat_class.h"
 #include "plat_isr.h"
+#include "plat_pldm.h"
 
 enum THREAD_STATUS {
 	THREAD_SUCCESS = 0,
@@ -179,6 +181,98 @@ void OEM_1S_DEBUG_GET_HW_SIGNAL(ipmi_msg *msg)
 	memset(hw_event_register, 0, sizeof(hw_event_register));
 
 	msg->data_len = sizeof(hw_event_register);
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void OEM_HTTP_BOOT_DATA(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+	msg->completion_code = CC_UNSPECIFIED_ERROR;
+
+	if (msg->data_len != 3) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t *httpBootData = (uint8_t *)malloc(sizeof(uint8_t) * 2200);
+	uint16_t httpBootDataLen = 0;
+
+	if (plat_pldm_get_http_boot_data(httpBootData, &httpBootDataLen) != CC_SUCCESS) {
+		LOG_ERR("Failed to get OEM HTTP BOOT DATA");
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	uint16_t offset = (uint16_t)(msg->data[1] << 8) | msg->data[0];
+	uint16_t length = (uint16_t)msg->data[2];
+
+	if (offset + length > httpBootDataLen) {
+		LOG_ERR("Failed to get OEM HTTP BOOT DATA because of invalid offset or length");
+		msg->completion_code = CC_INVALID_PARAM;
+		return;
+	}
+
+	msg->data_len = 1 + length; // 1 byte length + length bytes Data
+	msg->data[0] = (uint8_t)length;
+	memcpy(&msg->data[1], &httpBootData[offset], length);
+
+	free(httpBootData);
+
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void OEM_HTTP_BOOT_ATTR(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+	msg->completion_code = CC_UNSPECIFIED_ERROR;
+
+	if (msg->data_len < 1) {
+		LOG_ERR("Failed to get OEM HTTP BOOT DATA because of invalid length");
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t attr = msg->data[0];
+	if (attr >= GET_HTTP_BOOT_MAX) {
+		LOG_ERR("Failed to get OEM HTTP BOOT DATA because of invalid command");
+		msg->completion_code = CC_INVALID_CMD;
+	}
+
+	uint8_t *httpBootData = (uint8_t *)malloc(sizeof(uint8_t) * 2200);
+	uint16_t httpBootDataLen = 0;
+
+	if (plat_pldm_get_http_boot_data(httpBootData, &httpBootDataLen) != CC_SUCCESS) {
+		LOG_ERR("Failed to get OEM HTTP BOOT DATA");
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	uint32_t crc32_value = 0;
+
+	switch (attr) {
+	case GET_HTTP_BOOT_SIZE:
+		msg->data_len = 2;
+		msg->data[0] = httpBootDataLen & 0xFF;
+		msg->data[1] = (httpBootDataLen >> 8) & 0xFF;
+		break;
+	case GET_HTTP_BOOT_CRC32:
+		crc32_value = crc32_ieee(httpBootData, httpBootDataLen);
+
+		msg->data_len = 4;
+		msg->data[0] = crc32_value & 0xFF;
+		msg->data[1] = (crc32_value >> 8) & 0xFF;
+		msg->data[2] = (crc32_value >> 16) & 0xFF;
+		msg->data[3] = (crc32_value >> 24) & 0xFF;
+		break;
+	default:
+		msg->completion_code = CC_INVALID_CMD;
+		break;
+	}
+
+	free(httpBootData);
+
 	msg->completion_code = CC_SUCCESS;
 	return;
 }
