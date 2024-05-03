@@ -79,7 +79,7 @@ jobs:
         path: |
           ./modules
           ./zephyr
-        key: west-yml-${{ hashFiles('OpenBIC/west.yml') }}
+        key: west-yml-${{ hashFiles('OpenBIC-for-Kandou-Development/west.yml') }}
  
     - name: Cache SDK Toolchain
       id: cache-sdk
@@ -103,7 +103,7 @@ jobs:
 
     - name: Update West Project
       run: |
-        cd OpenBIC 
+        cd OpenBIC-for-Kandou-Development 
         west update
  
     - name: Apply Kernel Patches
