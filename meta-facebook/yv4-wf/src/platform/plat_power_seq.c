@@ -574,6 +574,7 @@ void cxl1_ready_handler()
 		return;
 	}
 
+	LOG_ERR("CXL1_START_RETRY");
 	for (int times = 0; times < CXL_READY_RETRY_TIMES; times++) {
 		heartbeat_status = sensor_sample_fetch(heartbeat);
 		if (heartbeat_status < 0) {
@@ -583,6 +584,7 @@ void cxl1_ready_handler()
 
 		is_cxl_ready[CXL_ID_1] = true;
 		LOG_INF("CXL1 is ready");
+		LOG_ERR("CXL1_DONE_RETRY, RETRY=%d", times);
 		/* Switch muxs to BIC*/
 		switch_mux_to_bic(IOE_SWITCH_CXL1_VR_TO_BIC);
 		set_cxl_vr_access(CXL_ID_1, true);
@@ -605,6 +607,7 @@ void cxl2_ready_handler()
 		return;
 	}
 
+	LOG_ERR("CXL2_START_RETRY");
 	for (int times = 0; times < CXL_READY_RETRY_TIMES; times++) {
 		heartbeat_status = sensor_sample_fetch(heartbeat);
 		if (heartbeat_status < 0) {
@@ -614,6 +617,7 @@ void cxl2_ready_handler()
 
 		is_cxl_ready[CXL_ID_2] = true;
 		LOG_INF("CXL2 is ready");
+		LOG_ERR("CXL2_DONE_RETRY, RETRY=%d", times);
 		/* Switch muxs to BIC*/
 		switch_mux_to_bic(IOE_SWITCH_CXL2_VR_TO_BIC);
 		set_cxl_vr_access(CXL_ID_2, true);
