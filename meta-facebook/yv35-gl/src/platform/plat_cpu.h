@@ -35,5 +35,6 @@ void monitor_cpu_handler();
 void start_monitor_cpu_thread();
 void monitor_smiout_handler();
 void start_monitor_smi_thread();
+void set_dam_pin();
 
 #endif

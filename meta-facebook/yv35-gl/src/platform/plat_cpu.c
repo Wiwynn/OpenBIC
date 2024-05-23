@@ -15,6 +15,9 @@
 #include <plat_sensor_table.h>
 #include "power_status.h"
 #include "hal_vw_gpio.h"
+#include "fru.h"
+#include "plat_fru.h"
+#include "eeprom.h"
 
 LOG_MODULE_REGISTER(plat_cpu);
 
@@ -263,4 +266,50 @@ void monitor_smiout_handler()
 			return;
 		}
 	}
+}
+
+int pal_get_set_dam_status(uint8_t options, uint8_t *status)
+{
+	CHECK_NULL_ARG_WITH_RETURN(status, -1);
+
+	uint8_t ret;
+	EEPROM_ENTRY fru_entry = { 0 };
+
+	fru_entry.config.dev_id = SYS_DAM_ID;
+	fru_entry.offset = BIC_CONFIG_START + SYS_DAM_OFFSET;
+	fru_entry.data_len = 1;
+
+	uint8_t fru_index = 0;
+	bool is_id_find = find_FRU_ID(fru_entry.config.dev_id, &fru_index);
+	if (is_id_find == false) {
+		LOG_ERR("find fru write config fail via fru id: 0x%x", fru_entry.config.dev_id);
+		return FRU_INVALID_ID;
+	}
+	memcpy(&fru_entry.config, &fru_config[fru_index], sizeof(fru_config[fru_index]));
+
+	switch (options) {
+		case GET_STATUS:
+			ret = eeprom_read(&fru_entry);
+			*status = fru_entry.data[0];
+			break;
+		case SET_STATUS:
+			fru_entry.data[0] = *status;
+			ret = eeprom_write(&fru_entry);
+			debug_sel_mode = *status;
+			break;
+		default:
+			LOG_ERR("Debug sel mode options unkown %d", options);
+			return -1;
+	}
+
+	if (ret != FRU_READ_SUCCESS) {
+		return -1;
+	}
+
+	return 0;
+}
+
+void set_dam_pin()
+{
+	
 }
