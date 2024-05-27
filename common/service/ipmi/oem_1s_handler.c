@@ -55,6 +55,9 @@
 #include "pcc.h"
 #include "hal_wdt.h"
 #include "pldm.h"
+#ifdef ENABLE_PLDM
+#include "plat_mctp.h"
+#endif
 
 #define BIOS_UPDATE_MAX_OFFSET 0x4000000
 #ifndef BIC_UPDATE_MAX_OFFSET
@@ -602,6 +605,97 @@ __weak void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		msg->completion_code = CC_UNSPECIFIED_ERROR;
 		break;
 	}
+	return;
+}
+
+__weak void OEM_1S_INFORM_BMC_TO_CONTROL_POWER(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+	uint8_t completion_code = CC_UNSPECIFIED_ERROR;
+
+	if (msg->data_len != 1) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+#ifdef ENABLE_PLDM
+	pldm_msg translated_msg = { 0 };
+	uint8_t bmc_bus = I2C_BUS_BMC;
+	uint8_t bmc_interface = pal_get_bmc_interface();
+	translated_msg.ext_params.ep = MCTP_EID_BMC;
+
+	switch (bmc_interface) {
+		case BMC_INTERFACE_I3C:
+			bmc_bus = I3C_BUS_BMC;
+			translated_msg.ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+			translated_msg.ext_params.i3c_ext_params.addr = I3C_STATIC_ADDR_BMC;
+			break;
+		case BMC_INTERFACE_I2C:
+			bmc_bus = I2C_BUS_BMC;
+			translated_msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+			translated_msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+			break;
+		default:
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			return;
+	}
+
+	translated_msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	translated_msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	translated_msg.hdr.rq = 1;
+
+	uint8_t power_option = msg->data[0];
+	if (power_option != SLED_CYCLE) {
+		msg->completion_code = CC_INVALID_PARAM;
+		return;
+	}
+
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) +
+		sizeof(uint8_t) /* Minimum requried length */);
+
+	if (!ptr) {
+		LOG_ERR("Failed to allocate memory.");
+		msg->completion_code = CC_OUT_OF_SPACE;
+		msg->data_len = 0;
+		return;
+	}
+
+	ptr->cmd_code = POWER_CONTROL;
+	ptr->data_length = POWER_CONTROL_LEN;
+	ptr->messages[0] = power_option;
+
+	translated_msg.buf = (uint8_t *)ptr;
+	translated_msg.len = sizeof(struct pldm_oem_write_file_io_req) + sizeof(uint8_t);
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+
+	if (!mctp_pldm_read(find_mctp_by_bus(bmc_bus), &translated_msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		completion_code = CC_CAN_NOT_RESPOND;
+		goto exit;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+		completion_code = resp->completion_code;
+		goto exit;
+	}
+
+	completion_code = CC_SUCCESS;
+exit:
+	SAFE_FREE(ptr);
+	msg->completion_code = completion_code;
+	msg->data_len = 0;
+#endif
+#ifndef ENABLE_PLDM
+	// Currently, OEM_1S_INFORM_BMC_TO_CONTROL_POWER only support PLDM
+	msg->completion_code = CC_INVALID_CMD;
+	msg->data_len = 0;
+#endif
+
 	return;
 }
 
@@ -2307,6 +2401,10 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 	case CMD_OEM_1S_GET_FW_VERSION:
 		LOG_DBG("Received 1S Get Firmware Version command");
 		OEM_1S_GET_FW_VERSION(msg);
+		break;
+	case CMD_OEM_1S_INFORM_BMC_TO_CONTROL_POWER:
+		LOG_WRN("Receiced 1S Inform BMC to control power command");
+		OEM_1S_INFORM_BMC_TO_CONTROL_POWER(msg);
 		break;
 	case CMD_OEM_1S_RESET_BMC:
 		LOG_DBG("Received 1S BMC Reset command");
