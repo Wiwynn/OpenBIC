@@ -462,12 +462,26 @@ static bool get_cpu_margin(uint8_t addr, int *reading)
 
 	const uint16_t param = 0xFF;
 	const uint8_t rlen = 0x05;
+	int i = 0, retry = 3;
 	uint8_t rbuf[rlen];
 	memset(rbuf, 0, sizeof(rbuf));
 
-	int ret = peci_read(PECI_CMD_RD_PKG_CFG0, addr, RDPKG_IDX_PKG_TEMP, param, rlen, rbuf);
-	if (ret != 0) {
-		LOG_ERR("PECI read error");
+	for (i = 0; i < retry; i++) {
+		int ret = peci_read(PECI_CMD_RD_PKG_CFG0, addr, RDPKG_IDX_PKG_TEMP, param, rlen,
+				    rbuf);
+		if (ret != 0) {
+			LOG_ERR("PECI read error");
+			return false;
+		}
+
+		if (rbuf[0] == PECI_CC_SUCCESS) {
+			break;
+		}
+
+		LOG_WRN("cc 0x%x data0x%x 0x%x", rbuf[0], rbuf[1], rbuf[2]);
+	}
+
+	if (i >= retry) {
 		return false;
 	}
 
@@ -522,6 +536,7 @@ static bool get_cpu_temp(uint8_t addr, int *reading)
 
 	sensor_val *sval = (sensor_val *)reading;
 	sval->integer = tjmax.integer + margin.integer;
+	LOG_INF("%d %d %d", tjmax.integer, margin.integer, sval->integer);
 	return true;
 }
 
@@ -679,6 +694,8 @@ uint8_t intel_peci_read(sensor_cfg *cfg, int *reading)
 		break;
 	case PECI_TEMP_CPU:
 		ret_val = get_cpu_temp(cfg->target_addr, reading);
+		LOG_INF("ret%d", ret_val);
+		LOG_INF("");
 		break;
 	case PECI_PWR_CPU:
 		ret_val = get_cpu_pwr(cfg->target_addr, reading);
