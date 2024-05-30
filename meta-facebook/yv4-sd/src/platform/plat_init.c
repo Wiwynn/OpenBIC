@@ -107,13 +107,13 @@ void pal_set_sys_status()
 	sync_bmc_ready_pin();
 	set_sys_ready_pin(BIC_READY_R);
 	reset_usb_hub();
-	apml_init();
+	//apml_init();
 
-	if (get_post_status()) {
+	/*if (get_post_status()) {
 		apml_recovery();
 		set_tsi_threshold();
 		read_cpuid();
-	}
+	}*/
 }
 
 #define DEF_PROJ_GPIO_PRIORITY 78

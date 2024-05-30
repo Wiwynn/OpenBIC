@@ -109,8 +109,8 @@ void ISR_POST_COMPLETE()
 	pal_check_sbrmi_command_code_length();
 
 	if (get_post_status()) {
-		set_tsi_threshold();
-		read_cpuid();
+		//set_tsi_threshold();
+		//read_cpuid();
 	} else {
 		if (get_DC_status()) { // Host is reset
 			k_work_submit(&switch_i3c_dimm_work);
