@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "plat_mctp.h"
+#include "plat_pldm.h"
 
 LOG_MODULE_REGISTER(plat_pldm);
 
@@ -30,7 +31,7 @@ uint8_t plat_pldm_get_http_boot_data(uint8_t *httpBootData, uint16_t *httpBootDa
 		sizeof(struct pldm_oem_read_file_io_req));
 
 	ptr->cmd_code = HTTP_BOOT;
-	ptr->data_length = 145; // Jeff:一次可以傳送的最大長度
+	ptr->data_length = I2C_MAX_TRANSFER_SIZE - sizeof(struct pldm_oem_read_file_io_req);
 	ptr->transfer_flag = PLDM_START;
 	ptr->highOffset = 0;
 	ptr->lowOffset = 0;
@@ -38,10 +39,10 @@ uint8_t plat_pldm_get_http_boot_data(uint8_t *httpBootData, uint16_t *httpBootDa
 	pmsg.buf = (uint8_t *)ptr;
 	pmsg.len = sizeof(struct pldm_oem_read_file_io_req);
 
-	uint16_t resp_len = 150; // Jeff:一次可以傳送的最大長度
+	uint16_t resp_len = I2C_MAX_TRANSFER_SIZE;
 
-	struct pldm_oem_read_file_io_resp *rbuf = (struct pldm_oem_read_file_io_resp *)malloc(
-		sizeof(struct pldm_oem_read_file_io_resp) + sizeof(uint8_t) * resp_len); //resp_data
+	struct pldm_oem_read_file_io_resp *rbuf =
+		(struct pldm_oem_read_file_io_resp *)malloc(sizeof(uint8_t) * resp_len);
 	if (rbuf == NULL) {
 		LOG_ERR("Memory allocation failed.");
 		return PLDM_ERROR;

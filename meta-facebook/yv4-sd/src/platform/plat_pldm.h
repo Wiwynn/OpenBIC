@@ -17,6 +17,8 @@
 #ifndef PLAT_PLDM_H
 #define PLAT_PLDM_H
 
+#define I2C_MAX_TRANSFER_SIZE 150
+
 uint8_t plat_pldm_get_http_boot_data(uint8_t *httpBootData, uint16_t *httpBootDataLen);
 
 #endif
