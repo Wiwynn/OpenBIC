@@ -188,7 +188,7 @@ void OEM_1S_DEBUG_GET_HW_SIGNAL(ipmi_msg *msg)
 void OEM_HTTP_BOOT_DATA(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
-	msg->completion_code = CC_UNSPECIFIED_ERROR;
+	msg->completion_code = CC_INVALID_CMD;
 
 	if (msg->data_len != 3) {
 		msg->completion_code = CC_INVALID_LENGTH;
@@ -226,7 +226,7 @@ void OEM_HTTP_BOOT_DATA(ipmi_msg *msg)
 void OEM_HTTP_BOOT_ATTR(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
-	msg->completion_code = CC_UNSPECIFIED_ERROR;
+	msg->completion_code = CC_INVALID_CMD;
 
 	if (msg->data_len < 1) {
 		LOG_ERR("Failed to get OEM HTTP BOOT DATA because of invalid length");
