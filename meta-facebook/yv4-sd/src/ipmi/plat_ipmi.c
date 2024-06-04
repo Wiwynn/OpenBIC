@@ -19,11 +19,14 @@
 #include <logging/log.h>
 
 #include "libutil.h"
+#include "util_sys.h"
 #include "ipmb.h"
 #include "ipmi.h"
+#include "pldm_oem.h"
 #include "plat_ipmi.h"
 #include "plat_sys.h"
 #include "plat_class.h"
+#include "plat_mctp.h"
 
 enum THREAD_STATUS {
 	THREAD_SUCCESS = 0,
@@ -174,6 +177,67 @@ void APP_GET_SELFTEST_RESULTS(ipmi_msg *msg)
 	msg->data[1] = 0x00;
 	msg->data_len = 2;
 	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
+void OEM_1S_SLED_CYCLE(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	msg->data_len = 0;
+	msg->completion_code = CC_SUCCESS;
+	
+	pldm_msg pldm_msg = { 0 };
+	uint8_t bmc_bus = I2C_BUS_BMC;
+	uint8_t bmc_interface = pal_get_bmc_interface();
+	
+	// Send the PLDM OEM cmd to BMC to execute sled cycle
+	if (bmc_interface == BMC_INTERFACE_I3C) {
+		bmc_bus = I3C_BUS_BMC;
+		pldm_msg.ext_params.type = MCTP_MEDIUM_TYPE_TARGET_I3C;
+		pldm_msg.ext_params.i3c_ext_params.addr = I3C_STATIC_ADDR_BMC;
+		pldm_msg.ext_params.ep = MCTP_EID_BMC;
+	} else {
+		bmc_bus = I2C_BUS_BMC;
+		pldm_msg.ext_params.type = MCTP_MEDIUM_TYPE_SMBUS;
+		pldm_msg.ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
+		pldm_msg.ext_params.ep = MCTP_EID_BMC;
+	}
+	pldm_msg.hdr.pldm_type = PLDM_TYPE_OEM;
+	pldm_msg.hdr.cmd = PLDM_OEM_WRITE_FILE_IO;
+	pldm_msg.hdr.rq = 1;
+	struct pldm_oem_write_file_io_req *ptr = (struct pldm_oem_write_file_io_req *)malloc(
+		sizeof(struct pldm_oem_write_file_io_req) + (POWER_CONTROL_LEN * sizeof(uint8_t)));
+	if (ptr == NULL) {
+		LOG_ERR("Memory allocation failed.");
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	ptr->cmd_code = POWER_CONTROL;
+	ptr->data_length = POWER_CONTROL_LEN;
+	ptr->messages[0] = 0x00;
+
+	pldm_msg.buf = (uint8_t *)ptr;
+	pldm_msg.len = sizeof(struct pldm_oem_write_file_io_req) + POWER_CONTROL_LEN;
+
+	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
+	uint8_t rbuf[resp_len];
+	if (!mctp_pldm_read(find_mctp_by_bus(bmc_bus), &pldm_msg, rbuf, resp_len)) {
+		LOG_ERR("mctp_pldm_read fail");
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		SAFE_FREE(ptr);
+		return;
+	}
+
+	struct pldm_oem_write_file_io_resp *resp = (struct pldm_oem_write_file_io_resp *)rbuf;
+	if (resp->completion_code != PLDM_SUCCESS) {
+		LOG_ERR("Check reponse completion code fail %x", resp->completion_code);
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+	}
+
+	SAFE_FREE(ptr);
 
 	return;
 }

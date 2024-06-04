@@ -1451,6 +1451,15 @@ __weak void OEM_1S_GET_SSD_STATUS(ipmi_msg *msg)
 	return;
 }
 
+__weak void OEM_1S_SLED_CYCLE(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	msg->data_len = 0;
+	msg->completion_code = CC_INVALID_CMD;
+	return;
+} 
+
 __weak void OEM_1S_12V_CYCLE_SLOT(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
@@ -2368,6 +2377,10 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 	case CMD_OEM_1S_GET_SSD_STATUS:
 		LOG_DBG("Received 1S Get SSD Status command");
 		OEM_1S_GET_SSD_STATUS(msg);
+		break;
+	case CMD_OEM_1S_SLED_CYCLE:
+		LOG_DBG("Received 1S sled cycle command");
+		OEM_1S_SLED_CYCLE(msg);
 		break;
 	case CMD_OEM_1S_12V_CYCLE_SLOT:
 		LOG_DBG("Received 1S 12v-Cycle Slot command");
