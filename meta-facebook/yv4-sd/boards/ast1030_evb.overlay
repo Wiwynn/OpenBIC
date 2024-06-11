@@ -237,7 +237,7 @@
 	* It is currently written as 24KB, and Aspeed will correct to 32KB in the next version.
 	* 0xa0000 is the starting offset of the non-cacheable area.
 	*/
-	reg = <0 DT_SIZE_K(672)>, <0xa8000 DT_SIZE_K(96)>;
+	reg = <0 DT_SIZE_K(680)>, <0xaa000 DT_SIZE_K(88)>;
 };
 
 &pcc {
