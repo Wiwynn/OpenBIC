@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef PLAT_IPMI_H
-#define PLAT_IPMI_H
+#ifndef PLAT_PLDM_H
+#define PLAT_PLDM_H
 
-#define HTTP_BOOT_SIZE_LEN 2
-#define HTTP_BOOT_CRC32_LEN 4
-#define HTTP_BOOT_DATA_MAXIMUM 2500
-
-enum GET_HTTP_BOOT_ATTR {
-	GET_HTTP_BOOT_SIZE = 0x00,
-	GET_HTTP_BOOT_CRC32 = 0x01,
-	GET_HTTP_BOOT_MAX = 0x02,
-};
+uint8_t plat_pldm_get_http_boot_data(uint8_t *httpBootData, uint16_t httpBootOffset,
+				     uint8_t httpBootReadlen, uint8_t *httpBootResplen,
+				     bool *is_end_package);
+uint8_t plat_pldm_get_http_boot_attr(uint8_t attr, uint8_t *httpBootAttrData,
+				     uint8_t httpBootAttrDatalen);
 
 #endif

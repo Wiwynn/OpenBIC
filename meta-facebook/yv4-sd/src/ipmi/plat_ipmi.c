@@ -25,6 +25,9 @@
 #include "plat_sys.h"
 #include "plat_class.h"
 #include "plat_isr.h"
+#include "plat_pldm.h"
+#include "hal_i2c.h"
+#include "pldm_base.h"
 
 enum THREAD_STATUS {
 	THREAD_SUCCESS = 0,
@@ -185,6 +188,74 @@ void OEM_1S_DEBUG_GET_HW_SIGNAL(ipmi_msg *msg)
 	memset(hw_event_register, 0, sizeof(hw_event_register));
 
 	msg->data_len = sizeof(hw_event_register);
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void OEM_GET_HTTP_BOOT_DATA(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg)
+
+	if (msg->data_len != 3) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t length = msg->data[2];
+	uint16_t offset = (uint16_t)(msg->data[1] << 8) | msg->data[0];
+	if (length > I2C_MAX_TRANSFER_SIZE - sizeof(struct pldm_oem_read_file_io_req)) {
+		LOG_ERR("Failed to get http boot data, read length: 0x%x", msg->data[2]);
+		msg->completion_code = CC_INVALID_PARAM;
+	}
+
+	bool is_end_package = false;
+	uint8_t ret = 0;
+
+	ret = plat_pldm_get_http_boot_data(&msg->data[1], offset, length, (uint8_t *)&msg->data_len,
+					   &is_end_package);
+	if (ret != PLDM_SUCCESS) {
+		LOG_ERR("Failed to get http boot data, ret = 0x%x", ret);
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	msg->data_len = 1 + msg->data_len; // 1 byte length + length bytes Data
+	msg->data[0] = length;
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
+
+void OEM_GET_HTTP_BOOT_ATTR(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 1) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	uint8_t attr = msg->data[0];
+	uint8_t read_len = 0;
+	switch (attr) {
+	case GET_HTTP_BOOT_SIZE:
+		read_len = HTTP_BOOT_SIZE_LEN;
+		break;
+	case GET_HTTP_BOOT_CRC32:
+		read_len = HTTP_BOOT_CRC32_LEN;
+		break;
+	default:
+		LOG_ERR("Failed to get http boot attribute, attr: 0x%x", attr);
+		msg->completion_code = CC_INVALID_CMD;
+		return;
+	}
+
+	if (plat_pldm_get_http_boot_attr(attr, &msg->data[0], read_len) != PLDM_SUCCESS) {
+		LOG_ERR("Failed to get http boot attribute");
+		msg->completion_code = CC_UNSPECIFIED_ERROR;
+		return;
+	}
+
+	msg->data_len = read_len;
 	msg->completion_code = CC_SUCCESS;
 	return;
 }

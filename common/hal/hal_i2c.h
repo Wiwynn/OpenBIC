@@ -152,6 +152,7 @@
 #define DEV_I2C(n) DEV_I2C_##n
 
 #define I2C_BUFF_SIZE 256
+#define I2C_MAX_TRANSFER_SIZE 255
 #define MUTEX_LOCK_ENABLE true
 #define MUTEX_LOCK_DISENABLE false
 
