@@ -107,6 +107,16 @@ enum DIMM_PRSNT_STATUS {
 	DIMM_NOT_PRSNT,
 };
 
+enum DIMM_DEVICE_TYPE {
+	DIMM_SPD = 0x00,
+	DIMM_SPD_NVM = 0x01,
+	DIMM_PMIC = 0x02,
+};
+
+extern struct k_mutex i3c_dimm_mutex;
+extern uint8_t spd_i3c_addr_list[];
+extern uint8_t pmic_i3c_addr_list[];
+
 void start_get_dimm_info_thread();
 void get_dimm_info_handler();
 uint8_t sensor_num_map_dimm_id(uint8_t sensor_num);
