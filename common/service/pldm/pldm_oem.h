@@ -25,6 +25,10 @@ extern "C" {
 #include <stdint.h>
 
 #define IANA_LEN 0x03
+/* define for pldm oem event */
+#define OEM_EVENT_LEN 0x02
+#define EVENT_ASSERTED 0x01
+#define EVENT_DEASSERTED 0x00
 
 /* commands of pldm type 0x3F : PLDM_TYPE_OEM */
 #define PLDM_OEM_CMD_ECHO 0x00
@@ -35,6 +39,37 @@ extern "C" {
 enum cmd_type {
 	POST_CODE = 0x00,
 	BIOS_VERSION = 0x01,
+	EVENT_LOG = 0x03,
+};
+
+enum oem_event_type {
+	CPU_THERMAL_TRIP = 0x00,
+    HSC_OCP,
+    P12V_STBY_UV,
+    PMALERT_ASSERT,
+    FAST_PROCHOT_ASSERT,
+    FRB3_TIMER_EXPIRE,
+    POWER_ON_SEQUENCE_FAIL,
+    DIMM_PMIC_ERROR,
+    ADDC_DUMP,
+    BMC_COMES_OUT_COLD_RESET,
+    BIOS_FRB2_WDT_EXPIRE,
+    BIC_POWER_FAIL,
+    CPU_POWER_FAIL,
+    BMC_VBOOT_FAIL,
+    BMC_REBOOT_REQUESTED,
+    CHASSIS_POWER_ON_BY_NIC_INSERT,
+    BLADE_POWER_CYCLE_BY_BLADE_BTN,
+    CHASSIS_POWER_CYCLE_BY_SLED_BTN,
+    HSC_FAULT,
+    SYS_THROTTLE,
+    VR_FAULT,
+    SYS_MANAMENT_ERROR,
+    POST_COMPLETED,
+    FAN_ERROR,
+    HDT_PRSNT_ASSERT,
+    PLTRST_ASSERT,
+    APML_ALERT_ASSERT,
 };
 
 struct _cmd_echo_req {
@@ -76,6 +111,7 @@ struct pldm_oem_write_file_io_resp {
 
 uint8_t check_iana(const uint8_t *iana);
 uint8_t set_iana(uint8_t *buf, uint8_t buf_len);
+uint8_t send_event_log_to_bmc(uint8_t event_type, uint8_t assertion);
 
 uint8_t pldm_oem_handler_query(uint8_t code, void **ret_fn);
 
