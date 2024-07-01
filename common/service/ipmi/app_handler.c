@@ -21,11 +21,25 @@
 #include "guid.h"
 #include "plat_i2c.h"
 #include "plat_ipmi.h"
+#include "pldm_oem.h"
 #include "util_sys.h"
 #include <logging/log.h>
 #include <libutil.h>
 
 LOG_MODULE_DECLARE(ipmi);
+#define FRB2_WDT_STACK 1024
+K_KERNEL_STACK_MEMBER(frb2_wdt_stack, FRB2_WDT_STACK);
+static struct k_thread frb2_wdt_thread;
+k_tid_t frb2_wdt_tid;
+
+/* variables for Set/Get Watchdog Timer command handler*/
+static uint8_t timerUse = 0;
+static uint8_t timerAction = 0;
+static uint8_t preTimeoutInSec = 0;
+static uint8_t timerUseExpireFlagsClear = 0;
+static uint8_t initCountdownValueLsb = 0;
+static uint8_t initCountdownValueMsb = 0;
+static int16_t presentCountdownValue = 0;
 
 __weak void APP_GET_DEVICE_ID(ipmi_msg *msg)
 {
@@ -263,6 +277,117 @@ __weak void APP_GET_CAHNNEL_INFO(ipmi_msg *msg)
 	return;
 }
 
+void frb2_wdt_handler(void *countdownValue, void *arug1, void *arug2)
+{
+	presentCountdownValue = POINTER_TO_INT(countdownValue);
+	while (presentCountdownValue > 0) {
+		k_sleep(K_MSEC(FRB2_WDT_DELAY_MS));
+		presentCountdownValue = (presentCountdownValue - 10);
+	}
+
+	/* FRB2 watchdog timeout */
+	if (PLDM_SUCCESS != send_event_log_to_bmc(BIOS_FRB2_WDT_EXPIRE, EVENT_ASSERTED)) {
+		LOG_ERR("Failed to assert FRB2 watchdog timeout event log.");
+	};
+}
+
+void init_frb2_wdt_thread(int16_t initCountdownValue)
+{
+	// Avoid re-create thread by checking thread status and thread id
+	if (frb2_wdt_tid != NULL && strcmp(k_thread_state_str(frb2_wdt_tid), "dead") != 0) {
+		return;
+	}
+
+	frb2_wdt_tid = k_thread_create(&frb2_wdt_thread, frb2_wdt_stack,
+				       K_THREAD_STACK_SIZEOF(frb2_wdt_stack), frb2_wdt_handler,
+				       INT_TO_POINTER((int16_t)initCountdownValue), NULL, NULL,
+				       CONFIG_MAIN_THREAD_PRIORITY, 0, K_NO_WAIT);
+	k_thread_name_set(&frb2_wdt_thread, "frb2_wdt_thread");
+
+	LOG_INF("frb2 wdt start!");
+}
+
+void abort_frb2_wdt_thread()
+{
+	if (frb2_wdt_tid != NULL && strcmp(k_thread_state_str(frb2_wdt_tid), "dead") != 0) {
+		k_thread_abort(frb2_wdt_tid);
+		frb2_wdt_tid = NULL;
+
+		LOG_INF("frb2 wdt stop!");
+	}
+}
+
+__weak void APP_SET_WATCHDOG_TIMER(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	int16_t initCountdownValue = 0;
+
+	/* Parsing Set Watchdog Timer Request data field */
+	timerUse = msg->data[0];
+	timerAction = msg->data[1];
+	preTimeoutInSec = msg->data[2];
+	timerUseExpireFlagsClear = msg->data[3];
+	initCountdownValueLsb = msg->data[4];
+	initCountdownValueMsb = msg->data[5];
+
+	initCountdownValue =
+		(int16_t)(initCountdownValueMsb) << 8 | (int16_t)(initCountdownValueLsb);
+	presentCountdownValue = initCountdownValue;
+
+#if DEBUG_IPMI_APP
+	LOG_ERR("APP msg netfn: %x, cmd: %x, datalen: %x", msg->netfn, msg->cmd, msg->data_len);
+	LOG_ERR("timeUse: %x, timerAction: %x, preTimeoutInSec: %x", msg->data[0], msg->data[1],
+		msg->data[2]);
+	LOG_ERR("timerUseExpireFlagsClear: %x, LSBinitCountVal: %x, MSBinitCountVal: %x",
+		msg->data[3], msg->data[4], msg->data[5]);
+#endif
+
+	if (frb2_wdt_tid != NULL && strcmp(k_thread_state_str(frb2_wdt_tid), "dead") != 0) {
+		abort_frb2_wdt_thread();
+	} else {
+		init_frb2_wdt_thread(initCountdownValue);
+	}
+
+	msg->data_len = 0;
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
+__weak void APP_GET_WATCHDOG_TIMER(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	if (msg->data_len != 0) {
+		msg->completion_code = CC_INVALID_LENGTH;
+		return;
+	}
+
+	/* Check FRB2 watchdog timer status */
+	if (frb2_wdt_tid != NULL && strcmp(k_thread_state_str(frb2_wdt_tid), "dead") != 0) {
+		msg->data[0] = (1 << WDT_STATUS_BIT) | timerUse;
+	} else {
+		msg->data[0] = timerUse;
+	}
+
+	/* Fill data from the request of Set Watchdog Timer command */
+	msg->data[1] = timerAction;
+	msg->data[2] = preTimeoutInSec;
+	msg->data[3] = timerUseExpireFlagsClear;
+	msg->data[4] = initCountdownValueLsb;
+	msg->data[5] = initCountdownValueMsb;
+
+	/* Fill present countdown value */
+	msg->data[6] = (uint8_t)(presentCountdownValue & 0x00FF); // LSB
+	msg->data[7] = (uint8_t)((presentCountdownValue & 0xFF00) >> 8); // MSB
+
+	msg->data_len = 8;
+	msg->completion_code = CC_SUCCESS;
+
+	return;
+}
+
 void IPMI_APP_handler(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
@@ -297,6 +422,12 @@ void IPMI_APP_handler(ipmi_msg *msg)
 		break;
 	case CMD_APP_GET_CAHNNEL_INFO:
 		APP_GET_CAHNNEL_INFO(msg);
+		break;
+	case CMD_APP_SET_WATCHDOG_TIMER:
+		APP_SET_WATCHDOG_TIMER(msg);
+		break;
+	case CMD_APP_GET_WATCHDOG_TIMER:
+		APP_GET_WATCHDOG_TIMER(msg);
 		break;
 	default:
 		LOG_ERR("Invalid APP msg netfn: %x, cmd: %x", msg->netfn, msg->cmd);

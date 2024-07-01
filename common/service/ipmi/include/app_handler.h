@@ -25,6 +25,9 @@
 #endif
 
 #define GET_TEST_RESULT 0
+#define DEBUG_IPMI_APP 0
+#define FRB2_WDT_DELAY_MS (10 * 1000) // 10s
+#define WDT_STATUS_BIT 6
 
 typedef struct SELF_TEST_RESULT_STRUCT {
 	uint8_t status;
