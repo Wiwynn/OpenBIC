@@ -123,6 +123,7 @@ bool pre_vr_read(sensor_cfg *cfg, void *args)
 
 bool post_amd_tsi_read(sensor_cfg *cfg, void *args, int *const reading)
 {
+	uint8_t apml_bus = apml_get_bus();
 	CHECK_NULL_ARG_WITH_RETURN(cfg, false);
 	ARG_UNUSED(args);
 
@@ -141,7 +142,7 @@ bool post_amd_tsi_read(sensor_cfg *cfg, void *args, int *const reading)
 	}
 
 	uint8_t tsi_status = 0;
-	if (apml_read_byte(I2C_BUS14, SB_TSI_ADDR, SBTSI_STATUS, &tsi_status)) {
+	if (apml_read_byte(apml_bus, SB_TSI_ADDR, SBTSI_STATUS, &tsi_status)) {
 		LOG_ERR("Failed to read TSI status");
 		return true;
 	}
