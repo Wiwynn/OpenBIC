@@ -71,6 +71,11 @@ uint8_t plat_pldm_get_http_boot_data(uint8_t *httpBootData, uint16_t *httpBootDa
 			return PLDM_ERROR_INVALID_DATA;
 		}
 
+		if (offset + rbuf->data_length > HTTP_BOOT_DATA_MAXIMUM) {
+			LOG_ERR("Http boot data exceeds buffer size, offset: 0x%x, length: 0x%x",
+				offset, rbuf->data_length);
+			return PLDM_ERROR_INVALID_DATA;
+		}
 		memcpy(httpBootData + offset, rbuf->messages, rbuf->data_length);
 
 		ptr.transfer_flag = rbuf->transfer_flag;

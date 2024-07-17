@@ -304,6 +304,13 @@ void OEM_GET_HTTP_BOOT_DATA(ipmi_msg *msg)
 		return;
 	}
 
+	if (httpBootDataLen == 0) {
+		LOG_WRN("Http boot certification has not been set yet");
+		msg->completion_code = CC_NOT_SUPP_IN_CURR_STATE;
+		free(httpBootData);
+		return;
+	}
+
 	uint16_t offset = (uint16_t)(msg->data[1] << 8) | msg->data[0];
 	uint16_t length = (uint16_t)msg->data[2];
 
