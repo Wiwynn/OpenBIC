@@ -109,20 +109,20 @@ void ISR_POST_COMPLETE()
 {
 	set_post_status(FM_BIOS_POST_CMPLT_BIC_N);
 
-	pal_check_sbrmi_command_code_length();
+	// pal_check_sbrmi_command_code_length();
 
-	if (get_post_status()) {
-		set_tsi_threshold();
-		disable_mailbox_completion_alert();
-		enable_alert_signal();
-		read_cpuid();
-		//todo : add sel to bmc for assert
-		hw_event_register[12]++;
-	} else {
-		if (get_DC_status()) { // Host is reset
-			k_work_submit(&switch_i3c_dimm_work);
-		}
-	}
+	// if (get_post_status()) {
+	// 	set_tsi_threshold();
+	// 	disable_mailbox_completion_alert();
+	// 	enable_alert_signal();
+	// 	read_cpuid();
+	// 	//todo : add sel to bmc for assert
+	// 	hw_event_register[12]++;
+	// } else {
+	// 	if (get_DC_status()) { // Host is reset
+	// 		k_work_submit(&switch_i3c_dimm_work);
+	// 	}
+	// }
 }
 
 void ISR_BMC_READY()

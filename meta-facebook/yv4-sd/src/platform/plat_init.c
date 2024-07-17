@@ -108,14 +108,14 @@ void pal_set_sys_status()
 	set_post_status(FM_BIOS_POST_CMPLT_BIC_N);
 	sync_bmc_ready_pin();
 	reset_usb_hub();
-	apml_init();
+	// apml_init();
 
-	if (get_post_status()) {
-		apml_recovery();
-		set_tsi_threshold();
-		disable_mailbox_completion_alert();
-		enable_alert_signal();
-		read_cpuid();
-	}
+	// if (get_post_status()) {
+	// 	apml_recovery();
+	// 	set_tsi_threshold();
+	// 	disable_mailbox_completion_alert();
+	// 	enable_alert_signal();
+	// 	read_cpuid();
+	// }
 }
 
