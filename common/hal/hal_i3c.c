@@ -361,10 +361,25 @@ int i3c_set_pid(I3C_MSG *msg, uint16_t slot_pid)
 	return true;
 }
 
+void i3c_rst_cb_test(const struct device *dev)
+{
+	uint16_t slot_pid = 0;
+	pal_get_slot_pid(&slot_pid);
+	int ret =  i3c_set_pid_extra_info(dev, slot_pid);
+	if (ret != 0) {
+		LOG_ERR("Failed to set pid 0x%d to bus, ret: %d", slot_pid, ret);
+	}
+	ret = i3c_slave_hj_req(dev);
+	if (ret != 0) {
+		LOG_ERR("Failed to sends Hot-join request,ret: %d", ret);
+	}
+}
+
 void util_init_i3c(void)
 {
 #ifdef DEV_I3C_0
 	dev_i3c[0] = device_get_binding("I3C_0");
+	i3c_hook_rst_cb(dev_i3c[0], i3c_rst_cb_test);
 #endif
 #ifdef DEV_I3C_1
 	dev_i3c[1] = device_get_binding("I3C_1");
