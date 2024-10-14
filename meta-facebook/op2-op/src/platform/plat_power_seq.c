@@ -27,6 +27,7 @@
 #include "plat_isr.h"
 #include "plat_sensor_table.h"
 #include "plat_power_seq.h"
+#include "plat_util.h"
 #include <logging/log.h>
 
 LOG_MODULE_REGISTER(power_sequence);
@@ -833,9 +834,11 @@ bool power_on_handler(uint8_t initial_stage)
 			if (board_revision != EVT_STAGE && card_type == CARD_TYPE_OPB) {
 				control_power_stage(ENABLE_POWER_MODE, OPB_BIC_MAIN_PWR_EN_R);
 			}
+			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0x00);
 			break;
 		case BOARD_POWER_ON_STAGE1:
 			control_power_stage(ENABLE_POWER_MODE, OPA_EN_P0V9_VR);
+			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0x01);
 			break;
 		case BOARD_POWER_ON_STAGE2:
 			control_power_stage(ENABLE_POWER_MODE, OPA_PWRGD_EXP_PWR);
@@ -879,6 +882,7 @@ bool power_on_handler(uint8_t initial_stage)
 			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_01) != 0) {
 				LOG_ERR("FM_EXP_MAIN_PWR_EN is not enabled!");
 				check_power_ret = -1;
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xEE, 0x00);
 				break;
 			}
 			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_02) != 0) {
@@ -888,12 +892,14 @@ bool power_on_handler(uint8_t initial_stage)
 				}
 				LOG_ERR("PWRGD_P12V_MAIN is not enabled!");
 				check_power_ret = -1;
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xEE, 0x01);
 				break;
 			}
 			if (card_type == CARD_TYPE_OPA) {
 				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_03) != 0) {
 					LOG_ERR("OPA_PWRGD_P1V8_VR is not enabled!");
 					check_power_ret = -1;
+					send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xEE, 0x02);
 					break;
 				}
 			}
@@ -1147,6 +1153,7 @@ void control_power_on_sequence(void *initial_stage, void *arvg0, void *arvg1)
 		LOG_INF("Power on success");
 	} else {
 		LOG_ERR("Power on fail");
+		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x00);
 	}
 }
 
