@@ -343,6 +343,7 @@ void ISR_DBP_PRSNT()
 {
 	/* HDT_PRSENT_N --> Event trigger and save log when signal falling and also
     check RST_RSMRST_BMC_N / normal power. */
+	static bool is_dbp_prsnt_assert = false;
 	if ((gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) && (get_DC_status())) {
 		add_sel_info *event_item = find_event_work_items(FM_DBP_PRESENT_N);
 		if (event_item == NULL) {
@@ -351,16 +352,22 @@ void ISR_DBP_PRSNT()
 			return;
 		}
 
-		if ((gpio_get(FM_DBP_PRESENT_N) == GPIO_HIGH)) {
+		if ((gpio_get(FM_DBP_PRESENT_N) == GPIO_HIGH) &&
+		    (is_dbp_prsnt_assert == true)) {
 			LOG_INF("ISR_DBP_PRSNT deassert");
+			is_dbp_prsnt_assert = false;
 			event_item->assert_type = EVENT_DEASSERTED;
-		} else {
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+		} else if ((gpio_get(FM_DBP_PRESENT_N) == GPIO_LOW) &&
+		    (is_dbp_prsnt_assert == false)) {
 			LOG_INF("ISR_DBP_PRSNT assert");
 			hw_event_register[1]++;
+			is_dbp_prsnt_assert = true;
 			event_item->assert_type = EVENT_ASSERTED;
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
 		}
 
-		k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+		
 	}
 }
 
@@ -448,6 +455,7 @@ void ISR_SYS_THROTTLE()
 
 void ISR_HSC_OC()
 {
+	static bool is_hsc_assert = false;
 	if (gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) {
 		add_sel_info *event_item = find_event_work_items(FM_HSC_TIMER_ALT_N);
 		if (event_item == NULL) {
@@ -456,16 +464,22 @@ void ISR_HSC_OC()
 			return;
 		}
 
-		if (gpio_get(FM_HSC_TIMER_ALT_N) == GPIO_HIGH) {
+		if ((gpio_get(FM_HSC_TIMER_ALT_N) == GPIO_HIGH)&&
+		    (is_hsc_assert == true)) {
 			LOG_INF("ISR_HSC_OC deassert");
+			is_hsc_assert = false;
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);			
 			event_item->assert_type = EVENT_DEASSERTED;
-		} else {
+		} else if ((gpio_get(FM_HSC_TIMER_ALT_N) == GPIO_LOW) &&
+			   (is_hsc_assert == false)) {
 			LOG_INF("ISR_HSC_OC assert");
 			hw_event_register[5]++;
+			is_hsc_assert = true;
 			event_item->assert_type = EVENT_ASSERTED;
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
 		}
 
-		k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+		
 	}
 }
 
@@ -632,6 +646,7 @@ void ISR_PVDD11_S3_PMALERT()
 
 void ISR_UV_DETECT()
 {
+	static bool is_uv_assert = false;
 	if (gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) {
 		add_sel_info *event_item = find_event_work_items(IRQ_UV_DETECT_N);
 		if (event_item == NULL) {
@@ -640,16 +655,22 @@ void ISR_UV_DETECT()
 			return;
 		}
 
-		if (gpio_get(IRQ_UV_DETECT_N) == GPIO_HIGH) {
+		if ((gpio_get(IRQ_UV_DETECT_N) == GPIO_HIGH) &&
+			(is_uv_assert == true)) {
 			LOG_INF("ISR_UV_DETECT deassert");
+			is_uv_assert = false;
 			event_item->assert_type = EVENT_DEASSERTED;
-		} else {
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+		} else if ((gpio_get(IRQ_UV_DETECT_N) == GPIO_LOW) &&
+			   (is_uv_assert == false)) {
 			LOG_INF("ISR_UV_DETECT assert");
 			hw_event_register[9]++;
+			is_uv_assert = true;
 			event_item->assert_type = EVENT_ASSERTED;
+			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
 		}
 
-		k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+		
 	}
 }
 
