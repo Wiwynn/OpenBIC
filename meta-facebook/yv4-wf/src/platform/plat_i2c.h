@@ -35,4 +35,8 @@ enum name {
 	I2C_BUS_MAX_NUM,
 };
 
+#define CLK_BUFFER_BUS I2C_BUS6
+#define CLK_BUFFER_ADDR 0x6B
+#define PLL_OPERATING_OFFSET 0x8
+
 #endif

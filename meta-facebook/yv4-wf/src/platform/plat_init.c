@@ -24,6 +24,7 @@
 #include "plat_isr.h"
 #include "plat_mctp.h"
 #include "plat_i2c_target.h"
+#include "plat_i2c.h"
 #include "libutil.h"
 #include "plat_class.h"
 
@@ -77,6 +78,17 @@ void pal_pre_init()
 		}
 	}
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
+
+	// Set clock buffer to bypass mode
+	uint8_t retry = 3;
+	I2C_MSG msg = { 0 };
+	msg.bus = CLK_BUFFER_BUS;
+	msg.target_addr = CLK_BUFFER_ADDR;
+	msg.tx_len = 3;
+	msg.data[0] = PLL_OPERATING_OFFSET;
+	msg.data[1] = 0x8;
+	msg.data[2] = 0x2E;
+	i2c_master_write(&msg, retry);
 }
 
 void pal_post_init()
