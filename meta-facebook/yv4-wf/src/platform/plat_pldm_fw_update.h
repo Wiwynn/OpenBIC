@@ -27,6 +27,6 @@
 
 void load_pldmupdate_comp_config(void);
 bool plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf);
-void plat_set_cxl_fw_version();
+void plat_set_cxl_fw_version(uint8_t cxl_id);
 
 #endif /* _PLAT_FWUPDATE_H_ */
