@@ -24,7 +24,7 @@
 #include "i2c-mux-tca9548.h"
 #include "libutil.h"
 #include "hal_peci.h"
-
+#include "plat_pldm_fw_update.h"
 #include "plat_hook.h"
 #include "plat_sensor_table.h"
 #include "plat_gpio.h"
@@ -209,7 +209,9 @@ bool post_adc128d818_read(sensor_cfg *cfg, void *args, int *reading)
 
 bool pre_cxl_temp_read(sensor_cfg *cfg, void *args)
 {
+	ARG_UNUSED(args);
+
 	// Get CXL version and cache to avoid causes BMC ask timeout
-	plat_set_cxl_fw_version();
+	plat_set_cxl_fw_version(cfg->port);
 	return true;
 }
