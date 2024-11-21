@@ -516,3 +516,57 @@ static uint8_t pldm_cxl_update(void *fw_update_param)
 
 	return 0;
 }
+
+void plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf)
+{
+	if (k_mutex_lock(&cxl_version_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
+		return;
+	}
+
+	uint8_t cxl_id = 0;
+
+	switch (cxl_eid) {
+	case (plat_eid + 2):
+		cxl_id = CXL_ID_1;
+		break;
+	case (plat_eid + 3):
+		cxl_id = CXL_ID_2;
+		break;
+	default:
+		k_mutex_unlock(&cxl_version_mutex);
+		return;
+	}
+
+	memcpy(read_buf, &cxl_version[cxl_id], GET_FW_INFO_REQ_PL_LEN);
+
+	k_mutex_unlock(&cxl_version_mutex);
+}
+
+void plat_set_cxl_fw_version()
+{
+	if (k_mutex_lock(&cxl_version_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
+		return;
+	}
+
+	int i = 0;
+	mctp *mctp_inst = NULL;
+	mctp_ext_params ext_params = { 0 };
+	uint8_t read_len = 0;
+
+	for (i = 0; i < MAX_CXL_ID; i++) {
+		if (get_mctp_info(plat_get_cxl_eid(i), &mctp_inst, &ext_params) < 0) {
+			memset(&cxl_version[i], 0, sizeof(cxl_version[i]));
+			continue;
+		}
+
+		if (!cci_get_chip_fw_version(mctp_inst, ext_params, &cxl_version[i], &read_len)) {
+			memset(&cxl_version[i], 0, sizeof(cxl_version[i]));
+			continue;
+		}
+	}
+
+	LOG_HEXDUMP_INF(cxl_version[0], read_len, "CXL1 version");
+	LOG_HEXDUMP_INF(cxl_version[1], read_len, "CXL2 version");
+
+	k_mutex_unlock(&cxl_version_mutex);
+}

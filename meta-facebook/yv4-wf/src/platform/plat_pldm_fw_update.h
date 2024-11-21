@@ -23,6 +23,10 @@
 
 #define INF_CRC_PREFIX "Infineon "
 
+#define CXL_VER_MUTEX_WAITING_TIME_MS 100
+
 void load_pldmupdate_comp_config(void);
+void plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf);
+void plat_set_cxl_fw_version();
 
 #endif /* _PLAT_FWUPDATE_H_ */

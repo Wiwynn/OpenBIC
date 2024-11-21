@@ -206,3 +206,10 @@ bool post_adc128d818_read(sensor_cfg *cfg, void *args, int *reading)
 
 	return true;
 }
+
+bool pre_cxl_temp_read(sensor_cfg *cfg, void *args)
+{
+	// Get CXL version and cache to avoid causes BMC ask timeout
+	plat_set_cxl_fw_version();
+	return true;
+}
