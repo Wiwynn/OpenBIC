@@ -20,6 +20,7 @@
 #include <logging/log.h>
 #include "libutil.h"
 #include "pldm.h"
+#include "cci.h"
 #include "pldm_firmware_update.h"
 #include "plat_pldm_fw_update.h"
 #include "plat_i2c.h"
@@ -27,6 +28,7 @@
 #include "plat_isr.h"
 #include "plat_gpio.h"
 #include "plat_power_seq.h"
+#include "plat_mctp.h"
 #include "power_status.h"
 #include "mctp_ctrl.h"
 #include "xdpe12284c.h"
@@ -36,6 +38,8 @@
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
+static K_MUTEX_DEFINE(cxl_version_mutex);
+
 static bool plat_pldm_vr_i2c_info_get(int comp_identifier, uint8_t *bus, uint8_t *addr);
 static uint8_t plat_pldm_pre_vr_update(void *fw_update_param);
 static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
@@ -43,6 +47,8 @@ static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 static uint8_t plat_pldm_pre_cxl_update(void *fw_update_param);
 static uint8_t plat_pldm_post_cxl_update(void *fw_update_param);
 static uint8_t pldm_cxl_update(void *fw_update_param);
+
+uint8_t cxl_version[MAX_CXL_ID][GET_FW_INFO_REQ_PL_LEN];
 
 enum FIRMWARE_COMPONENT {
 	WF_COMPNT_BIC,
@@ -517,29 +523,30 @@ static uint8_t pldm_cxl_update(void *fw_update_param)
 	return 0;
 }
 
-void plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf)
+bool plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf)
 {
 	if (k_mutex_lock(&cxl_version_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
 		return;
 	}
 
 	uint8_t cxl_id = 0;
+	uint8_t cxl1_eid = plat_get_eid() + 2;
+	uint8_t cxl2_eid = plat_get_eid() + 3;
 
-	switch (cxl_eid) {
-	case (plat_eid + 2):
+	if (cxl_eid == cxl1_eid) {
 		cxl_id = CXL_ID_1;
-		break;
-	case (plat_eid + 3):
+	} else if (cxl_eid ==cxl2_eid) {
 		cxl_id = CXL_ID_2;
-		break;
-	default:
+	} else {
 		k_mutex_unlock(&cxl_version_mutex);
-		return;
+		return false;
 	}
 
 	memcpy(read_buf, &cxl_version[cxl_id], GET_FW_INFO_REQ_PL_LEN);
 
 	k_mutex_unlock(&cxl_version_mutex);
+
+	return true;
 }
 
 void plat_set_cxl_fw_version()
@@ -553,7 +560,7 @@ void plat_set_cxl_fw_version()
 	mctp_ext_params ext_params = { 0 };
 	uint8_t read_len = 0;
 
-	for (i = 0; i < MAX_CXL_ID; i++) {
+	for(i = 0; i < MAX_CXL_ID; i++) {
 		if (get_mctp_info(plat_get_cxl_eid(i), &mctp_inst, &ext_params) < 0) {
 			memset(&cxl_version[i], 0, sizeof(cxl_version[i]));
 			continue;
