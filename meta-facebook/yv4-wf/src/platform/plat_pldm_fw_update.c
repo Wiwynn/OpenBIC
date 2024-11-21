@@ -21,6 +21,7 @@
 #include "libutil.h"
 #include "pldm.h"
 #include "cci.h"
+#include "vistara.h"
 #include "pldm_firmware_update.h"
 #include "plat_pldm_fw_update.h"
 #include "plat_i2c.h"
@@ -526,7 +527,7 @@ static uint8_t pldm_cxl_update(void *fw_update_param)
 bool plat_get_cxl_fw_version(uint8_t cxl_eid, uint8_t *read_buf)
 {
 	if (k_mutex_lock(&cxl_version_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
-		return;
+		return false;
 	}
 
 	uint8_t cxl_id = 0;
@@ -566,7 +567,7 @@ void plat_set_cxl_fw_version()
 			continue;
 		}
 
-		if (!cci_get_chip_fw_version(mctp_inst, ext_params, &cxl_version[i], &read_len)) {
+		if (!cci_get_chip_fw_version(mctp_inst, ext_params, &cxl_version[i][0], &read_len)) {
 			memset(&cxl_version[i], 0, sizeof(cxl_version[i]));
 			continue;
 		}
