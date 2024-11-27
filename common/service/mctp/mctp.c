@@ -53,6 +53,12 @@ __weak int pal_get_mctp_interval_ms(mctp *mctp_inst)
 	return 0;
 }
 
+__weak bool pal_is_resp_directly_from_BIC(mctp *mctp_inst, uint8_t *data_buf)
+{
+
+	return false;
+}
+
 /* set thread name */
 static uint8_t set_thread_name(mctp *mctp_inst)
 {
@@ -248,6 +254,13 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		ext_params.ep = hdr->src_ep;
 
 		if ((hdr->dest_ep != mctp_inst->endpoint) && (hdr->dest_ep != MCTP_NULL_EID)) {
+			// Avoid BMC request timeout when ask vistara CXL
+			// BIC response to BMC directly
+			if (pal_is_resp_directly_from_BIC(mctp_inst, read_buf)) {
+				pal_bic_resp_directly_handler(mctp_inst, read_buf, read_len, ext_params);
+				continue;
+			}
+
 			/* try to bridge this packet */
 			ret = bridge_msg(mctp_inst, read_buf, read_len);
 			if (ret == MCTP_ERROR)

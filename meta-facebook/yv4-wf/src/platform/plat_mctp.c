@@ -197,6 +197,7 @@ static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_
 {
 	CHECK_NULL_ARG_WITH_RETURN(mctp_p, MCTP_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+
 	/* first byte is message type */
 	uint8_t msg_type = (buf[0] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
 
@@ -446,4 +447,87 @@ int pal_get_mctp_interval_ms(mctp *mctp_inst)
 	}
 
 	return 0;
+}
+
+bool pal_is_resp_directly_from_BIC(mctp *mctp_inst, uint8_t *data_buf)
+{
+	uint8_t msg_type = (data_buf[4] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
+
+	// If the request is from BMC to CXL
+	if (mctp_inst->medium_type == MCTP_MEDIUM_TYPE_SMBUS) {
+		mctp_smbus_conf *smbus_conf = (mctp_smbus_conf *)&mctp_inst->medium_conf;
+		if ((smbus_conf->bus == I2C_BUS_CXL1) || (smbus_conf->bus == I2C_BUS_CXL2)) {
+
+			// If the command is "Get EID" , BIC response it directly.
+			if ((msg_type == MCTP_MSG_TYPE_CTRL) && (data_buf[6] == MCTP_CTRL_CMD_GET_ENDPOINT_ID)) {
+				LOG_INF("---Get CXL EID");
+				return true;
+			// If the command is "Get CXL version", BIC response it directly.
+			} else if ((msg_type == MCTP_MSG_TYPE_CCI) && (data_buf[6] == 0x02) && (data_buf[7] == 0x00)) {
+				LOG_INF("---Get CXL version");
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+uint8_t pal_bic_resp_directly_handler(mctp *mctp_inst, uint8_t *buf, uint32_t len,
+					 mctp_ext_params ext_params)
+{
+	CHECK_NULL_ARG_WITH_RETURN(mctp_inst, MCTP_ERROR);
+	CHECK_NULL_ARG_WITH_RETURN(buf, MCTP_ERROR);
+
+	if (!len)
+		return MCTP_ERROR;
+	LOG_HEXDUMP_INF(buf, len, "pal_bic_resp_directly_handler get");
+
+	uint8_t cxl_id = 0;
+	uint8_t msg_type = (buf[4] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
+	uint8_t resp_buf[MCTP_BASE_LINE_UNIT] = { 0 };
+	uint8_t resp_len = 1;
+
+	if (mctp_inst->medium_type == MCTP_MEDIUM_TYPE_SMBUS) {
+		mctp_smbus_conf *smbus_conf = (mctp_smbus_conf *)&mctp_inst->medium_conf;
+		if (smbus_conf->bus == I2C_BUS_CXL1) {
+			cxl_id = CXL_ID_1;
+		} else if (smbus_conf->bus == I2C_BUS_CXL2) {
+			cxl_id = CXL_ID_2;
+		} else {
+			return MCTP_ERROR;
+		}
+	}
+
+	switch (msg_type) {
+	case MCTP_MSG_TYPE_CTRL: {
+		mctp_ctrl_hdr *hdr = (mctp_ctrl_hdr *) (buf + 4);
+
+		if (hdr->cmd == MCTP_CTRL_CMD_GET_ENDPOINT_ID) {
+			hdr->rq = MCTP_RESPONSE;
+			memcpy(resp_buf, hdr, sizeof(*hdr));
+			struct _get_eid_resp *p = (struct _get_eid_resp *) (resp_buf + sizeof(*hdr));
+
+			p->eid = plat_get_cxl_eid(cxl_id);
+			p->eid_type = STATIC_EID;
+			p->endpoint_type = BRIDGE;
+			/* Not support fairness arbitration */
+			p->medium_specific_info = 0x00;
+			p->completion_code = MCTP_CTRL_CC_SUCCESS;
+			resp_len = sizeof(*hdr) + sizeof(*p);
+
+			return mctp_bridge_msg(mctp_inst, resp_buf, resp_len, ext_params);
+		}
+		break;
+		}
+
+	//case MCTP_MSG_TYPE_CCI:
+	//	mctp_cci_cmd_handler(mctp_p, buf, len, ext_params);
+	//	break;
+
+	default:
+		LOG_WRN("Abnromal message type 0x%x", msg_type);
+		break;
+	}
+	return MCTP_ERROR;
 }
