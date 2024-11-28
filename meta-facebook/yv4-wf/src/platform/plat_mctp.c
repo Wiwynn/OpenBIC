@@ -481,7 +481,8 @@ uint8_t pal_bic_resp_directly_handler(mctp *mctp_inst, uint8_t *buf, uint32_t le
 
 	if (!len)
 		return MCTP_ERROR;
-	LOG_HEXDUMP_INF(buf, len, "pal_bic_resp_directly_handler get");
+
+	LOG_HEXDUMP_INF(buf, len, "===== pal_bic_resp_directly_handler get");
 
 	uint8_t cxl_id = 0;
 	uint8_t msg_type = (buf[4] & MCTP_MSG_TYPE_MASK) >> MCTP_MSG_TYPE_SHIFT;
@@ -499,14 +500,25 @@ uint8_t pal_bic_resp_directly_handler(mctp *mctp_inst, uint8_t *buf, uint32_t le
 		}
 	}
 
+	if (!mctp_inst->ep_resolve)
+		return MCTP_ERROR;
+
+	mctp *target_mctp = NULL;
+	mctp_ext_params target_ext_params;
+	memset(&target_ext_params, 0, sizeof(target_ext_params));
+
+	mctp_hdr *hdr = (mctp_hdr *)buf;
+	uint8_t ret =
+		mctp_inst->ep_resolve(hdr->dest_ep, (void **)&target_mctp, &target_ext_params);
+
 	switch (msg_type) {
 	case MCTP_MSG_TYPE_CTRL: {
-		mctp_ctrl_hdr *hdr = (mctp_ctrl_hdr *) (buf + 4);
+		mctp_ctrl_hdr *ctrl_hdr = (mctp_ctrl_hdr *) (buf + 4);
 
-		if (hdr->cmd == MCTP_CTRL_CMD_GET_ENDPOINT_ID) {
-			hdr->rq = MCTP_RESPONSE;
-			memcpy(resp_buf, hdr, sizeof(*hdr));
-			struct _get_eid_resp *p = (struct _get_eid_resp *) (resp_buf + sizeof(*hdr));
+		if (ctrl_hdr->cmd == MCTP_CTRL_CMD_GET_ENDPOINT_ID) {
+			ctrl_hdr->rq = MCTP_RESPONSE;
+			memcpy(resp_buf, ctrl_hdr, sizeof(*ctrl_hdr));
+			struct _get_eid_resp *p = (struct _get_eid_resp *) (resp_buf + sizeof(*ctrl_hdr));
 
 			p->eid = plat_get_cxl_eid(cxl_id);
 			p->eid_type = STATIC_EID;
@@ -514,9 +526,9 @@ uint8_t pal_bic_resp_directly_handler(mctp *mctp_inst, uint8_t *buf, uint32_t le
 			/* Not support fairness arbitration */
 			p->medium_specific_info = 0x00;
 			p->completion_code = MCTP_CTRL_CC_SUCCESS;
-			resp_len = sizeof(*hdr) + sizeof(*p);
+			resp_len = sizeof(*ctrl_hdr) + sizeof(*p);
 
-			return mctp_bridge_msg(mctp_inst, resp_buf, resp_len, ext_params);
+			return mctp_bridge_msg(target_mctp, resp_buf, resp_len, target_ext_params);
 		}
 		break;
 		}
