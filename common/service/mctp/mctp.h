@@ -273,8 +273,8 @@ int pal_find_bus_in_mctp_port(mctp_port *p);
 mctp *pal_find_mctp_by_bus(uint8_t bus);
 mctp_port *pal_find_mctp_port_by_channel_target(uint8_t target);
 
-bool pal_is_need_mctp_interval(mctp *mctp_inst);
-int pal_get_mctp_interval_ms(mctp *mctp_inst);
+bool pal_is_need_mctp_interval(mctp *mctp_inst, uint8_t dest_ep);
+int pal_get_mctp_interval_ms(uint8_t dest_ep);
 bool pal_is_resp_directly_from_BIC(mctp *mctp_inst, uint8_t *data_buf);
 uint8_t pal_bic_resp_directly_handler(mctp *mctp_inst, uint8_t *buf, uint32_t len,
 					 mctp_ext_params ext_params);

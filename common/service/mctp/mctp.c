@@ -43,12 +43,12 @@ typedef struct __attribute__((packed)) {
 	};
 } mctp_hdr;
 
-__weak bool pal_is_need_mctp_interval(mctp *mctp_inst)
+__weak bool pal_is_need_mctp_interval(mctp *mctp_inst, uint8_t dest_ep)
 {
 	return false;
 }
 
-__weak int pal_get_mctp_interval_ms(mctp *mctp_inst)
+__weak int pal_get_mctp_interval_ms(uint8_t dest_ep)
 {
 	return 0;
 }
@@ -238,7 +238,11 @@ static void mctp_rx_task(void *arg, void *dummy0, void *dummy1)
 		if (!read_len)
 			continue;
 
-		LOG_HEXDUMP_DBG(read_buf, read_len, "mctp receive data");
+		if ((read_buf[2] == 0x08) || (read_buf[1] == 0x08)) {
+			if (((read_buf[1]-4)%10 == 0) || ((read_buf[1]-5)%10 == 0) || ((read_buf[2]-4)%10 == 0) || ((read_buf[2]-5)%10 == 0)) {
+			LOG_INF("*****%p rx", mctp_inst);
+				LOG_HEXDUMP_INF(read_buf, read_len, "*****rx mctp receive data");
+		}}
 
 		mctp_hdr *hdr = (mctp_hdr *)read_buf;
 		LOG_DBG("dest_ep(0x%x), src_ep(0x%x), flags(0x%x)", hdr->dest_ep, hdr->src_ep,
@@ -346,17 +350,27 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 		LOG_DBG("tx endpoint %x", mctp_msg.ext_params.ep);
 		LOG_HEXDUMP_DBG(mctp_msg.buf, mctp_msg.len, "mctp tx task receive data");
 
+
+		if ((mctp_msg.buf[2] == 0x08) || (mctp_msg.buf[1] == 0x08)) {
+                        if (((mctp_msg.buf[1]-4)%10 == 0) || ((mctp_msg.buf[1]-5)%10 == 0) || ((mctp_msg.buf[2]-4)%10 == 0) || ((mctp_msg.buf[2]-5)%10 == 0)) {
+                		LOG_INF("-----%p tx", mctp_inst);
+				LOG_HEXDUMP_INF(mctp_msg.buf, mctp_msg.len, "-----tx mctp receive data");
+                }}
+
 		/*
 * The bridge meesage already has the mctp transport header, and the bridge
      * message also doesn't need to split packet.
 */
 		if (mctp_msg.is_bridge_packet) {
+			uint8_t dest_ep = mctp_msg.buf[1];
+			LOG_INF("bridge");
 			ret = mctp_inst->write_data(mctp_inst, mctp_msg.buf, mctp_msg.len,
 						    mctp_msg.ext_params);
 			free(mctp_msg.buf);
 			mctp_tx_task_response(mctp_msg.evt_msgq, ret);
-			if (pal_is_need_mctp_interval(mctp_inst)) {
-				k_msleep(pal_get_mctp_interval_ms(mctp_inst));
+			if (pal_is_need_mctp_interval(mctp_inst, dest_ep)) {
+				k_msleep(pal_get_mctp_interval_ms(dest_ep));
+				LOG_INF("-----%p tx bridge sleep", mctp_inst);
 			}
 			continue;
 		}
@@ -365,6 +379,7 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 		uint8_t msg_tag = mctp_inst->msg_tag;
 		uint16_t max_msg_size = mctp_inst->max_msg_size;
 		uint8_t i;
+		uint8_t dest_ep = 0;
 		uint8_t split_pkt_num =
 			(mctp_msg.len / max_msg_size) + ((mctp_msg.len % max_msg_size) ? 1 : 0);
 		LOG_DBG("mctp_msg.len = %d", mctp_msg.len);
@@ -399,6 +414,7 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 						   mctp_msg.ext_params.msg_tag;
 
 			hdr->dest_ep = mctp_msg.ext_params.ep;
+			dest_ep = mctp_msg.ext_params.ep;
 			hdr->src_ep = mctp_inst->endpoint;
 			hdr->hdr_ver = MCTP_HDR_HDR_VER;
 
@@ -420,9 +436,11 @@ static void mctp_tx_task(void *arg, void *dummy0, void *dummy1)
 		mctp_tx_task_response(mctp_msg.evt_msgq,
 				      (i == split_pkt_num) ? MCTP_SUCCESS : MCTP_ERROR);
 
-		if (pal_is_need_mctp_interval(mctp_inst)) {
-			k_msleep(pal_get_mctp_interval_ms(mctp_inst));
-		}
+		if (pal_is_need_mctp_interval(mctp_inst, dest_ep)) {
+                        k_msleep(pal_get_mctp_interval_ms(dest_ep));
+			LOG_INF("-----%p tx sleep", mctp_inst);
+                }
+
 		/* Only request mctp message needs to increase msg_tag */
 		if (mctp_msg.ext_params.tag_owner)
 			mctp_inst->msg_tag++;
