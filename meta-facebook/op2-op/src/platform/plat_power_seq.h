@@ -41,6 +41,7 @@ enum POWER_ON_STAGE {
 	BOARD_POWER_ON_STAGE2,
 	RETIMER_POWER_ON_STAGE0,
 	RETIMER_POWER_ON_STAGE1,
+	RETIMER_POWER_ON_STAGE2,
 	E1S_POWER_ON_STAGE0,
 	E1S_POWER_ON_STAGE1,
 	E1S_POWER_ON_STAGE2,
@@ -69,6 +70,12 @@ enum CHECK_POWER_SEQ_NUM_MAPPING {
 	CHECK_POWER_SEQ_06 = OPA_CLKBUF_RTM_OE_N,
 	CHECK_POWER_SEQ_07 = OPA_RESET_BIC_RTM_N,
 	CHECK_POWER_SEQ_08 = OPA_PERST_BIC_RTM_N,
+};
+
+enum POWER_HANDLER_STATUS {
+	POWER_HANDLER_DONE = 0,
+	POWER_ON_HANDLER,
+	POWER_OFF_HANDLER,
 };
 
 typedef enum {
@@ -114,5 +121,6 @@ bool power_off_handler(uint8_t initial_stage);
 bool notify_cpld_e1s_present(uint8_t index, uint8_t present);
 void abort_cpu_perst_low_thread();
 void cpu_perst_low_thread();
+int get_power_handler_status();
 
 #endif
