@@ -6686,6 +6686,9 @@ void plat_pldm_sensor_change_ssd_dev()
 
 	// T1C system doesn't have E1.S data drive and WF, and only have 10 DIMMs.
 	if (blade_conf == BLADE_CONFIG_T1C) {
+		// Remove FIO temperature for Yv4 immersion
+		plat_pldm_disable_sensor(&plat_pldm_sensor_mb_temp_table[2].pldm_sensor_cfg);
+
 		for (int index = 0;
 		     index < plat_pldm_sensor_get_sensor_count(MB_TEMP_SENSOR_THREAD_ID); index++) {
 			if (plat_pldm_sensor_mb_temp_table[index].pldm_sensor_cfg.port ==

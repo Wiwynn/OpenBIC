@@ -88,21 +88,23 @@ bool pal_get_slot_pid(uint16_t *pid)
 
 bool get_blade_config(uint8_t *blade_config)
 {
-	float voltage = 0.0f;
+	// float voltage = 0.0f;
 
-	if (get_adc_voltage(ADC_CHANNEL_12, &voltage) == false) {
-		*blade_config = BLADE_CONFIG_UNKNOWN;
-		return false;
-	}
+	// if (get_adc_voltage(ADC_CHANNEL_12, &voltage) == false) {
+	// 	*blade_config = BLADE_CONFIG_UNKNOWN;
+	// 	return false;
+	// }
 
-	if (voltage >= 0.0f && voltage <= 1.05f) {
-		*blade_config = BLADE_CONFIG_T1C;
-	} else if (voltage >= 1.2f && voltage <= 1.7f) {
-		*blade_config = BLADE_CONFIG_T1M;
-	} else {
-		*blade_config = BLADE_CONFIG_UNKNOWN;
-		return false;
-	}
+	// if (voltage >= 0.0f && voltage <= 1.05f) {
+	// 	*blade_config = BLADE_CONFIG_T1C;
+	// } else if (voltage >= 1.2f && voltage <= 1.7f) {
+	// 	*blade_config = BLADE_CONFIG_T1M;
+	// } else {
+	// 	*blade_config = BLADE_CONFIG_UNKNOWN;
+	// 	return false;
+	// }
+	// Return T1C for Yv4 immresion
+	*blade_config = BLADE_CONFIG_T1C;
 	return true;
 }
 
