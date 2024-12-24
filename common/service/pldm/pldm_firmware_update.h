@@ -643,6 +643,63 @@ struct pldm_get_downstream_firmware_parameters_resp {
 	uint16_t downstream_device_count;
 } __attribute__((packed));
 
+/** @struct pldm_downstream_device_parameters_entry
+ *
+ *  Structure representing downstream device parameter table entry defined in
+ *  Table 21 - DownstreamDeviceParameterTable in DSP0267_1.1.0
+ *
+ *  Clients should not allocate memory for this struct to decode the response,
+ *  use `pldm_downstream_device_parameter_entry_versions` instead to make sure
+ *  that the active and pending component version strings are copied from the
+ *  message buffer.
+ */
+struct downstream_device_parameter_table {
+	uint16_t downstream_device_index;
+	uint32_t active_comp_comparison_stamp;
+	uint8_t active_comp_ver_str_type;
+	uint8_t active_comp_ver_str_len;
+	/* Append 1 bytes for null termination so that it can be used as a
+	 * Null-terminated string.
+	 */
+	char active_comp_release_date[8 + 1];
+	uint32_t pending_comp_comparison_stamp;
+	uint8_t pending_comp_ver_str_type;
+	uint8_t pending_comp_ver_str_len;
+	/* Append 1 bytes for null termination so that it can be used as a
+	 * Null-terminated string.
+	 */
+	char pending_comp_release_date[8 + 1];
+
+	union {
+		struct {
+			uint8_t automatic : 1;
+			uint8_t self_contained : 1;
+			uint8_t medium_specific_reset : 1;
+			uint8_t system_reboot : 1;
+			uint8_t dc_power_cycle : 1;
+			uint8_t ac_power_cycle : 1;
+			uint8_t supports_activate_pending_image : 1;
+			/* Bit [15:7] reserved */
+			uint8_t : 1;
+			uint8_t : 8;
+		};
+		uint16_t comp_activation_methods;
+	};
+	union {
+		struct {
+			uint8_t downstream_device_apply_state_func : 1;
+			uint8_t downstream_device_is_updateable : 1;
+			uint8_t comp_downgrade_capability : 1;
+			/* Bit [31:3] reserved */
+			uint16_t : 13;
+			uint16_t : 16;
+		};
+		uint32_t capabilities_during_update;
+	};
+	const void *active_comp_ver_str;
+	const void *pending_comp_ver_str;
+};
+
 uint8_t pldm_fw_update_handler_query(uint8_t code, void **ret_fn);
 uint16_t pldm_fw_update_read(void *mctp_p, enum pldm_firmware_update_commands cmd, uint8_t *req,
 			     uint16_t req_len, uint8_t *rbuf, uint16_t rbuf_len, void *ext_params);
