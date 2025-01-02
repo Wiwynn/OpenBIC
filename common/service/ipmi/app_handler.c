@@ -319,6 +319,7 @@ void init_frb2_wdt_thread(int16_t initCountdownValue)
 
 void abort_frb2_wdt_thread()
 {
+	LOG_INF("void abort_frb2_wdt_thread!");
 	if (frb2_wdt_tid != NULL && strcmp(k_thread_state_str(frb2_wdt_tid), "dead") != 0) {
 		k_thread_abort(frb2_wdt_tid);
 		frb2_wdt_tid = NULL;

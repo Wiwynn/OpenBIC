@@ -302,6 +302,10 @@ void ISR_POST_COMPLETE()
 		}
 
 		k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+
+		// WA to stop FRB2 timer after post-completed
+		k_work_schedule_for_queue(&plat_work_q, &ABORT_FRB2_WDT_THREAD,
+						K_SECONDS(PROC_FAIL_START_DELAY_SECOND));
 	} else {
 		if (get_DC_status()) { // Host is reset
 			k_work_submit(&switch_i3c_dimm_work);
