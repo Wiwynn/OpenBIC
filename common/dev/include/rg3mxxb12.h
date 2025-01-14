@@ -87,5 +87,7 @@ bool rg3mxxb12_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt);
 bool rg3mxxb12_set_slave_port(uint8_t bus, uint8_t addr, uint8_t setting);
 bool rg3mxxb12_get_device_info(uint8_t bus, uint16_t *i3c_hub_type);
 bool rg3mxxb12_get_device_info_i3c(uint8_t bus, uint16_t *i3c_hub_type);
+bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
+				  uint8_t pullup_resistor);
 
 #endif

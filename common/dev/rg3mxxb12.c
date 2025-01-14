@@ -140,6 +140,78 @@ bool rg3mxxb12_get_device_info_i3c(uint8_t bus, uint16_t *i3c_hub_type)
 	return true;
 }
 
+bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
+				  uint8_t pullup_resistor)
+{
+	bool ret = false;
+	uint8_t value;
+	// Unlock protected regsiter
+	if (!rg3mxxb12_protected_register(bus, false)) {
+		return false;
+	}
+
+	// Set Low-Dropout Regulators(LDO) voltage to VIOM and VIOS
+	value = (ldo_volt << VIOM0_OFFSET) | (ldo_volt << VIOM1_OFFSET) |
+		(ldo_volt << VIOS0_OFFSET) | (ldo_volt << VIOS1_OFFSET);
+	if (!rg3mxxb12_register_write(bus, 0x16, 0xFF)) {
+		goto out;
+	}
+
+	// Disable all slave ports
+	if (!rg3mxxb12_register_write(bus, 0x18, 0x00)) {
+		goto out;
+	}
+
+	// Disable the SMBus agent mode for selected slave port
+	if (!rg3mxxb12_register_write(bus, 0x1E, 0x00)) {
+		goto out;
+	}
+
+	// Disable GPIO mode for selected slave port
+	if (!rg3mxxb12_register_write(bus, 0x11, 0x10)) {
+		goto out;
+	}
+
+	// Enable master port OD only mode
+	if (!rg3mxxb12_register_write(bus, 0x15, 0x0)) {
+		goto out;
+	}
+
+	// Clear I3C HUB network traffic protocol setting
+	if (!rg3mxxb12_register_write(bus, 0x19, 0xf0)) {
+		goto out;
+	}
+
+	// Setting pull up resistor for slave ports
+	if (!rg3mxxb12_register_write(bus, 0x52, 0xff)) {
+		goto out;
+	}
+
+	// Enable internal pull up resistor connection for slave ports
+	if (!rg3mxxb12_register_write(bus, 0x17, 0xFF)) {
+		goto out;
+	}
+
+	// Set open drain and push pull compatible mode for selected salve port
+	if (!rg3mxxb12_register_write(bus, 0x12, 0xff)) {
+		goto out;
+	}
+
+	// Enable selected slave port
+	if (!rg3mxxb12_register_write(bus, 0x51, slave_port)) {
+		goto out;
+	}
+
+	ret = true;
+out:
+	// Lock protected register
+	if (!rg3mxxb12_protected_register(bus, true)) {
+		return false;
+	}
+
+	return ret;
+}
+
 bool rg3mxxb12_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 				  uint8_t pullup_resistor)
 {
