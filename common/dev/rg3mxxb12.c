@@ -70,6 +70,8 @@ static bool rg3mxxb12_register_write(uint8_t bus, uint8_t offset, uint8_t value)
 	int ret = -1;
 	I2C_MSG msg = { 0 };
 
+	LOG_INF("Write offset 0x%x val0x%x", offset, value);
+
 	msg.bus = bus;
 	msg.target_addr = RG3MXXB12_DEFAULT_STATIC_ADDRESS;
 	msg.tx_len = 2;
@@ -77,7 +79,7 @@ static bool rg3mxxb12_register_write(uint8_t bus, uint8_t offset, uint8_t value)
 	msg.data[1] = value;
 	ret = i2c_master_write(&msg, RETRY);
 	if (ret != 0) {
-		LOG_ERR("Failed to write rg3mxxb12 register 0x%x, bus-%d", offset, bus);
+		LOG_ERR("Failed to write register 0x%x, bus-%d", offset, bus);
 		return false;
 	}
 
@@ -86,7 +88,7 @@ static bool rg3mxxb12_register_write(uint8_t bus, uint8_t offset, uint8_t value)
 	msg.rx_len = 1;
 	ret = i2c_master_read(&msg, RETRY);
 	if ((ret != 0) || (msg.data[0] != value)) {
-		LOG_ERR("Failed to read rg3mxxb12 register 0x%x after setting,"
+		LOG_ERR("Failed to read register 0x%x after setting,"
 			"bus-%d",
 			offset, bus);
 		return false;
@@ -147,6 +149,7 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 	uint8_t value;
 	// Unlock protected regsiter
 	if (!rg3mxxb12_protected_register(bus, false)) {
+		LOG_INF("Unlock protect failed");
 		return false;
 	}
 
@@ -183,7 +186,7 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 	}
 
 	// Setting pull up resistor for slave ports
-	if (!rg3mxxb12_register_write(bus, 0x52, 0xff)) {
+	if (!rg3mxxb12_register_write(bus, 0x53, 0xff)) {
 		goto out;
 	}
 
@@ -198,7 +201,7 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 	}
 
 	// Enable selected slave port
-	if (!rg3mxxb12_register_write(bus, 0x51, slave_port)) {
+	if (!rg3mxxb12_register_write(bus, 0x51, 0xff)) {
 		goto out;
 	}
 
