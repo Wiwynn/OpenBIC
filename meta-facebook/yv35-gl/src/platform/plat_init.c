@@ -60,8 +60,8 @@ void pal_pre_init()
 {
 	//uint16_t exp_i3c_hub_type = I3C_HUB_TYPE_UNKNOWN;
 	init_platform_config();
-	//init_i3c_hub_type();
-	//init_i3c_hub();
+	init_i3c_hub_type();
+	init_i3c_hub();
 	//exp_i3c_hub_type = get_exp_i3c_hub_type();
 	CARD_STATUS _1ou_status = get_1ou_status();
 	CARD_STATUS _2ou_status = get_2ou_status();
