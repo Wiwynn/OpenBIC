@@ -38,6 +38,8 @@ KB900X_REGISTER_IO kb900x_register_io = {
 	.read = twi_read_register,
 };
 
+uint8_t KB900X_VENDOR_ID[8] = { 0x06, 0x04, 0x00, 0x00, 0x00, 0x6F, 0x1E, 0x36 };
+
 static uint8_t cal_crc8_pec(uint8_t *data, uint8_t len)
 {
 	CHECK_NULL_ARG_WITH_RETURN(data, KB900X_E_INVALID_ARG);

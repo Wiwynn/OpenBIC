@@ -26,6 +26,7 @@
 #include "rg3mxxb12.h"
 #include "p3h284x.h"
 #include "m88rt51632.h"
+#include "kb900x.h"
 #include "plat_util.h"
 #include "libipmi.h"
 
@@ -114,21 +115,32 @@ int check_pcie_retimer_type(void)
 	I2C_MSG msg = { 0 };
 	msg.bus = I2C_BUS4;
 	msg.target_addr = EXPA_RETIMER_ADDR;
+	int retimer_vendor_id = 0;
 
-	if (!pt5161l_get_vendor_id(&msg)) {
-		LOG_ERR("PCIE RETIMER get vendor id fail");
-		return -1;
+	if (pt5161l_get_vendor_id(&msg)) {
+		if (memcmp(msg.data, PT5161L_VENDOR_ID, PT5161L_VENDOR_ID_LENGTH) == 0) {
+			LOG_INF("PCIE RETIMER type: PT5161L");
+			pcie_retimer_type = RETIMER_TYPE_PT5161L;
+			ret = RETIMER_TYPE_PT5161L;
+			return ret;
+		}
 	}
 
-	if (memcmp(msg.data, PT5161L_VENDOR_ID, PT5161L_VENDOR_ID_LENGTH) == 0) {
-		LOG_INF("PCIE RETIMER type: PT5161L");
-		pcie_retimer_type = RETIMER_TYPE_PT5161L;
-		ret = RETIMER_TYPE_PT5161L;
-	} else {
-		LOG_INF("PCIE RETIMER type: M88RT51632");
-		pcie_retimer_type = RETIMER_TYPE_M88RT51632;
-		ret = RETIMER_TYPE_M88RT51632;
+	if (kb900x_get_vendor_id(&msg, &retimer_vendor_id)) {
+		LOG_HEXDUMP_INF(msg.data, KB900X_VENDOR_ID_LENGTH, "=====");
+		LOG_INF("===== 0x%x", retimer_vendor_id);
+
+		if (memcmp(msg.data, KB900X_VENDOR_ID, KB900X_VENDOR_ID_LENGTH) == 0) {
+			LOG_INF("PCIE RETIMER type: KB900X");
+			pcie_retimer_type = RETIMER_TYPE_KB900X;
+			ret = RETIMER_TYPE_KB900X;
+			return ret;
+		}
 	}
+
+	LOG_INF("PCIE RETIMER type: M88RT51632");
+	pcie_retimer_type = RETIMER_TYPE_M88RT51632;
+	ret = RETIMER_TYPE_M88RT51632;
 
 	return ret;
 }
@@ -154,6 +166,14 @@ void cache_pcie_retimer_version(void)
 		break;
 	case RETIMER_TYPE_M88RT51632:
 		if (!m88rt51632_get_fw_version(i2c_msg, &pcie_retimer_version)) {
+			LOG_ERR("PCIE RETIMER get version fail");
+		}
+		break;
+	case RETIMER_TYPE_KB900X:
+		if (kb900x_get_fw_version(i2c_msg, data)) {
+			convert_uint8_t_pointer_to_uint32_t(&pcie_retimer_version, data, 4,
+							    BIG_ENDIAN);
+		} else {
 			LOG_ERR("PCIE RETIMER get version fail");
 		}
 		break;
