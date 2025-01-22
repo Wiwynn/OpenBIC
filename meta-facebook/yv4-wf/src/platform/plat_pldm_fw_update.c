@@ -38,6 +38,9 @@
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
+static struct pldm_downstream_identifier_table *downstream_table = NULL;
+static uint8_t downstream_devices_count = 0;
+
 static bool plat_pldm_vr_i2c_info_get(int comp_identifier, uint8_t *bus, uint8_t *addr);
 static uint8_t plat_pldm_pre_vr_update(void *fw_update_param);
 static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
@@ -46,6 +49,7 @@ static bool plat_get_cxl_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 static uint8_t plat_pldm_pre_cxl_update(void *fw_update_param);
 static uint8_t plat_pldm_post_cxl_update(void *fw_update_param);
 static uint8_t pldm_cxl_update(void *fw_update_param);
+static void query_downstream_identifier_table_and_count();
 
 enum FIRMWARE_COMPONENT {
 	WF_COMPNT_BIC,
@@ -159,6 +163,14 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 		.get_fw_version_fn = plat_get_cxl_fw_version,
 	},
 };
+
+// internal helper function to get downstream identifier
+void query_downstream_identifier_table_and_count()
+{
+	struct pldm_downstream_identifier_table_and_count d = get_downstream_identifier_table();
+	downstream_table = d.downstream_table;
+	downstream_devices_count = d.downstream_devices_count;
+}
 
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len)
@@ -327,6 +339,9 @@ static size_t calculate_descriptors_size(struct pldm_descriptor_string *descript
 static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_index,
 							      uint32_t *next_transaction_index)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	size_t total_size = sizeof(pldm_hdr) + sizeof(struct pldm_query_downstream_identifier_resp);
 	uint32_t i = start_index;
 	while (i < downstream_devices_count) {
@@ -348,6 +363,9 @@ static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_ind
 uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					       uint16_t *resp_len)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);

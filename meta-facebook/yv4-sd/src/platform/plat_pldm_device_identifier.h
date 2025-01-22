@@ -19,8 +19,16 @@
 
 #include "pldm_firmware_update.h"
 
-extern const uint8_t downstream_devices_count;
+struct pldm_downstream_identifier_idx_table {
+	uint16_t idx;
+	struct pldm_downstream_identifier_table table;	
+};
 
-extern struct pldm_downstream_identifier_table downstream_table[];
+struct pldm_downstream_identifier_table_and_count {
+	struct pldm_downstream_identifier_idx_table *downstream_table;
+	uint8_t downstream_devices_count;
+};
+
+struct pldm_downstream_identifier_table_and_count get_downstream_identifier_table();
 
 #endif
