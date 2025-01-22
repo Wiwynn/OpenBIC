@@ -41,6 +41,9 @@
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
+static struct pldm_downstream_identifier_idx_table *downstream_table = NULL;
+static uint8_t downstream_devices_count = 0;
+
 static uint8_t plat_pldm_pre_vr_update(void *fw_update_param);
 static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
 static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
@@ -51,6 +54,7 @@ static uint8_t plat_pldm_pre_retimer_recovery(void *fw_update_param);
 static uint8_t plat_pldm_post_retimer_recovery(void *fw_update_param);
 static uint8_t plat_pldm_pre_bios_update(void *fw_update_param);
 static uint8_t plat_pldm_post_bios_update(void *fw_update_param);
+static void query_downstream_identifier_table_and_count();
 
 enum FIRMWARE_COMPONENT {
 	SD_COMPNT_BIC,
@@ -225,6 +229,14 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 	},
 };
 
+// internal helper function to get downstream identifier
+void query_downstream_identifier_table_and_count()
+{
+	struct pldm_downstream_identifier_table_and_count d = get_downstream_identifier_table();
+	downstream_table = d.downstream_table;
+	downstream_devices_count = d.downstream_devices_count;
+}
+
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len)
 {
@@ -392,12 +404,16 @@ static size_t calculate_descriptors_size(struct pldm_descriptor_string *descript
 static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_index,
 							      uint32_t *next_transaction_index)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	size_t total_size = sizeof(pldm_hdr) + sizeof(struct pldm_query_downstream_identifier_resp);
 	uint32_t i = start_index;
 	while (i < downstream_devices_count) {
-		total_size += sizeof(struct pldm_downstream_device) +
-			      calculate_descriptors_size(downstream_table[i].descriptor,
-							 downstream_table[i].descriptor_count);
+		total_size +=
+			sizeof(struct pldm_downstream_device) +
+			calculate_descriptors_size(downstream_table[i].table.descriptor,
+						   downstream_table[i].table.descriptor_count);
 		if (total_size >= PLDM_MAX_DATA_SIZE) {
 			*next_transaction_index = i;
 			return false;
@@ -413,6 +429,9 @@ static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_ind
 uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					       uint16_t *resp_len)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -468,12 +487,12 @@ uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len,
 	struct pldm_descriptor_string *curr_descriptors_tbl;
 
 	for (uint32_t i = start_index; i < start_index + resp_p->numbwerofdownstreamdevice; i++) {
-		curr_descriptors_tbl = downstream_table[i].descriptor;
-		curr_device->downstreamdeviceindex = i + 1;
-		curr_device->downstreamdescriptorcount = downstream_table[i].descriptor_count;
+		curr_descriptors_tbl = downstream_table[i].table.descriptor;
+		curr_device->downstreamdeviceindex = downstream_table[i].idx; //i + 1;
+		curr_device->downstreamdescriptorcount = downstream_table[i].table.descriptor_count;
 		downstream_devices_length += sizeof(struct pldm_downstream_device);
 		uint8_t *descriptor_ptr = curr_device->downstreamdescriptors;
-		for (uint32_t j = 0; j < downstream_table[i].descriptor_count; j++) {
+		for (uint32_t j = 0; j < downstream_table[i].table.descriptor_count; j++) {
 			rc = fill_descriptor_into_buf(&curr_descriptors_tbl[j], descriptor_ptr,
 						      &curr_descriptor_length,
 						      downstream_devices_length);
