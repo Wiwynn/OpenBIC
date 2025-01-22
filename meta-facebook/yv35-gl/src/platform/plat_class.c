@@ -200,7 +200,7 @@ void init_platform_config()
 	_1ou_status.present = false;
 
 	if (!(class_type & BIT(2))) {
-		if ((class_type & BIT(0)) && (class_type & BIT(1)) && (class_type & BIT(4))) {
+		if ((class_type & BIT(0)) && (class_type & BIT(1))) {
 			float epsilon = 0.001;
 			int count = 0;
 			for (; count < ARRAY_SIZE(_1ou_card_mapping_table); count++) {
