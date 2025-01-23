@@ -44,21 +44,23 @@ IPMB_config pal_IPMB_config_table[] = {
 bool pal_load_ipmb_config(void)
 {
 	CARD_STATUS _1ou_status = get_1ou_status();
-	if (_1ou_status.present) {
+	LOG_INF("1ou_present %d card_type 0x%x", _1ou_status.present, _1ou_status.card_type);
+	//if (_1ou_status.present) {
 		pal_IPMB_config_table[EXP1_IPMB_IDX].enable_status = ENABLE;
-	}
+	//}
 
 	CARD_STATUS _2ou_status = get_2ou_status();
 	if (_2ou_status.present) {
+		LOG_INF("2ou_present %d card_type 0x%x", _2ou_status.present, _2ou_status.card_type);
 		// for reset of expansion board, enable ipmb and set i2c freq to 1Mhz
-		if (_2ou_status.card_type == TYPE_1OU_OLMSTED_POINT) {
+		//if (_2ou_status.card_type == TYPE_1OU_OLMSTED_POINT) {
 			pal_IPMB_config_table[EXP2_IPMB_IDX].enable_status = ENABLE;
 #ifdef CONFIG_I2C_IPMB_SLAVE
 			pal_IPMB_config_table[EXP2_IPMB_IDX].channel = EXP3_IPMB;
 #endif
-		} else {
-			pal_IPMB_config_table[EXP2_IPMB_IDX].enable_status = ENABLE;
-		}
+		//} else {
+		//	pal_IPMB_config_table[EXP2_IPMB_IDX].enable_status = ENABLE;
+		//}
 	}
 
 	memcpy(IPMB_config_table, pal_IPMB_config_table, sizeof(pal_IPMB_config_table));
