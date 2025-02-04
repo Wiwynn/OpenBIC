@@ -121,6 +121,7 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 		msg->data[6] = BIC_FW_platform_2;
 		msg->data_len = 7;
 		msg->completion_code = CC_SUCCESS;
+		LOG_INF("=====%s ", __func__);
 		break;
 	case OL2_COMPNT_RETIMER:
 		if (card_type == CARD_TYPE_OPA) {

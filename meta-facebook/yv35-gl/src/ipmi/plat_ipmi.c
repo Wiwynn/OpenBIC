@@ -391,8 +391,13 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 		} else {
 			memset(bridge_msg, 0, sizeof(ipmi_msg));
 
-			LOG_DBG("bridge targetIf %x, len %d, netfn %x, cmd %x", target_IF,
-				msg->data_len, msg->data[1] >> 2, msg->data[2]);
+			if (target_IF == 5) {
+				if (msg->data[2] == 0xb) {
+					LOG_INF("=====Request bridge targetIf %x, len %d, netfn %x, cmd %x", target_IF,
+						msg->data_len, msg->data[1] >> 2, msg->data[2]);
+					LOG_HEXDUMP_INF(msg->data, msg->data_len, "===== data");
+				}
+			}
 
 			if ((_1ou_status.card_type == TYPE_1OU_OLMSTED_POINT) &&
 			    ((msg->data[0] == EXP2_IPMB) || (msg->data[0] == EXP4_IPMB))) {
@@ -431,6 +436,7 @@ void OEM_1S_MSG_OUT(ipmi_msg *msg)
 				LOG_ERR("OEM_MSG_OUT send IPMB req fail status: %x", status);
 				msg->completion_code = CC_BRIDGE_MSG_ERR;
 			}
+
 			SAFE_FREE(bridge_msg);
 		}
 	}
