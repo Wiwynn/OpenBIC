@@ -171,7 +171,7 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 	}
 
 	// Disable GPIO mode for selected slave port
-	if (!rg3mxxb12_register_write(bus, 0x11, 0x10)) {
+	if (!rg3mxxb12_register_write(bus, 0x11, 0x00)) {
 		goto out;
 	}
 
@@ -191,7 +191,7 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
 	}
 
 	// Enable internal pull up resistor connection for slave ports
-	if (!rg3mxxb12_register_write(bus, 0x17, 0xFF)) {
+	if (!rg3mxxb12_register_write(bus, 0x17, 0x00)) {
 		goto out;
 	}
 
