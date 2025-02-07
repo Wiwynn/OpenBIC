@@ -115,15 +115,18 @@ OPB_E1S_POWER_FAULT_HANDLER(4, P3V3);
 
 void control_power_sequence()
 {
+	send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAA);
 	uint8_t board_revision = get_board_revision();
 
 	if (gpio_get(FM_EXP_MAIN_PWR_EN) == POWER_ON) { // op power on
 		if (!is_all_sequence_done(POWER_ON)) {
+			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAB);
 			abort_power_thread();
 			init_power_on_thread(BOARD_POWER_ON_STAGE0);
 		}
 	} else { // op power off
 		if (board_revision != EVT_STAGE) {
+			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAC);
 			abort_power_thread();
 			init_power_off_thread();
 		}
@@ -177,9 +180,11 @@ void ISR_CPU_PCIE_PERST()
 	uint8_t gpio_num =
 		(card_type == CARD_TYPE_OPA) ? OPA_RST_PCIE_EXP_PERST0_N : OPB_RST_CPLD_PERST1_N;
 	if (gpio_get(gpio_num) == GPIO_HIGH) {
+		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x00);
 		abort_power_thread();
 		init_power_on_thread(RETIMER_POWER_ON_STAGE1);
 	} else {
+		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x11);
 		abort_cpu_perst_low_thread();
 		cpu_perst_low_thread();
 	}
