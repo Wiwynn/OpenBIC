@@ -230,9 +230,13 @@ out:
 	return ret;
 }
 
-bool rg3mxxb12_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt, uint8_t pullup_val)
+bool rg3mxxb12_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt, uint8_t pullup_ohm)
 {
 	bool ret = false;
+
+	uint8_t pullup_val = 0;
+	pullup_val = SETBITS(pullup_val, pullup_ohm, SSPORTS_RESISTOR0_OFFSET);
+	pullup_val = SETBITS(pullup_val, pullup_ohm, SSPORTS_RESISTOR1_OFFSET);
 
 	uint8_t cmd_unprotect[2] = { RG3MXXB12_PROTECTION_REG, 0x69 };
 	uint8_t cmd_protect[2] = { RG3MXXB12_PROTECTION_REG, 0x00 };
@@ -246,7 +250,7 @@ bool rg3mxxb12_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt, uint8_t pu
 		{ RG3MXXB12_SSPORTS_GPIO_ENABLE, 0x0 },
 		{ RG3MXXB12_SLAVE_PORT_ENABLE, 0x0 },
 		{ RG3MXXB12_SSPORTS_PULLUP_SETTING, pullup_val},
-		{ RG3MXXB12_SSPORTS_PULLUP_ENABLE, 0xFF },
+		{ RG3MXXB12_SSPORTS_PULLUP_ENABLE, 0x00 },
 		{ RG3MXXB12_SSPORTS_OD_ONLY, 0x0 },
 		{ RG3MXXB12_SLAVE_PORT_ENABLE, 0xFF },
 		{ RG3MXXB12_SSPORTS_HUB_NETWORK_CONNECTION, 0xFF },
