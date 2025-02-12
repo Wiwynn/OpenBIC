@@ -643,7 +643,6 @@ void cxl2_ready_handler()
 	int ret = 0;
 
 	k_msleep(30000);
-
 	LOG_INF("Start monitor CXL2 ready");
 
 	heartbeat = device_get_binding(CXL2_HEART_BEAT_LABEL);
