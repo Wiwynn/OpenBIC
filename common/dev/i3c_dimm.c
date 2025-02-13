@@ -20,6 +20,7 @@
 #include "intel_dimm.h"
 #include "pmic.h"
 #include "hal_i3c.h"
+#include <logging/log.h>
 
 LOG_MODULE_REGISTER(dev_dimm);
 
@@ -79,6 +80,12 @@ uint8_t i3c_dimm_read(sensor_cfg *cfg, int *reading)
 			sval->integer = -sval->integer;
 			sval->fraction = -sval->fraction;
 		}
+
+		if (sval->integer >= 70) {
+			LOG_ERR("[LOG]: DIMM %d temperature too high! Current temperature: %d.%03d°C\n", 
+					cfg->num, sval->integer, sval->fraction);
+		}
+
 		break;
 	default:
 		return SENSOR_FAIL_TO_ACCESS;
