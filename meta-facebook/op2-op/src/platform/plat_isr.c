@@ -118,18 +118,13 @@ void control_power_sequence()
 {
 	uint8_t board_revision = get_board_revision();
 
-	send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAA);
 	if (gpio_get(FM_EXP_MAIN_PWR_EN) == POWER_ON) { // op power on
-		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAB);
 		if (!is_all_sequence_done(POWER_ON)) {
-			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAC);
 			abort_power_thread();
 			init_power_on_thread(BOARD_POWER_ON_STAGE0);
 		}
 	} else { // op power off
-		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAD);
 		if (board_revision != EVT_STAGE) {
-			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xFF, 0xAE);
 			abort_power_thread();
 			init_power_off_thread();
 		}
@@ -187,13 +182,10 @@ void ISR_CPU_PCIE_PERST()
 		if (power_status == POWER_HANDLER_DONE) {
 			abort_power_thread();
 			init_power_on_thread(RETIMER_POWER_ON_STAGE2);
-			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x00);
 		} else if (power_status == POWER_ON_HANDLER) {
 			is_cpu_pcie_perst_enable = true;
-			send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x01);
 		}
 	} else {
-		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, 0xDD, 0x02);
 		is_cpu_pcie_perst_enable = false;
 		abort_cpu_perst_low_thread();
 		cpu_perst_low_thread();
