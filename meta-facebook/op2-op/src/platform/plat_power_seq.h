@@ -20,11 +20,13 @@
 #include "hal_gpio.h"
 #include "plat_gpio.h"
 
+#define PWR_SEQ_MAX_RETRY 5
 #define MAX_E1S_IDX 5
 #define OPA_MAX_E1S_IDX 3
 #define ALL_E1S 0xFF
 #define POWER_SEQ_CTRL_STACK_SIZE 1000
 #define CHKPWR_DELAY_MSEC 100
+#define CHKPWR_ON_DELAY_MSEC 20
 #define RETIMER_DELAY_MSEC 2000
 #define DEV_RESET_DELAY_USEC 100
 

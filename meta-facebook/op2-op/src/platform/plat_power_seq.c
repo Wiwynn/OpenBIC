@@ -463,69 +463,106 @@ bool e1s_power_on_handler(uint8_t initial_stage, e1s_power_control_gpio *e1s_gpi
 			enable_power_on_handler = false;
 			break;
 		}
-		k_msleep(CHKPWR_DELAY_MSEC);
+		//k_msleep(CHKPWR_DELAY_MSEC);
 
 		switch (control_stage) { // Check VR power machine
 		case E1S_POWER_ON_STAGE0:
-			if (check_power_stage(LOW_ENABLE_POWER_MODE, e1s_gpio->present) != 0) {
+		{
+			int retry_count = 0;
+			bool e1s_present = false;
+
+			while (retry_count < PWR_SEQ_MAX_RETRY) {
+				k_msleep(CHKPWR_ON_DELAY_MSEC); // Kernel sleep function to delay
+				if (check_power_stage(LOW_ENABLE_POWER_MODE, e1s_gpio->present) == 0) {
+					e1s_present = true;
+					break;
+				}
+				retry_count++;
+			}
+
+			if (!e1s_present) {
 				LOG_ERR("e1s %d is not present!", device_index);
 				check_power_ret = -1;
 				if (power_handler_status == POWER_ON_HANDLER) {
 					is_e1s_power_on_status_done[device_index] = true;
 				}
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_E1S_PRESENT,
-							 device_index);
-				break;
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_E1S_PRESENT, device_index);
+			} else {
+				check_power_ret = 0;
+				control_stage = E1S_POWER_ON_STAGE1;
 			}
-			check_power_ret = 0;
-			control_stage = E1S_POWER_ON_STAGE1;
 			break;
+		}
 		case E1S_POWER_ON_STAGE1:
-			if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->p12v_efuse_power_good) !=
-			    0) {
-				LOG_ERR("els %d p12v_efuse_power_good is not power good!",
-					device_index);
-				check_power_ret = -1;
-				if (power_handler_status == POWER_ON_HANDLER) {
-					is_e1s_power_on_status_done[device_index] = true;
-				}
-				send_system_status_event(
-					IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-					IPMI_EVENT_OFFSET_SYS_NE_E1S_P12V_EFUSE_PWRG, device_index);
-				break;
-			}
-			if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->p3v3_efuse_power_good) !=
-			    0) {
-				LOG_ERR("els %d p3v3_efuse_power_good is not power good!",
-					device_index);
-				check_power_ret = -1;
-				if (power_handler_status == POWER_ON_HANDLER) {
-					is_e1s_power_on_status_done[device_index] = true;
-				}
-				send_system_status_event(
-					IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-					IPMI_EVENT_OFFSET_SYS_NE_E1S_P3V3_EFUSE_PWRG, device_index);
-				break;
-			}
-			check_power_ret = 0;
-			control_stage = E1S_POWER_ON_STAGE2;
-			break;
+		{
+			int retry_count_p12v = 0;
+    		int retry_count_p3v3 = 0;
+    		bool p12v_power_good = false;
+    		bool p3v3_power_good = false;
+
+    		while (retry_count_p12v < PWR_SEQ_MAX_RETRY) {
+        		if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->p12v_efuse_power_good) == 0) {
+            		p12v_power_good = true;
+            		break;
+        		}
+        		retry_count_p12v++;
+        		k_msleep(CHKPWR_ON_DELAY_MSEC);
+    		}
+
+    		while (retry_count_p3v3 < PWR_SEQ_MAX_RETRY) {
+        		if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->p3v3_efuse_power_good) == 0) {
+            		p3v3_power_good = true;
+            		break;
+        		}
+        		retry_count_p3v3++;
+        		k_msleep(CHKPWR_ON_DELAY_MSEC);
+    		}
+
+    		if (!p12v_power_good || !p3v3_power_good) {
+        		if (!p12v_power_good) {
+					LOG_ERR("els %d p12v_efuse_power_good is not power good!",device_index);
+            		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_E1S_P12V_EFUSE_PWRG, device_index);
+        		}
+        		if (!p3v3_power_good) {
+					LOG_ERR("els %d p3v3_efuse_power_good is not power good!",device_index);
+            		send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_E1S_P3V3_EFUSE_PWRG, device_index);
+        		}
+        		check_power_ret = -1;
+        		if (power_handler_status == POWER_ON_HANDLER) {
+            		is_e1s_power_on_status_done[device_index] = true;
+        		}
+        		break;
+    		}
+
+    		check_power_ret = 0;
+   	 		control_stage = E1S_POWER_ON_STAGE2;
+    		break;
+		}
 		case E1S_POWER_ON_STAGE2:
-			if (check_power_stage(LOW_ENABLE_POWER_MODE, e1s_gpio->clkbuf_oe_en) != 0) {
+		{
+			int retry_count_clkbuf = 0;
+			bool clkbuf_enabled = false;
+
+			while (retry_count_clkbuf < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(LOW_ENABLE_POWER_MODE, e1s_gpio->clkbuf_oe_en) == 0) {
+					clkbuf_enabled = true;
+					break;
+				}
+				retry_count_clkbuf++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+
+			if (!clkbuf_enabled) {
 				LOG_ERR("els %d clkbuf_oe_en is not enabled!", device_index);
 				check_power_ret = -1;
 				if (power_handler_status == POWER_ON_HANDLER) {
 					is_e1s_power_on_status_done[device_index] = true;
 				}
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_E1S_CLKBUF_OE_EN,
-							 device_index);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_E1S_CLKBUF_OE_EN, device_index);
 				break;
 			}
 
-			if ((gpio_get(e1s_gpio->cpu_pcie_reset) == GPIO_HIGH) &&
-			    (power_handler_status == POWER_HANDLER_DONE)) {
+			if ((gpio_get(e1s_gpio->cpu_pcie_reset) == GPIO_HIGH) && (power_handler_status == POWER_HANDLER_DONE)) {
 				check_power_ret = 0;
 				control_stage = E1S_POWER_ON_STAGE3;
 			} else {
@@ -533,20 +570,33 @@ bool e1s_power_on_handler(uint8_t initial_stage, e1s_power_control_gpio *e1s_gpi
 				enable_power_on_handler = false;
 				is_e1s_power_on_status_done[device_index] = true;
 			}
-
 			break;
+		}
 		case E1S_POWER_ON_STAGE3:
-			if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->e1s_pcie_reset) != 0) {
+		{
+			int retry_count_pcie_reset = 0;
+			bool pcie_reset_enabled = false;
+
+			while (retry_count_pcie_reset < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(ENABLE_POWER_MODE, e1s_gpio->e1s_pcie_reset) == 0) {
+					pcie_reset_enabled = true;
+					break;
+				}
+				retry_count_pcie_reset++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+
+			if (!pcie_reset_enabled) {
 				LOG_ERR("els %d pcie_reset is not enabled!", device_index);
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_E1S_PCIE_RESET,
-							 device_index);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_E1S_PCIE_RESET, device_index);
 				check_power_ret = -1;
 				break;
 			}
+
 			check_power_ret = 0;
 			enable_power_on_handler = false;
 			break;
+		}
 		default:
 			LOG_ERR("Not support stage 0x%x", initial_stage);
 			enable_power_on_handler = false;
@@ -935,40 +985,71 @@ bool power_on_handler(uint8_t initial_stage)
 			enable_power_on_handler = false;
 			break;
 		}
-		k_msleep(CHKPWR_DELAY_MSEC);
+		//k_msleep(CHKPWR_DELAY_MSEC);
 
 		switch (control_stage) { // Check VR power machine
 		case BOARD_POWER_ON_STAGE0:
-			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_01) != 0) {
+		{
+			int retry_count_seq_01 = 0;
+			int retry_count_seq_02 = 0;
+			int retry_count_seq_03 = 0;
+			bool seq_01_enabled = false;
+			bool seq_02_enabled = false;
+			bool seq_03_enabled = false;
+
+			while (retry_count_seq_01 < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_01) == 0) {
+					seq_01_enabled = true;
+					break;
+				}
+				retry_count_seq_01++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+
+			if (!seq_01_enabled) {
 				LOG_ERR("FM_EXP_MAIN_PWR_EN is not enabled!");
-				send_system_status_event(
-					IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-					IPMI_EVENT_OFFSET_SYS_NE_FM_EXP_MAIN_PWR_EN, 0);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_FM_EXP_MAIN_PWR_EN, 0);
 				check_power_ret = -1;
 				break;
 			}
-			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_02) != 0) {
+
+			while (retry_count_seq_02 < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_02) == 0) {
+					seq_02_enabled = true;
+					break;
+				}
+				retry_count_seq_02++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+
+			if (!seq_02_enabled) {
 				if (board_revision != EVT_STAGE && card_type == CARD_TYPE_OPB) {
-					control_power_stage(DISABLE_POWER_MODE,
-							    OPB_BIC_MAIN_PWR_EN_R);
+					control_power_stage(DISABLE_POWER_MODE, OPB_BIC_MAIN_PWR_EN_R);
 				}
 				LOG_ERR("PWRGD_P12V_MAIN is not enabled!");
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_PWRGD_P12V_MAIN,
-							 0);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_PWRGD_P12V_MAIN, 0);
 				check_power_ret = -1;
 				break;
 			}
+
 			if (card_type == CARD_TYPE_OPA) {
-				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_03) != 0) {
+				while (retry_count_seq_03 < PWR_SEQ_MAX_RETRY) {
+					if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_03) == 0) {
+						seq_03_enabled = true;
+						break;
+					}
+					retry_count_seq_03++;
+					k_msleep(CHKPWR_ON_DELAY_MSEC);
+				}
+
+				if (!seq_03_enabled) {
 					LOG_ERR("OPA_PWRGD_P1V8_VR is not enabled!");
-					send_system_status_event(
-						IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-						IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_P1V8_VR, 0);
+					send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_P1V8_VR, 0);
 					check_power_ret = -1;
 					break;
 				}
 			}
+
 			check_power_ret = 0;
 			if (card_type == CARD_TYPE_OPA) {
 				control_stage = BOARD_POWER_ON_STAGE1;
@@ -976,42 +1057,64 @@ bool power_on_handler(uint8_t initial_stage)
 				control_stage = RETIMER_POWER_ON_STAGE1;
 			}
 			break;
+		}
 		case BOARD_POWER_ON_STAGE1:
-			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_04) != 0) {
+		{
+			int retry_count_seq_04 = 0;
+			while (retry_count_seq_04 < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_04) == 0) {
+					check_power_ret = 0;
+					control_stage = BOARD_POWER_ON_STAGE2;
+					break;
+				}
+				retry_count_seq_04++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+			if (retry_count_seq_04 == PWR_SEQ_MAX_RETRY) {
 				LOG_ERR("OPA_PWRGD_P0V9_VR is not enabled!");
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_P0V9_VR,
-							 0);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_P0V9_VR, 0);
 				check_power_ret = -1;
-				break;
 			}
-			check_power_ret = 0;
-			control_stage = BOARD_POWER_ON_STAGE2;
 			break;
+		}
 		case BOARD_POWER_ON_STAGE2:
-			if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_05) != 0) {
+		{
+			int retry_count_seq_05 = 0;
+			while (retry_count_seq_05 < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_05) == 0) {
+					check_power_ret = 0;
+					control_stage = RETIMER_POWER_ON_STAGE0;
+					break;
+				}
+				retry_count_seq_05++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
+			}
+			if (retry_count_seq_05 == PWR_SEQ_MAX_RETRY) {
 				LOG_ERR("OPA_PWRGD_EXP_PWR is not enabled!");
-				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							 IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_EXP_PWR,
-							 0);
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_PWRGD_EXP_PWR, 0);
 				check_power_ret = -1;
-				break;
 			}
-			check_power_ret = 0;
-			control_stage = RETIMER_POWER_ON_STAGE0;
 			break;
+		}
 		case RETIMER_POWER_ON_STAGE0:
-			if (check_power_stage(LOW_ENABLE_POWER_MODE, CHECK_POWER_SEQ_06) != 0) {
-				LOG_ERR("OPA_CLKBUF_RTM_OE_N is not enabled!");
-				send_system_status_event(
-					IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-					IPMI_EVENT_OFFSET_SYS_NE_OPA_CLKBUF_RTM_OE_N, 0);
-				check_power_ret = -1;
-				break;
+		{
+			int retry_count_seq_06 = 0;
+			while (retry_count_seq_06 < PWR_SEQ_MAX_RETRY) {
+				if (check_power_stage(LOW_ENABLE_POWER_MODE, CHECK_POWER_SEQ_06) == 0) {
+					check_power_ret = 0;
+					control_stage = RETIMER_POWER_ON_STAGE1;
+					break;
+				}
+				retry_count_seq_06++;
+				k_msleep(CHKPWR_ON_DELAY_MSEC);
 			}
-			check_power_ret = 0;
-			control_stage = RETIMER_POWER_ON_STAGE1;
+			if (retry_count_seq_06 == PWR_SEQ_MAX_RETRY) {
+				LOG_ERR("OPA_CLKBUF_RTM_OE_N is not enabled!");
+				send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_CLKBUF_RTM_OE_N, 0);
+				check_power_ret = -1;
+			}
 			break;
+		}
 		case RETIMER_POWER_ON_STAGE1:
 			for (index = 0;
 			     index < ((card_type == CARD_TYPE_OPA) ? OPA_MAX_E1S_IDX : MAX_E1S_IDX);
@@ -1024,29 +1127,46 @@ bool power_on_handler(uint8_t initial_stage)
 			control_stage = RETIMER_POWER_ON_STAGE2;
 			break;
 		case RETIMER_POWER_ON_STAGE2:
+		{
 			if (power_handler_status == POWER_HANDLER_DONE) {
 				if (card_type == CARD_TYPE_OPA) {
-					if (check_power_stage(ENABLE_POWER_MODE,
-							      CHECK_POWER_SEQ_07) != 0) {
+					int retry_count_seq_07 = 0;
+					int retry_count_seq_08 = 0;
+					bool seq_07_enabled = false;
+					bool seq_08_enabled = false;
+
+					while (retry_count_seq_07 < PWR_SEQ_MAX_RETRY) {
+						if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_07) == 0) {
+							seq_07_enabled = true;
+							break;
+						}
+						retry_count_seq_07++;
+						k_msleep(CHKPWR_ON_DELAY_MSEC);
+					}
+
+					if (!seq_07_enabled) {
 						LOG_ERR("OPA_RESET_BIC_RTM_N is not enabled!");
-						send_system_status_event(
-							IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							IPMI_EVENT_OFFSET_SYS_NE_OPA_RESET_BIC_RTM_N,
-							0);
+						send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_RESET_BIC_RTM_N, 0);
 						check_power_ret = -1;
 						break;
 					}
 
-					if (check_power_stage(ENABLE_POWER_MODE,
-							      CHECK_POWER_SEQ_08) != 0) {
+					while (retry_count_seq_08 < PWR_SEQ_MAX_RETRY) {
+						if (check_power_stage(ENABLE_POWER_MODE, CHECK_POWER_SEQ_08) == 0) {
+							seq_08_enabled = true;
+							break;
+						}
+						retry_count_seq_08++;
+						k_msleep(CHKPWR_ON_DELAY_MSEC);
+					}
+
+					if (!seq_08_enabled) {
 						LOG_ERR("OPA_PERST_BIC_RTM_N is not enabled!");
-						send_system_status_event(
-							IPMI_EVENT_TYPE_SENSOR_SPECIFIC,
-							IPMI_EVENT_OFFSET_SYS_NE_OPA_PERST_BIC_RTM_N,
-							0);
+						send_system_status_event(IPMI_EVENT_TYPE_SENSOR_SPECIFIC, IPMI_EVENT_OFFSET_SYS_NE_OPA_PERST_BIC_RTM_N, 0);
 						check_power_ret = -1;
 						break;
 					}
+
 					is_retimer_sequence_done = true;
 					check_pcie_retimer_type();
 					cache_pcie_retimer_version();
@@ -1059,19 +1179,16 @@ bool power_on_handler(uint8_t initial_stage)
 					bool all_e1s_power_on_status_done = true;
 					if (card_type == CARD_TYPE_OPA) {
 						for (index = 0; index < OPA_MAX_E1S_IDX; ++index) {
-							all_e1s_power_on_status_done &=
-								is_e1s_power_on_status_done[index];
+							all_e1s_power_on_status_done &= is_e1s_power_on_status_done[index];
 						}
 					} else {
 						for (index = 0; index < MAX_E1S_IDX; ++index) {
-							all_e1s_power_on_status_done &=
-								is_e1s_power_on_status_done[index];
+							all_e1s_power_on_status_done &= is_e1s_power_on_status_done[index];
 						}
 					}
 
 					uint8_t cpu_pcie_perst_change = get_cpu_pcie_perst_status();
-					if ((cpu_pcie_perst_change == true) &&
-					    (all_e1s_power_on_status_done == true)) {
+					if ((cpu_pcie_perst_change == true) && (all_e1s_power_on_status_done == true)) {
 						is_checking_power_on_status = true;
 						power_handler_status = POWER_HANDLER_DONE;
 					}
@@ -1079,6 +1196,7 @@ bool power_on_handler(uint8_t initial_stage)
 				check_power_ret = 0;
 				break;
 			}
+		}
 		case E1S_POWER_ON_STAGE0:
 			check_power_ret = 0;
 			enable_power_on_handler = false;
@@ -1184,7 +1302,7 @@ bool power_off_handler(uint8_t initial_stage)
 				if (card_type == CARD_TYPE_OPA) {
 					control_stage = RETIMER_POWER_OFF_STAGE0;
 				} else {
-					enable_power_off_handler = false;
+					control_stage = RETIMER_POWER_OFF_STAGE2;
 				}
 			}
 			break;
