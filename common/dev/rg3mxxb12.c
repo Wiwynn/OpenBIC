@@ -195,17 +195,17 @@ bool nxp_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
     }*/
 
 	// Enable internal pull up resistor connection for slave ports
-	if (!rg3mxxb12_register_write(bus, 0x17, 0x23)) {
+	if (!rg3mxxb12_register_write(bus, 0x17, 0xff)) {
 		goto out;
 	}
 
 	// Set open drain and push pull compatible mode for selected salve port
-	if (!rg3mxxb12_register_write(bus, 0x12, 0x23)) {
+	if (!rg3mxxb12_register_write(bus, 0x12, 0xff)) {
 		goto out;
 	}
 
 	// Enable selected slave port
-	if (!rg3mxxb12_register_write(bus, 0x51, 0x23)) {
+	if (!rg3mxxb12_register_write(bus, 0x51, 0xff)) {
 		goto out;
 	}
 
