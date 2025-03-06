@@ -33,7 +33,9 @@ void init_i3c_hub()
 	init_i3c_hub_type();
 	i3c_hub_type = get_i3c_hub_type();
 
-	if (i3c_hub_type == RG3M87B12_DEVICE_INFO) {
+	nxp_i3c_mode_only_init(&i3c_msg, 0x0A);
+
+	/*if (i3c_hub_type == RG3M87B12_DEVICE_INFO) {
 		if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, LDO_VOLT)) {
 			LOG_ERR("Failed to initialize i3c hub");
 		}
@@ -51,5 +53,5 @@ void init_i3c_hub()
 					    DEFAULT_SLAVE_PORT_SETTING)) {
 			LOG_ERR("Error to set slave port");
 		}
-	}
+	}*/
 }
