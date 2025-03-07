@@ -144,11 +144,8 @@ void ISR_MB_PCIE_RST()
 
 	// Monitor CXL ready and set CXL EID again
 	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
-		// If CXL didn't ready, check again
-		if ((!get_cxl_ready_status(CXL_ID_1)) || (!get_cxl_ready_status(CXL_ID_2))) {
-			create_check_cxl_ready_thread();
-			k_timer_start(&set_eid_timer, K_MSEC(25000), K_NO_WAIT);
-		}
+		create_check_cxl_ready_thread();
+		k_timer_start(&set_eid_timer, K_MSEC(10000), K_NO_WAIT);
 	} else {
 		// host reset, cxl also reset
 		set_cxl_ready_status(CXL_ID_1, false);
