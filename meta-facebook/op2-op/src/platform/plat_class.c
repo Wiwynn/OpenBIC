@@ -126,15 +126,14 @@ int check_pcie_retimer_type(void)
 		}
 	}
 
-	if (kb900x_get_vendor_id(&msg, &retimer_vendor_id)) {
-		LOG_HEXDUMP_INF(msg.data, KB900X_VENDOR_ID_LENGTH, "=====");
-		LOG_INF("===== 0x%x", retimer_vendor_id);
-
-		if (memcmp(msg.data, KB900X_VENDOR_ID, KB900X_VENDOR_ID_LENGTH) == 0) {
-			LOG_INF("PCIE RETIMER type: KB900X");
-			pcie_retimer_type = RETIMER_TYPE_KB900X;
-			ret = RETIMER_TYPE_KB900X;
-			return ret;
+	if (kb900x_init_smbus(&msg) == KB900X_E_OK) {
+		if (kb900x_get_vendor_id(&msg, &retimer_vendor_id)) {
+			if (memcmp(msg.data, KB900X_VENDOR_ID, KB900X_VENDOR_ID_LENGTH) == 0) {
+				LOG_INF("PCIE RETIMER type: KB900X");
+				pcie_retimer_type = RETIMER_TYPE_KB900X;
+				ret = RETIMER_TYPE_KB900X;
+				return ret;
+			}
 		}
 	}
 

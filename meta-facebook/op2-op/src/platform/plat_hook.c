@@ -247,10 +247,6 @@ pt5161l_init_arg pt5161l_init_args[] = { [0] = { .is_init = false,
 						 .temp_cal_code_pma_b = { 0, 0, 0, 0 },
 						 .temp_cal_code_avg = 0 } };
 
-kb900x_init_arg kb900x_init_args[] = {
-	[0] { .is_init = false },
-};
-
 /**************************************************************************************************
  *  PRE-HOOK/POST-HOOK FUNC
  **************************************************************************************************/
@@ -364,7 +360,6 @@ bool pre_retimer_read(sensor_cfg *cfg, void *args)
 			check_init_count += 1;
 			cfg->type = sensor_dev_kb900x;
 			cfg->offset = KB900X_CFG_OFFSET_TEMPERATURE;
-			cfg->init_args = &kb900x_init_args[0];
 			ret = init_drive_type_delayed(cfg);
 			if (ret == false) {
 				LOG_ERR("KB900X retimer initial fail");

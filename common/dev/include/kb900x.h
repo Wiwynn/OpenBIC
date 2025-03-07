@@ -58,8 +58,8 @@
 #define KB900X_SIDE_B (1)
 #define KB9003_NUM_LANES (16)
 
-#define KB900X_VENDOR_ID_LENGTH 8
-extern uint8_t KB900X_VENDOR_ID[8];
+#define KB900X_VENDOR_ID_LENGTH 7
+extern uint8_t KB900X_VENDOR_ID[7];
 
 /**
  * \brief Error codes for the KB900X driver.
