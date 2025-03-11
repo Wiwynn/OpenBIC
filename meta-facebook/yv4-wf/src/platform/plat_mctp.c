@@ -126,6 +126,7 @@ static void set_endpoint_resp_timeout(void *args)
 
 static void set_dev_endpoint(void)
 {
+	LOG_ERR("[debug] Dbg31");
 	bool set_eid[MAX_CXL_ID] = { false, false };
 	// The CXL FW is unstable and its booting up time is random now.
 	// Temporary add retry mechanism for it.
@@ -189,8 +190,9 @@ static void set_dev_endpoint(void)
 		if (set_eid[CXL_ID_1] == true && set_eid[CXL_ID_2] == true)
 			break;
 		// Delay for 60 seconds before the next attempt
-		k_sleep(K_SECONDS(60));
+		k_sleep(K_SECONDS(40));
 	}
+	LOG_ERR("[debug] Dbg32");
 }
 
 static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
@@ -358,6 +360,7 @@ void plat_update_mctp_routing_table(uint8_t eid)
 {
 	// Set platform eid
 	plat_eid = eid;
+	LOG_ERR("[debug] plat_eid= %d ", plat_eid);
 
 	// update sd bic eid
 	mctp_route_entry *p = plat_mctp_route_tbl + 1;
@@ -374,6 +377,7 @@ void plat_update_mctp_routing_table(uint8_t eid)
 	update_entity_name_with_eid(eid);
 
 	// send set eid to cxl
+	LOG_ERR("[debug] Dbg3");
 	k_timer_start(&send_cmd_timer, K_MSEC(30000), K_NO_WAIT);
 
 	return;

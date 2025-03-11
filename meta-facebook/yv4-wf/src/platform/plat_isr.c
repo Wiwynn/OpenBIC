@@ -125,6 +125,7 @@ void ISR_MB_DC_STAGUS_CHAGNE()
 	set_mb_dc_status(FM_POWER_EN_R);
 
 	if (gpio_get(FM_POWER_EN_R) == POWER_ON) {
+		LOG_ERR("[debug] Dbg1");
 		k_work_submit(&cxl_power_on_work);
 		k_work_schedule_for_queue(&plat_work_q, &set_clk_buf_bypass_work,
 					  K_MSEC(SET_CLK_BUF_DELAY_MS));
