@@ -378,7 +378,7 @@ void plat_update_mctp_routing_table(uint8_t eid)
 
 	// send set eid to cxl
 	LOG_ERR("[debug] Dbg3");
-	k_timer_start(&send_cmd_timer, K_MSEC(30000), K_NO_WAIT);
+	k_timer_start(&send_cmd_timer, K_MSEC(50000), K_NO_WAIT);
 
 	return;
 }
