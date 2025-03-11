@@ -56,10 +56,16 @@ LOG_MODULE_REGISTER(plat_mctp);
 
 #define UNKNOWN_CXL_EID 0xFF
 
+
 uint8_t plat_eid = MCTP_DEFAULT_ENDPOINT;
 
-K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
-K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
+// K_TIMER_DEFINE(send_cmd_timer, send_cmd_to_dev, NULL);
+// K_WORK_DEFINE(send_cmd_work, send_cmd_to_dev_handler);
+
+#define SET_DEV_ENDPOINT_STACK_SIZE 1024
+K_THREAD_STACK_DEFINE(set_dev_endpoint_stack, SET_DEV_ENDPOINT_STACK_SIZE);
+struct k_thread set_dev_endpoint_thread_data;
+static k_tid_t set_dev_endpoint_tid = NULL;
 
 static mctp_port plat_mctp_port[] = {
 	{ .conf.smbus_conf.addr = I3C_ADDR_SD_BIC,
@@ -126,16 +132,18 @@ static void set_endpoint_resp_timeout(void *args)
 
 static void set_dev_endpoint(void)
 {
+	LOG_ERR("[debug] set_dev_endpoint");
 	bool set_eid[MAX_CXL_ID] = { false, false };
 	// The CXL FW is unstable and its booting up time is random now.
 	// Temporary add retry mechanism for it.
-	for (int attempt = 0; attempt < 10; attempt++) {
+	for (int attempt = 0; attempt < 60; attempt++) {
 		// We only need to set CXL EID.
 		for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
 			mctp_route_entry *p = plat_mctp_route_tbl + i;
 			if (!p->set_endpoint)
 				continue;
 
+			LOG_ERR("Checking CXL Ready Status");
 			// Check CXLs ready status before setting EID
 			if (p->bus == I2C_BUS_CXL1 && !get_cxl_ready_status(CXL_ID_1))
 				continue;
@@ -191,6 +199,7 @@ static void set_dev_endpoint(void)
 		// Delay for 10 seconds before the next attempt
 		k_sleep(K_SECONDS(10));
 	}
+	LOG_ERR("[debug] Leave set_dev_endpoint");
 }
 
 static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
@@ -277,15 +286,44 @@ uint8_t get_mctp_info(uint8_t dest_endpoint, mctp **mctp_inst, mctp_ext_params *
 	return rc;
 }
 
-void send_cmd_to_dev_handler(struct k_work *work)
+// void send_cmd_to_dev_handler(struct k_work *work)
+// {
+// 	/* init the device endpoint */
+// 	set_dev_endpoint();
+// }
+
+// void send_cmd_to_dev(struct k_timer *timer)
+// {
+// 	k_work_submit(&send_cmd_work);
+// }
+
+void set_dev_endpoint_thread(void *arg1, void *arg2, void *arg3)
 {
-	/* init the device endpoint */
-	set_dev_endpoint();
+    ARG_UNUSED(arg1);
+    ARG_UNUSED(arg2);
+    ARG_UNUSED(arg3);
+
+    set_dev_endpoint();
 }
 
-void send_cmd_to_dev(struct k_timer *timer)
+void create_set_dev_endpoint_thread()
 {
-	k_work_submit(&send_cmd_work);
+	// k_sleep(K_SECONDS(30));
+	LOG_ERR("[debug] Enter create set dev endpoint thread");
+    if ((set_dev_endpoint_tid != NULL) && ((strcmp(k_thread_state_str(set_dev_endpoint_tid), "dead") != 0) &&
+	(strcmp(k_thread_state_str(set_dev_endpoint_tid), "unknown") != 0))) {
+		LOG_ERR("[debug] delete exited thread");
+        k_thread_abort(set_dev_endpoint_tid);
+    }
+
+    set_dev_endpoint_tid = k_thread_create(&set_dev_endpoint_thread_data, set_dev_endpoint_stack,
+                                            K_THREAD_STACK_SIZEOF(set_dev_endpoint_stack),
+                                            set_dev_endpoint_thread, NULL, NULL, NULL,
+                                            1, 0, K_SECONDS(10));
+
+    k_thread_name_set(set_dev_endpoint_tid, "set_dev_endpoint_thread");
+    k_thread_start(set_dev_endpoint_tid);
+	LOG_ERR("[debug] Leave create set dev endpoint thread");
 }
 
 int pal_get_medium_type(uint8_t interface)
@@ -358,6 +396,7 @@ void plat_update_mctp_routing_table(uint8_t eid)
 {
 	// Set platform eid
 	plat_eid = eid;
+	LOG_ERR("[debug] plat_eid= %d ", plat_eid);
 
 	// update sd bic eid
 	mctp_route_entry *p = plat_mctp_route_tbl + 1;
@@ -374,7 +413,11 @@ void plat_update_mctp_routing_table(uint8_t eid)
 	update_entity_name_with_eid(eid);
 
 	// send set eid to cxl
-	k_timer_start(&send_cmd_timer, K_MSEC(30000), K_NO_WAIT);
+	LOG_ERR("[debug] Create set dev endpoint thread");
+
+	
+	create_set_dev_endpoint_thread();
+	// k_timer_start(create_set_dev_endpoint_thread(), K_MSEC(30000), K_NO_WAIT);
 
 	return;
 }

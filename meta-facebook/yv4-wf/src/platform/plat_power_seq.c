@@ -135,6 +135,7 @@ void set_mb_dc_status(uint8_t gpio_num)
 
 void execute_power_on_sequence()
 {
+	LOG_ERR("[debug] Enter execute_power_on");
 	int ret = 0;
 
 	// If CXL is on, doesn't need to power on again
@@ -177,12 +178,15 @@ void execute_power_on_sequence()
 		set_DC_status(PG_CARD_OK);
 		k_work_schedule(&set_dc_on_5s_work, K_SECONDS(DC_ON_DELAY5_SEC));
 
+		LOG_ERR("[debug] Create CXL ready thread");
 		create_check_cxl_ready_thread();
 	}
+	LOG_ERR("[debug] Leave execute_power_on");
 }
 
 void create_check_cxl_ready_thread()
 {
+	LOG_ERR("[debug] Enter CXL ready thread ");
 	if ((cxl1_tid != NULL) && ((strcmp(k_thread_state_str(cxl1_tid), "dead") != 0) &&
 				   (strcmp(k_thread_state_str(cxl1_tid), "unknown") != 0))) {
 		;
@@ -206,6 +210,7 @@ void create_check_cxl_ready_thread()
 		k_thread_name_set(cxl2_tid, "cxl2_ready_thread");
 		k_thread_start(cxl2_tid);
 	}
+	LOG_ERR("[debug] Leave CXL ready thread");
 }
 
 int power_on_handler(int cxl_id, int power_stage)
@@ -220,6 +225,8 @@ int power_on_handler(int cxl_id, int power_stage)
 		// Get power good pin to check power
 		ret = check_powers_enabled(cxl_id, ctrl_stage);
 		if (ret < 0) {
+			//
+			LOG_ERR("check_powers_enabled failed at stage=%d", ctrl_stage);
 			break;
 		}
 	}
@@ -591,6 +598,7 @@ void cxl1_ready_handler()
 	const struct device *heartbeat = NULL;
 	struct sensor_value hb_val;
 	int ret = 0;
+	LOG_INF("Start monitor CXL1 ready");
 
 	heartbeat = device_get_binding(CXL1_HEART_BEAT_LABEL);
 	if (heartbeat == NULL) {
@@ -636,6 +644,7 @@ void cxl2_ready_handler()
 	const struct device *heartbeat = NULL;
 	struct sensor_value hb_val;
 	int ret = 0;
+	LOG_INF("Start monitor CXL2 ready");
 
 	heartbeat = device_get_binding(CXL2_HEART_BEAT_LABEL);
 	if (heartbeat == NULL) {

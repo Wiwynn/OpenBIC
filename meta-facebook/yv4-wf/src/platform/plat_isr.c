@@ -27,7 +27,7 @@
 
 LOG_MODULE_REGISTER(plat_isr);
 
-K_TIMER_DEFINE(set_eid_timer, send_cmd_to_dev, NULL);
+// K_TIMER_DEFINE(set_eid_timer, send_cmd_to_dev, NULL);
 
 void set_e1s_pe_reset()
 {
@@ -125,6 +125,7 @@ void ISR_MB_DC_STAGUS_CHAGNE()
 	set_mb_dc_status(FM_POWER_EN_R);
 
 	if (gpio_get(FM_POWER_EN_R) == POWER_ON) {
+		LOG_ERR("[debug] ISR_MB_FM_PWR");
 		k_work_submit(&cxl_power_on_work);
 		k_work_schedule_for_queue(&plat_work_q, &set_clk_buf_bypass_work,
 					  K_MSEC(SET_CLK_BUF_DELAY_MS));
@@ -145,7 +146,8 @@ void ISR_MB_PCIE_RST()
 	// Monitor CXL ready and set CXL EID again
 	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
 		create_check_cxl_ready_thread();
-		k_timer_start(&set_eid_timer, K_MSEC(10000), K_NO_WAIT);
+		create_set_dev_endpoint_thread();
+		// k_timer_start(&set_eid_timer, K_MSEC(10000), K_NO_WAIT);
 	} else {
 		// host reset, cxl also reset
 		set_cxl_ready_status(CXL_ID_1, false);
