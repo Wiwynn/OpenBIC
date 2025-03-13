@@ -131,6 +131,7 @@ static void set_endpoint_resp_timeout(void *args)
 static void set_dev_endpoint(void)
 {
 	// We only need to set FF BIC EID and WF BIC EID.
+	LOG_INF("[debug] Enter set_dev_endpoint");
 	for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
 		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		if (!p->set_endpoint)
@@ -164,6 +165,7 @@ static void set_dev_endpoint(void)
 				LOG_ERR("Fail to set endpoint %d", p->endpoint);
 		}
 	}
+	LOG_INF("[debug] Leave set_dev_endpoint");
 }
 
 static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)
@@ -359,6 +361,7 @@ void plat_set_eid_by_slot()
 {
 	uint8_t slot_eid = get_slot_eid();
 	plat_eid = slot_eid;
+	LOG_INF("[debug] Set EID to %d", plat_eid);
 }
 
 void set_routing_table_eid()
@@ -367,6 +370,7 @@ void set_routing_table_eid()
 	for (uint8_t i = 2, j = 1; i < ARRAY_SIZE(plat_mctp_route_tbl); i++, j++) {
 		mctp_route_entry *p = plat_mctp_route_tbl + i;
 		p->endpoint = plat_eid + j;
+		LOG_INF("[debug] Set EID for entry %d to %d", i, p->endpoint);
 	}
 }
 
@@ -377,6 +381,7 @@ uint8_t plat_get_eid()
 
 void plat_mctp_init(void)
 {
+	LOG_INF("[debug] Enter plat_mctp_init");
 	int ret = 0;
 	plat_set_eid_by_slot();
 	set_routing_table_eid();
@@ -400,6 +405,7 @@ void plat_mctp_init(void)
 
 		ret = mctp_start(p->mctp_inst);
 	}
+	LOG_INF("[debug] Set set_dev_endpoint timer");
 	k_timer_start(&send_cmd_timer, K_MSEC(3000), K_NO_WAIT);
 }
 
