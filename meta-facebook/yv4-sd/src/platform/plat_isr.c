@@ -199,7 +199,7 @@ bool rg3mxxb12_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt, uint8_t pu
 		{ RG3MXXB12_SSPORTS_AGENT_ENABLE, 0x0 },
 		{ RG3MXXB12_SSPORTS_GPIO_ENABLE, 0x0 },
 		{ RG3MXXB12_SSPORTS_PULLUP_SETTING, pullup_val },
-		{ RG3MXXB12_SSPORTS_PULLUP_ENABLE, 0x00 },
+		{ RG3MXXB12_SSPORTS_PULLUP_ENABLE, 0xFF },
 		{ RG3MXXB12_SSPORTS_OD_ONLY, 0x0 },
 		{ RG3MXXB12_SSPORTS_HUB_NETWORK_CONNECTION, 0x01 },
 		{ RG3MXXB12_SLAVE_PORT_ENABLE, 0x01 },
@@ -266,7 +266,7 @@ void reinit_i3c_hub()
 	i3c_attach(&i3c_msg);
 
 	// Initialize I3C HUB
-	if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, LDO_VOLT, rg3mxxb12_pullup_500_ohm)) {
+	if (!rg3mxxb12_i3c_mode_only_init(&i3c_msg, LDO_VOLT, 0xF0)) {
 		printk("failed to initialize 1ou rg3mxxb12\n");
 	}
 
