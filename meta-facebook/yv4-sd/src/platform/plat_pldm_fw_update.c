@@ -237,9 +237,13 @@ void query_downstream_identifier_table_and_count()
 	downstream_devices_count = d.downstream_devices_count;
 }
 
+#define DESCRIPTOR_COUNT 6
+#define fill(dest, src) memcpy(dest, &src, sizeof(src)); dest += sizeof(src);
+#define fill_span(dest, src, size) memcpy(dest, src, size); dest += size;
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len)
 {
+	// check if input arguments are valid
 	CHECK_NULL_ARG_WITH_RETURN(buf, false);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -248,27 +252,63 @@ uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uin
 		(struct pldm_query_device_identifiers_resp *)resp;
 
 	resp_p->completion_code = PLDM_SUCCESS;
-	resp_p->descriptor_count = 0x03;
+	resp_p->descriptor_count = DESCRIPTOR_COUNT;
 
-	uint8_t iana[PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH] = { 0x00, 0x00, 0xA0, 0x15 };
+	// formal descriptors
+	const uint32_t iana = 40981UL; // meta IANA number
+	const uint16_t deviceId = 0x0;
+	const uint8_t slotNumber = get_slot_eid() / 10; // assuming using static EID, invalid if using dynamic EID
+	const uint8_t slot[PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH] = { (char)(slotNumber + '0') };
+	const uint8_t compatible_hardware[PLDM_ASCII_MODEL_NUMBER_LONG_STRING_LENGTH] = "com.meta.BIC.ASPEED_AST1030_BIC";
+	
+	// vendor defined descriptors
+	const uint8_t* component_type_title = "ComponentType";
+	const uint8_t* component_type_value = "BIC";
+	const uint8_t* board_title = "Board";
+	const uint8_t* board_value = "SentinelDome";
 
-	// Set the device id for sd bic
-	uint8_t deviceId[PLDM_PCI_DEVICE_ID_LENGTH] = { 0x00, 0x00 };
+	const uint8_t component_type_title_length = strlen(component_type_title);
+	const uint8_t component_type_value_length = strlen(component_type_value);
+	const uint8_t board_title_length = strlen(board_title);
+	const uint8_t board_value_length = strlen(board_value);
+	const uint16_t vendor_defined_tlv_length = 2;
+	const uint16_t component_type_descriptor_length =
+		vendor_defined_tlv_length + component_type_title_length + component_type_value_length;
+	const uint16_t board_descriptor_length = 
+		vendor_defined_tlv_length + board_title_length + board_value_length;
 
-	uint8_t slotNumber = get_slot_eid() / 10;
-	uint8_t slot[PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH] = { (char)(slotNumber + '0') };
+	// tlv has 1 redundant byte for pointer, which is not included in the descriptor length
+	const uint8_t tlv_length = 4;	
 
-	uint8_t total_size_of_iana_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(iana) - 1;
+	const struct warpped_tlv {
+		uint16_t descriptor_type;
+		uint16_t descriptor_length;
+		uint8_t title_string_type;
+		uint8_t title_string_length;
+		const uint8_t* title_string;
+		const uint8_t* descriptor_data;
+	} tlvs[DESCRIPTOR_COUNT] = {
+		{ PLDM_FWUP_IANA_ENTERPRISE_ID, PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH, 0, 0, NULL, (uint8_t *)&iana },
+		{ PLDM_PCI_DEVICE_ID, PLDM_PCI_DEVICE_ID_LENGTH, 0, 0, NULL, (uint8_t *)&deviceId },
+		{ PLDM_ASCII_MODEL_NUMBER_LONG_STRING, PLDM_ASCII_MODEL_NUMBER_LONG_STRING_LENGTH, 0, 0, NULL, compatible_hardware },
+		{ PLDM_ASCII_MODEL_NUMBER_SHORT_STRING, PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH, 0, 0, NULL, slot },
+		{ PLDM_FWUP_VENDOR_DEFINED, component_type_descriptor_length,
+		  PLDM_COMP_ASCII, component_type_title_length, component_type_title, component_type_value },
+		{ PLDM_FWUP_VENDOR_DEFINED, board_descriptor_length,
+		  PLDM_COMP_ASCII, board_title_length, board_title, board_value },
 
-	uint8_t total_size_of_device_id_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(deviceId) - 1;
+	};
 
-	uint8_t total_size_of_slot_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(slot) - 1;
+	// calculate total size of descriptors
+	uint16_t total_size_of_descriptors = 0;
+	for (int i = 0; i < resp_p->descriptor_count; i++) {
+		total_size_of_descriptors += tlv_length + tlvs[i].descriptor_length;
+	}
+	resp_p->device_identifiers_len = total_size_of_descriptors;
+	LOG_INF("Total size of descriptors: %d", total_size_of_descriptors);
 
-	if (sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_iana_descriptor +
-		    total_size_of_device_id_descriptor + total_size_of_slot_descriptor >
+	// check if total size of descriptors is over PLDM_MAX_DATA_SIZE
+	if (sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_descriptors >
 	    PLDM_MAX_DATA_SIZE) {
 		LOG_ERR("QueryDeviceIdentifiers data length is over PLDM_MAX_DATA_SIZE define size %d",
 			PLDM_MAX_DATA_SIZE);
@@ -276,61 +316,27 @@ uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uin
 		return PLDM_ERROR;
 	}
 
-	// Allocate data for tlv which including descriptors data
-	struct pldm_descriptor_tlv *tlv_ptr = malloc(total_size_of_iana_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
+	// fill response
+	uint8_t* resp_ptr = resp + sizeof(struct pldm_query_device_identifiers_resp);
+	for (uint8_t i = 0; i < resp_p->descriptor_count; i++) {
+		const struct warpped_tlv* tlv = &tlvs[i];
+		fill(resp_ptr, tlv->descriptor_type);
+		fill(resp_ptr, tlv->descriptor_length);
+		uint16_t rest_of_data_length = tlv->descriptor_length;
+		if (tlv->descriptor_type == PLDM_FWUP_VENDOR_DEFINED) {
+			fill(resp_ptr, tlv->title_string_type);
+			fill(resp_ptr, tlv->title_string_length);
+			fill_span(resp_ptr, tlv->title_string, tlv->title_string_length);
+			rest_of_data_length -=
+				tlv->title_string_length + vendor_defined_tlv_length;
+		}
+		fill_span(resp_ptr, tlv->descriptor_data, rest_of_data_length);
 	}
-
-	tlv_ptr->descriptor_type = PLDM_FWUP_IANA_ENTERPRISE_ID;
-	tlv_ptr->descriptor_length = PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, iana, sizeof(iana));
-
-	uint8_t *end_of_id_ptr =
-		(uint8_t *)resp + sizeof(struct pldm_query_device_identifiers_resp);
-
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_iana_descriptor);
-	free(tlv_ptr);
-
-	tlv_ptr = malloc(total_size_of_device_id_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
-	}
-
-	tlv_ptr->descriptor_type = PLDM_PCI_DEVICE_ID;
-	tlv_ptr->descriptor_length = PLDM_PCI_DEVICE_ID_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, deviceId, sizeof(deviceId));
-
-	end_of_id_ptr += total_size_of_iana_descriptor;
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_device_id_descriptor);
-	free(tlv_ptr);
-
-	tlv_ptr = malloc(total_size_of_slot_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
-	}
-
-	tlv_ptr->descriptor_type = PLDM_ASCII_MODEL_NUMBER_SHORT_STRING;
-	tlv_ptr->descriptor_length = PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, slot, sizeof(slot));
-
-	end_of_id_ptr += total_size_of_device_id_descriptor;
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_slot_descriptor);
-	free(tlv_ptr);
-
-	resp_p->device_identifiers_len = total_size_of_iana_descriptor +
-					 total_size_of_device_id_descriptor +
-					 total_size_of_slot_descriptor;
-
-	*resp_len = sizeof(struct pldm_query_device_identifiers_resp) +
-		    total_size_of_iana_descriptor + total_size_of_device_id_descriptor +
-		    total_size_of_slot_descriptor;
+	*resp_len = sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_descriptors;
 
 	return PLDM_SUCCESS;
 }
+#undef DESCRIPTOR_COUNT
 
 uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len)
