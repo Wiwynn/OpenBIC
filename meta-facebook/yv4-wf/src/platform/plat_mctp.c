@@ -134,16 +134,18 @@ static void set_dev_endpoint(void)
 	// Temporary add retry mechanism for it.
 	for (int attempt = 0; attempt < 60; attempt++) {
 		// We only need to set CXL EID.
+		if(gpio_get(FM_POWER_EN_R) == POWER_OFF)
+			return;
 		for (uint8_t i = 0; i < ARRAY_SIZE(plat_mctp_route_tbl); i++) {
 			const mctp_route_entry *p = plat_mctp_route_tbl + i;
 			if (!p->set_endpoint)
 				continue;
 
 			// Check CXLs ready status before setting EID
-			if (p->bus == I2C_BUS_CXL1 && !get_cxl_ready_status(CXL_ID_1))
+			if (p->bus == I2C_BUS_CXL1 && (!get_cxl_ready_status(CXL_ID_1) || set_eid[CXL_ID_1]))
 				continue;
 
-			if (p->bus == I2C_BUS_CXL2 && !get_cxl_ready_status(CXL_ID_2))
+			if (p->bus == I2C_BUS_CXL2 && (!get_cxl_ready_status(CXL_ID_2) || set_eid[CXL_ID_2]))
 				continue;
 
 			for (uint8_t j = 0; j < ARRAY_SIZE(plat_mctp_port); j++) {
@@ -173,11 +175,15 @@ static void set_dev_endpoint(void)
 				if (!rc) {
 					switch (p->bus) {
 					case I2C_BUS_CXL1: {
+						if(set_eid[CXL_ID_1])
+							continue;
 						LOG_INF("Send set EID command to CXL1");
 						set_eid[CXL_ID_1] = true;
 						break;
 					}
 					case I2C_BUS_CXL2: {
+						if(set_eid[CXL_ID_2])
+							continue;
 						LOG_INF("Send set EID command to CXL2");
 						set_eid[CXL_ID_2] = true;
 						break;
@@ -280,14 +286,8 @@ uint8_t get_mctp_info(uint8_t dest_endpoint, mctp **mctp_inst, mctp_ext_params *
 	return rc;
 }
 
-void set_dev_endpoint_thread(void *arg1, void *arg2, void *arg3)
+void set_dev_endpoint_handler()
 {
-	/* init the device endpoint */
-	set_dev_endpoint();
-	ARG_UNUSED(arg1);
-	ARG_UNUSED(arg2);
-	ARG_UNUSED(arg3);
-
 	set_dev_endpoint();
 }
 
@@ -303,7 +303,7 @@ void create_set_dev_endpoint_thread()
 	set_dev_endpoint_tid =
 		k_thread_create(&set_dev_endpoint_thread_data, set_dev_endpoint_stack,
 				K_THREAD_STACK_SIZEOF(set_dev_endpoint_stack),
-				set_dev_endpoint_thread, NULL, NULL, NULL,
+				set_dev_endpoint_handler, NULL, NULL, NULL,
 				CONFIG_MAIN_THREAD_PRIORITY + 1, 0, K_SECONDS(10));
 
 	k_thread_name_set(set_dev_endpoint_tid, "set_dev_endpoint_thread");
