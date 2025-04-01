@@ -9,6 +9,7 @@ void plat_mctp_init(void);
 uint8_t plat_get_mctp_port_count();
 mctp_port *plat_get_mctp_port(uint8_t index);
 void create_set_dev_endpoint_thread();
+void set_dev_endpoint_handler();
 uint8_t plat_get_eid();
 
 #endif /* _PLAT_MCTP_h */
