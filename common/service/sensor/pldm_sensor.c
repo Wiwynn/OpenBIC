@@ -24,6 +24,7 @@
 #ifdef ENABLE_PLDM_SENSOR
 #include "plat_pldm_sensor.h"
 #include "pldm_sensor.h"
+#include "pldm_oem.h"
 
 LOG_MODULE_REGISTER(pldm_sensor);
 
@@ -195,6 +196,22 @@ uint8_t pldm_sensor_get_reading_from_cache(uint16_t sensor_id, int *reading,
 	// Y = (X * resolution + offset ) * power (10, unit_modifier)
 	// X = (Y * power (10, -1 * unit_modifier) - offset ) / resolution
 	*reading = (int)((sensor_reading * power(10, -1 * unit_modifier) - offset) / resolution);
+	//if (sensor_id == 0x12 || sensor_id == 0x22 || sensor_id == 0x2B || sensor_id == 0x54 || sensor_id == 0x57)
+	//{
+	//	LOG_ERR("[debug] sensor_id 0x%x , reading %d", sensor_id, *reading);
+	//}
+
+	if (sensor_id == 0x22)
+	{
+		//send_event_log_to_bmc
+		struct pldm_addsel_data msg = { 0 };
+		msg.event_type = HSC_OCP;
+		msg.assert_type = EVENT_ASSERTED;
+		LOG_ERR("[debug] send_event_log_to_bmc");
+		if (send_event_log_to_bmc(msg) != PLDM_SUCCESS) {
+			LOG_ERR("Failed to send event log");
+		};
+	}
 
 	return PLDM_SUCCESS;
 }
