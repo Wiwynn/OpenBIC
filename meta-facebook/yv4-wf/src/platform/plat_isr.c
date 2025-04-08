@@ -27,6 +27,55 @@
 
 LOG_MODULE_REGISTER(plat_isr);
 
+
+add_sel_info event_work_items[] = {
+	{
+		.is_init = false,
+		.gpio_num = PG_CARD_OK,
+		.event_type = POST_COMPLETED,
+		.assert_type = EVENT_ASSERTED,
+	}
+};
+
+void init_event_work()
+{
+	for (int index = 0; index < ARRAY_SIZE(event_work_items); ++index) {
+		if (event_work_items[index].is_init != true) {
+			k_work_init_delayable(&event_work_items[index].add_sel_work,
+					      addsel_work_handler);
+
+			event_work_items[index].is_init = true;
+		}
+	}
+}
+
+void addsel_work_handler(struct k_work *work_item)
+{
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
+	add_sel_info *work_info = CONTAINER_OF(dwork, add_sel_info, add_sel_work);
+	struct pldm_addsel_data msg = { 0 };
+	msg.event_type = work_info->event_type;
+	msg.assert_type = work_info->assert_type;
+//
+	if (send_event_log_to_bmc(msg) != PLDM_SUCCESS) {
+		LOG_ERR("Failed to send event log, event type: 0x%x, assert type: 0x%x",
+			work_info->event_type, work_info->assert_type);
+	};
+}
+
+add_sel_info *find_event_work_items(uint8_t gpio_num)
+{
+	for (int index = 0; index < ARRAY_SIZE(event_work_items); ++index) {
+		if (event_work_items[index].gpio_num == gpio_num) {
+			return &event_work_items[index];
+		}
+	}
+
+	return NULL;
+}
+
+
+
 void set_e1s_pe_reset()
 {
 	if (check_ioe4_e1s_prsnt_pin() == 0) {

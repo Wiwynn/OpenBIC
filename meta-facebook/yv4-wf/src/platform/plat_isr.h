@@ -57,11 +57,24 @@ typedef struct {
 	uint8_t output_val;
 } IOE_CFG;
 
+typedef struct _add_sel_info {
+	bool is_init;
+	uint8_t gpio_num;
+	uint8_t event_type;
+	uint8_t assert_type;
+	struct k_work_delayable add_sel_work;
+} add_sel_info;
+
 void ISR_MB_DC_STAGUS_CHAGNE();
 void ISR_MB_PCIE_RST();
 void ISR_P3V3_E1S_PWR_CHANGE();
 void ISR_P12V_E1S_PWR_CHANGE();
 void ISR_CXL_PG_ON();
 void ISR_SET_CXL_LED();
+
+void init_event_work();
+void addsel_work_handler(struct k_work *work_item);
+
+add_sel_info *find_event_work_items(uint8_t gpio_num);
 
 #endif

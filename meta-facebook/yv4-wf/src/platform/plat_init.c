@@ -28,6 +28,9 @@
 #include "plat_i2c_target.h"
 #include "libutil.h"
 #include "plat_class.h"
+//#include "pldm_oem.h"
+//#include <logging/log.h>
+//LOG_MODULE_REGISTER(plat_init);
 
 #define DEF_PLAT_CONFIG_PRIORITY 77
 #define DEF_PROJ_GPIO_PRIORITY 78
@@ -66,6 +69,14 @@ void pal_set_sys_status()
 		create_check_cxl_ready_thread();
 	}
 	set_sys_ready_pin(BIC_READY_R);
+	////send_event_log_to_bmc
+	//struct pldm_addsel_data msg = { 0 };
+	//msg.event_type = HSC_OCP;
+	//msg.assert_type = EVENT_ASSERTED;
+	//LOG_ERR("[debug] send_event_log_to_bmc");
+	//if (send_event_log_to_bmc(msg) != PLDM_SUCCESS) {
+	//	LOG_ERR("[debug] Failed to send event log");
+	//};
 }
 
 void pal_pre_init()
@@ -88,6 +99,7 @@ void pal_pre_init()
 	}
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 
+	init_event_work();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
 }
 
