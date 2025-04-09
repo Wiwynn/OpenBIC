@@ -4699,7 +4699,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -4766,7 +4766,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -4833,7 +4833,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -4900,7 +4900,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -4967,7 +4967,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -5034,7 +5034,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -5101,7 +5101,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
@@ -5168,7 +5168,7 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 			0x00000000, //int32_t warning_low;
 			0x00002134, //int32_t critical_high;
 			0x00000000, //int32_t critical_low;
-			0x00000000, //int32_t fatal_high;
+			0x0000251C, //int32_t fatal_high;
 			0x00000000, //int32_t fatal_low;
 		},
 		.update_time = 0,
