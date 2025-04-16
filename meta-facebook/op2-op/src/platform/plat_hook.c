@@ -22,6 +22,7 @@
 #include "libutil.h"
 #include "m88rt51632.h"
 #include "rg3mxxb12.h"
+#include "kb900x.h"
 #include "p3h284x.h"
 #include "plat_class.h"
 #include "plat_i2c.h"
@@ -367,6 +368,16 @@ bool pre_retimer_read(sensor_cfg *cfg, void *args)
 			ret = init_drive_type_delayed(cfg);
 			if (ret == false) {
 				LOG_ERR("M88RT51632 retimer initial fail");
+				return ret;
+			}
+			break;
+		case RETIMER_TYPE_KB900X:
+			check_init_count += 1;
+			cfg->type = sensor_dev_kb900x;
+			cfg->offset = KB900X_CFG_OFFSET_TEMPERATURE;
+			ret = init_drive_type_delayed(cfg);
+			if (ret == false) {
+				LOG_ERR("KB900X retimer initial fail");
 				return ret;
 			}
 			break;
