@@ -123,6 +123,7 @@ bool p3h284x_get_device_info(uint8_t bus, uint16_t *i3c_hub_type)
 	}
 
 	*i3c_hub_type = (device_info1 << 8) | device_info0;
+	//LOG_ERR("<i3c hub - i2c> p3h284x device info: %x", *i3c_hub_type);
 	return true;
 }
 
@@ -137,82 +138,89 @@ bool p3h284x_get_device_info_i3c(uint8_t bus, uint16_t *i3c_hub_type)
 	}
 
 	*i3c_hub_type = (device_info1 << 8) | device_info0;
+	//LOG_ERR("<i3c hub - i3c> p3h284x device info: %x", *i3c_hub_type);
 	return true;
 }
 
 bool p3h284x_i2c_mode_only_init(uint8_t bus, uint8_t slave_port, uint8_t ldo_volt,
-				uint8_t pullup_resistor)
+				uint8_t pullup_resistor, uint8_t mode)
 {
 	bool ret = false;
 	uint8_t value;
-	// Unlock protected regsiter
-	if (!p3h284x_protected_register(bus, false)) {
+	// Device Registers Protection Code
+	// 0x69: Unlocks protected registers
+	if (!p3h284x_protected_register(bus, false)) { //0x10 0x69
 		return false;
 	}
 
-	// Target Port VCCIO operating voltage shall be set
+	// VCCIO LDO Setting
+	// 1111 1111 : TP0 & TP1/CP0 & CP1 _LDO_VOLTAGE =1.8V
 	value = (ldo_volt << CP0_OFFSET) | (ldo_volt << CP1_OFFSET) |
 		(ldo_volt << TP_VCCIO0_OFFSET) | (ldo_volt << TP_VCCIO1_OFFSET);
-	if (!p3h284x_register_write(bus, P3H284X_VOLT_LDO_SETTING, value)) {
+	if (!p3h284x_register_write(bus, P3H284X_VOLT_LDO_SETTING, value)) { //0x16 0xff
 		goto out;
 	}
 
-	// Disable all slave ports
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORT_ENABLE, 0x00)) {
+	// Target Port SMBus Agent Enable
+	// 0000 0000 : All Target Port IO is OD/PP compatible mode (I3C).
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_AGENT_ENABLE, 0x00)) { //0x18 0x00
 		goto out;
 	}
 
-	// Target Ports pull up termination and LDO enable (if required) shall be configured
-	if (!p3h284x_register_read(bus, P3H284X_TARGET_PORTS_PULLUP_SETTING, &value)) {
-		goto out;
-	}
-	value = SETBITS(value, pullup_resistor, TARGET_PORTS_VCCIO0_PULLUP_OFFSET);
-	value = SETBITS(value, pullup_resistor, TARGET_PORTS_VCCIO1_PULLUP_OFFSET);
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_PULLUP_SETTING, value)) {
-		goto out;
-	}
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_PULLUP_ENABLE, 0xFF)) {
+	// Target Port GPIO Mode Enable
+	// 0000 0000 : The GPIO mode on this port is disabled.
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_GPIO_ENABLE, 0x00)) { //0x1E 0x00
 		goto out;
 	}
 
-	// Target Port GPIO and SMbus Agent modes are disabled
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_AGENT_ENABLE, 0x00)) {
-		goto out;
-	}
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_GPIO_ENABLE, 0x00)) {
-		goto out;
-	}
-
-	// Target Port signaling mode is set (I2C only)
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_MODE_SETTING, slave_port)) {
+	// Controller Port Configuration
+	// 0001 0000 : OD only mode. I2C open drain only operation supported
+	if (!p3h284x_register_write(bus, P3H284X_CONTROLLER_PORT_CONFIG, 0x10)) { //0x11 0x10
 		goto out;
 	}
 
-	// Enable master port OD only mode
-	if (!p3h284x_register_read(bus, P3H284X_CONTROLLER_PORT_CONFIG, &value)) {
-		goto out;
-	}
-	value = SETBIT(value, CP_OD_ONLY);
-	if (!p3h284x_register_write(bus, P3H284X_CONTROLLER_PORT_CONFIG, value)) {
+	// Hub Network Operation Mode Configuration
+	// 0000 0000 : default setting
+	if (!p3h284x_register_write(bus, P3H284X_HUB_NETWORK_OPERATION_MODE, 0x00)) { //0x15 0x00
 		goto out;
 	}
 
-	// Clear I3C HUB network traffic protocol setting
-	if (!p3h284x_register_read(bus, P3H284X_HUB_NETWORK_OPERATION_MODE, &value)) {
-		goto out;
-	}
-	value = CLEARBIT(value, P3H284X_HUB_NETWORK_ALWAYS_I3C);
-	if (!p3h284x_register_write(bus, P3H284X_HUB_NETWORK_OPERATION_MODE, value)) {
+	// On-die LDO Enable and Pull up Resistor Value Setting
+	// 1111 0000 : TARGET_PORTS_VCCIO0&1 _PULLUP = 2K
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_PULLUP_SETTING, 0xf0)) { //0x19 0xf0
 		goto out;
 	}
 
-	// Enable selected slave port
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORT_ENABLE, slave_port)) {
+	if (mode == P3H2840_BYPASS_MODE) {
+		// Target Port Pull Up Enable
+		if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_PULLUP_ENABLE, 0xFD)) { //0x53 FD
+			goto out;
+		}
+
+		// Bypass Mode Enable
+		if (!p3h284x_register_write(bus, P3H284X_BYPASS_MODE_ENABLE, 0x1D)) { //0x52 0x1D
+			goto out;
+		}
+	} else {
+		// Target Port Pull Up Enable
+		if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_PULLUP_ENABLE, 0xFF)) { //0x53 0xFF
+			goto out;
+		}
+	}
+
+	// Target Port IO Signaling Mode Setting
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTS_MODE_SETTING, slave_port)) { //0x17 0x04/0x23/0x1F
 		goto out;
 	}
 
-	// Connect selected slave port to HUB network
-	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTSHUB_NETWORK_CONNECTION, slave_port)) {
+	// Target Port Enable
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORT_ENABLE, slave_port)) { //0x12 0x04/0x23/0x1F
+		goto out;
+	}
+
+	// Target Port Hub Network Connection Enable
+	if (!p3h284x_register_write(bus, P3H284X_TARGET_PORTSHUB_NETWORK_CONNECTION,
+		slave_port)) { //0x51 0x04/0x23/0x1F
 		goto out;
 	}
 
@@ -230,21 +238,25 @@ bool p3h284x_i3c_mode_only_init(I3C_MSG *i3c_msg, uint8_t ldo_volt)
 {
 	bool ret = false;
 
-	uint8_t cmd_unprotect[2] = { P3H284X_PROTECTION_REG, 0x6A };
-	uint8_t cmd_protect[2] = { P3H284X_PROTECTION_REG, 0x00 };
+	// Device Registers Protection Code
+	uint8_t cmd_unprotect[2] = { P3H284X_PROTECTION_REG, P3H284X_PROTECTION_UNLOCK };
+	uint8_t cmd_protect[2] = { P3H284X_PROTECTION_REG, P3H284X_PROTECTION_LOCK };
+
 	uint8_t cmd_initial[][2] = {
 		/*
 		 * Refer to p3h284x datasheet page 8 and 9, LDO voltage depends
 		 * on each project's hard design
 		 */
-		{ P3H284X_VOLT_LDO_SETTING, ldo_volt },
-		{ P3H284X_TARGET_PORTS_AGENT_ENABLE, 0x0 },
-		{ P3H284X_TARGET_PORTS_GPIO_ENABLE, 0x0 },
-		{ P3H284X_TARGET_PORT_ENABLE, 0x0 },
-		{ P3H284X_TARGET_PORTS_PULLUP_ENABLE, 0xFF },
-		{ P3H284X_TARGET_PORTS_MODE_SETTING, 0x0 },
-		{ P3H284X_TARGET_PORT_ENABLE, 0xFF },
-		{ P3H284X_TARGET_PORTSHUB_NETWORK_CONNECTION, 0xFF },
+		// VCCIO LDO Setting
+		{ P3H284X_VOLT_LDO_SETTING, ldo_volt },//0x16
+		// On-die LDO Enable and Pull up Resistor Value Setting
+		{ P3H284X_TARGET_PORTS_PULLUP_SETTING,0xA0}, //0x19
+		// Target Port Enable
+		{ P3H284X_TARGET_PORT_ENABLE, 0xC5 },//0x12
+		// Target Port Hub Network Connection Enable
+		{ P3H284X_TARGET_PORTSHUB_NETWORK_CONNECTION, 0xC5 },//0x51
+		// Target Port Pull Up Enable
+		{ P3H284X_TARGET_PORTS_PULLUP_ENABLE, 0xFF },//0x53
 	};
 
 	i3c_msg->tx_len = 2;
@@ -281,8 +293,8 @@ bool p3h284x_set_slave_port(uint8_t bus, uint8_t addr, uint8_t setting)
 {
 	I3C_MSG i3c_msg = { 0 };
 	int ret = 0;
-	uint8_t cmd_unprotect[2] = { P3H284X_PROTECTION_REG, 0x6A };
-	uint8_t cmd_protect[2] = { P3H284X_PROTECTION_REG, 0x00 };
+	uint8_t cmd_unprotect[2] = { P3H284X_PROTECTION_REG, P3H284X_PROTECTION_UNLOCK };
+	uint8_t cmd_protect[2] = { P3H284X_PROTECTION_REG, P3H284X_PROTECTION_LOCK };
 
 	i3c_msg.bus = bus;
 	i3c_msg.target_addr = addr;

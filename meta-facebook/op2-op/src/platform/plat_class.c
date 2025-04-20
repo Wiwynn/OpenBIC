@@ -182,8 +182,11 @@ void init_i3c_hub_type(void)
 	if (rg3mxxb12_get_device_info(I2C_BUS2, &i3c_hub_type) &&
 	    (i3c_hub_type == RG3M87B12_DEVICE_INFO)) {
 		LOG_INF("I3C hub type: rg3mxxb12");
-	} else if (p3h284x_get_device_info(I2C_BUS2, &i3c_hub_type)) {
+		printk("I3C hub type: rg3mxxb12");
+	} else if (p3h284x_get_device_info(I2C_BUS2, &i3c_hub_type) &&
+		(i3c_hub_type == P3H2840_DEVICE_INFO)) {
 		LOG_INF("I3C hub type: p3h284x");
+		printk("I3C hub type: p3h284x");
 	} else {
 		LOG_ERR("I3C hub get device type fail");
 		return;

@@ -137,6 +137,7 @@ bool rg3mxxb12_get_device_info_i3c(uint8_t bus, uint16_t *i3c_hub_type)
 	}
 
 	*i3c_hub_type = (device_info1 << 8) | device_info0;
+	LOG_ERR("<i3c hub> rg3mxxb12 device info: %x", *i3c_hub_type);
 	return true;
 }
 
