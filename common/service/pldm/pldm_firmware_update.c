@@ -1659,10 +1659,7 @@ uint8_t fill_descriptor_into_buf(struct pldm_descriptor_string *descriptor, uint
 	char data[2];
 	uint8_t val = 0;
 	uint8_t index = 0;
-	uint8_t data_ptr[sizeof(struct pldm_descriptor_tlv) +
-			 PLDM_ASCII_MODEL_NUMBER_LONG_STRING_LENGTH] = {
-		0
-	}; // Max descriptor length
+	uint8_t data_ptr[256] = { 0 }; // Max descriptor length
 	uint8_t descriptor_count = get_device_single_descriptor_length(*descriptor);
 	if (current_length + descriptor_count > PLDM_MAX_DATA_SIZE) {
 		LOG_ERR("Current length + fill length is over PLDM_MAX_DATA_SIZE define size, current length: 0x%x, descriptor length: 0x%x",

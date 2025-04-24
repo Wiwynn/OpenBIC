@@ -28,6 +28,7 @@
 #include "plat_i2c.h"
 #include "plat_gpio.h"
 #include "plat_pldm_sensor.h"
+#include "plat_version.h"
 
 #include "mp2971.h"
 #include "pt5161l.h"
@@ -41,8 +42,12 @@
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
+static struct pldm_downstream_identifier_idx_table *downstream_table = NULL;
+static uint8_t downstream_devices_count = 0;
+
 static uint8_t plat_pldm_pre_vr_update(void *fw_update_param);
 static uint8_t plat_pldm_post_vr_update(void *fw_update_param);
+static bool plat_get_bic_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
 static uint8_t plat_pldm_pre_retimer_update(void *fw_update_param);
 static bool plat_get_retimer_fw_version(void *info_p, uint8_t *buf, uint8_t *len);
@@ -51,6 +56,7 @@ static uint8_t plat_pldm_pre_retimer_recovery(void *fw_update_param);
 static uint8_t plat_pldm_post_retimer_recovery(void *fw_update_param);
 static uint8_t plat_pldm_pre_bios_update(void *fw_update_param);
 static uint8_t plat_pldm_post_bios_update(void *fw_update_param);
+static void query_downstream_identifier_table_and_count();
 
 enum FIRMWARE_COMPONENT {
 	SD_COMPNT_BIC,
@@ -99,7 +105,7 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 		.inf = COMP_UPDATE_VIA_SPI,
 		.activate_method = COMP_ACT_SELF,
 		.self_act_func = pldm_bic_activate,
-		.get_fw_version_fn = NULL,
+		.get_fw_version_fn = plat_get_bic_fw_version,
 		.self_apply_work_func = NULL,
 		.comp_version_str = NULL,
 	},
@@ -225,9 +231,24 @@ pldm_fw_update_info_t PLDMUPDATE_FW_CONFIG_TABLE[] = {
 	},
 };
 
+// internal helper function to get downstream identifier
+void query_downstream_identifier_table_and_count()
+{
+	struct pldm_downstream_identifier_table_and_count d = get_downstream_identifier_table();
+	downstream_table = d.downstream_table;
+	downstream_devices_count = d.downstream_devices_count;
+}
+
+#define fill(dest, src)                                                                            \
+	memcpy(dest, &src, sizeof(src));                                                           \
+	dest += sizeof(src);
+#define fill_span(dest, src, size)                                                                 \
+	memcpy(dest, src, size);                                                                   \
+	dest += size;
 uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					   uint16_t *resp_len)
 {
+	// check if input arguments are valid
 	CHECK_NULL_ARG_WITH_RETURN(buf, false);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -236,27 +257,68 @@ uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uin
 		(struct pldm_query_device_identifiers_resp *)resp;
 
 	resp_p->completion_code = PLDM_SUCCESS;
-	resp_p->descriptor_count = 0x03;
 
-	uint8_t iana[PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH] = { 0x00, 0x00, 0xA0, 0x15 };
+	// formal descriptors
+	const uint32_t iana = sys_cpu_to_be32(40981UL); // meta IANA number
+	const uint16_t deviceId = 0x0;
+	const uint8_t slotNumber =
+		plat_get_eid() / 10; // assuming using static EID, invalid if using dynamic EID
+	const uint8_t slot[PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH] = { (char)(slotNumber +
+										   '0') };
 
-	// Set the device id for sd bic
-	uint8_t deviceId[PLDM_PCI_DEVICE_ID_LENGTH] = { 0x00, 0x00 };
+	// vendor defined descriptors
+	const uint8_t *compatible_hardware_title = "OpenBMC.CompatibleHardware";
+	const uint8_t *compatible_hardware_value =
+		"com.meta.Hardware.Yosemite4.SentinelDome.BIC.ASPEED_AST1030";
+	const uint8_t *slot_title = "SlotNumber";
+	const uint8_t vd_slot_number = slotNumber + '0';
+	const uint8_t *slot_value = &vd_slot_number;
 
-	uint8_t slotNumber = get_slot_eid() / 10;
-	uint8_t slot[PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH] = { (char)(slotNumber + '0') };
+	const uint8_t compatible_hardware_title_length = strlen(compatible_hardware_title);
+	const uint8_t compatible_hardware_value_length = strlen(compatible_hardware_value);
+	const uint8_t slot_title_length = strlen(slot_title);
+	const uint8_t slot_value_length = 1;
+	const uint16_t vendor_defined_tlv_length = 2;
+	const uint16_t compatible_hardware_descriptor_length = vendor_defined_tlv_length +
+							       compatible_hardware_title_length +
+							       compatible_hardware_value_length;
+	const uint16_t slot_descriptor_length =
+		vendor_defined_tlv_length + slot_title_length + slot_value_length;
 
-	uint8_t total_size_of_iana_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(iana) - 1;
+	// tlv has 1 redundant byte for pointer, which is not included in the descriptor length
+	const uint8_t tlv_length = 4;
 
-	uint8_t total_size_of_device_id_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(deviceId) - 1;
+	const struct warpped_tlv {
+		uint16_t descriptor_type;
+		uint16_t descriptor_length;
+		uint8_t title_string_type;
+		uint8_t title_string_length;
+		const uint8_t *title_string;
+		const uint8_t *descriptor_data;
+	} tlvs[] = {
+		{ PLDM_FWUP_IANA_ENTERPRISE_ID, PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH, 0, 0, NULL,
+		  (uint8_t *)&iana },
+		{ PLDM_PCI_DEVICE_ID, PLDM_PCI_DEVICE_ID_LENGTH, 0, 0, NULL, (uint8_t *)&deviceId },
+		{ PLDM_ASCII_MODEL_NUMBER_SHORT_STRING, PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH,
+		  0, 0, NULL, slot },
+		{ PLDM_FWUP_VENDOR_DEFINED, compatible_hardware_descriptor_length, PLDM_COMP_ASCII,
+		  compatible_hardware_title_length, compatible_hardware_title,
+		  compatible_hardware_value },
+		{ PLDM_FWUP_VENDOR_DEFINED, slot_descriptor_length, PLDM_COMP_ASCII,
+		  slot_title_length, slot_title, slot_value },
+	};
+	resp_p->descriptor_count = ARRAY_SIZE(tlvs);
 
-	uint8_t total_size_of_slot_descriptor =
-		sizeof(struct pldm_descriptor_tlv) + sizeof(slot) - 1;
+	// calculate total size of descriptors
+	uint16_t total_size_of_descriptors = 0;
+	for (int i = 0; i < resp_p->descriptor_count; i++) {
+		total_size_of_descriptors += tlv_length + tlvs[i].descriptor_length;
+	}
+	resp_p->device_identifiers_len = total_size_of_descriptors;
+	LOG_INF("Total size of descriptors: %d", total_size_of_descriptors);
 
-	if (sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_iana_descriptor +
-		    total_size_of_device_id_descriptor + total_size_of_slot_descriptor >
+	// check if total size of descriptors is over PLDM_MAX_DATA_SIZE
+	if (sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_descriptors >
 	    PLDM_MAX_DATA_SIZE) {
 		LOG_ERR("QueryDeviceIdentifiers data length is over PLDM_MAX_DATA_SIZE define size %d",
 			PLDM_MAX_DATA_SIZE);
@@ -264,58 +326,22 @@ uint8_t plat_pldm_query_device_identifiers(const uint8_t *buf, uint16_t len, uin
 		return PLDM_ERROR;
 	}
 
-	// Allocate data for tlv which including descriptors data
-	struct pldm_descriptor_tlv *tlv_ptr = malloc(total_size_of_iana_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
+	// fill response
+	uint8_t *resp_ptr = resp + sizeof(struct pldm_query_device_identifiers_resp);
+	for (uint8_t i = 0; i < resp_p->descriptor_count; i++) {
+		const struct warpped_tlv *tlv = &tlvs[i];
+		fill(resp_ptr, tlv->descriptor_type);
+		fill(resp_ptr, tlv->descriptor_length);
+		uint16_t rest_of_data_length = tlv->descriptor_length;
+		if (tlv->descriptor_type == PLDM_FWUP_VENDOR_DEFINED) {
+			fill(resp_ptr, tlv->title_string_type);
+			fill(resp_ptr, tlv->title_string_length);
+			fill_span(resp_ptr, tlv->title_string, tlv->title_string_length);
+			rest_of_data_length -= tlv->title_string_length + vendor_defined_tlv_length;
+		}
+		fill_span(resp_ptr, tlv->descriptor_data, rest_of_data_length);
 	}
-
-	tlv_ptr->descriptor_type = PLDM_FWUP_IANA_ENTERPRISE_ID;
-	tlv_ptr->descriptor_length = PLDM_FWUP_IANA_ENTERPRISE_ID_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, iana, sizeof(iana));
-
-	uint8_t *end_of_id_ptr =
-		(uint8_t *)resp + sizeof(struct pldm_query_device_identifiers_resp);
-
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_iana_descriptor);
-	free(tlv_ptr);
-
-	tlv_ptr = malloc(total_size_of_device_id_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
-	}
-
-	tlv_ptr->descriptor_type = PLDM_PCI_DEVICE_ID;
-	tlv_ptr->descriptor_length = PLDM_PCI_DEVICE_ID_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, deviceId, sizeof(deviceId));
-
-	end_of_id_ptr += total_size_of_iana_descriptor;
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_device_id_descriptor);
-	free(tlv_ptr);
-
-	tlv_ptr = malloc(total_size_of_slot_descriptor);
-	if (tlv_ptr == NULL) {
-		LOG_ERR("Memory allocation failed!");
-		return PLDM_ERROR;
-	}
-
-	tlv_ptr->descriptor_type = PLDM_ASCII_MODEL_NUMBER_SHORT_STRING;
-	tlv_ptr->descriptor_length = PLDM_ASCII_MODEL_NUMBER_SHORT_STRING_LENGTH;
-	memcpy(tlv_ptr->descriptor_data, slot, sizeof(slot));
-
-	end_of_id_ptr += total_size_of_device_id_descriptor;
-	memcpy(end_of_id_ptr, tlv_ptr, total_size_of_slot_descriptor);
-	free(tlv_ptr);
-
-	resp_p->device_identifiers_len = total_size_of_iana_descriptor +
-					 total_size_of_device_id_descriptor +
-					 total_size_of_slot_descriptor;
-
-	*resp_len = sizeof(struct pldm_query_device_identifiers_resp) +
-		    total_size_of_iana_descriptor + total_size_of_device_id_descriptor +
-		    total_size_of_slot_descriptor;
+	*resp_len = sizeof(struct pldm_query_device_identifiers_resp) + total_size_of_descriptors;
 
 	return PLDM_SUCCESS;
 }
@@ -392,12 +418,16 @@ static size_t calculate_descriptors_size(struct pldm_descriptor_string *descript
 static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_index,
 							      uint32_t *next_transaction_index)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	size_t total_size = sizeof(pldm_hdr) + sizeof(struct pldm_query_downstream_identifier_resp);
 	uint32_t i = start_index;
 	while (i < downstream_devices_count) {
-		total_size += sizeof(struct pldm_downstream_device) +
-			      calculate_descriptors_size(downstream_table[i].descriptor,
-							 downstream_table[i].descriptor_count);
+		total_size +=
+			sizeof(struct pldm_downstream_device) +
+			calculate_descriptors_size(downstream_table[i].table.descriptor,
+						   downstream_table[i].table.descriptor_count);
 		if (total_size >= PLDM_MAX_DATA_SIZE) {
 			*next_transaction_index = i;
 			return false;
@@ -413,6 +443,9 @@ static bool remaining_data_can_be_returned_in_one_transaction(uint32_t start_ind
 uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len, uint8_t *resp,
 					       uint16_t *resp_len)
 {
+	if (!downstream_table) {
+		query_downstream_identifier_table_and_count();
+	}
 	CHECK_NULL_ARG_WITH_RETURN(buf, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp, PLDM_ERROR);
 	CHECK_NULL_ARG_WITH_RETURN(resp_len, PLDM_ERROR);
@@ -468,12 +501,12 @@ uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len,
 	struct pldm_descriptor_string *curr_descriptors_tbl;
 
 	for (uint32_t i = start_index; i < start_index + resp_p->numbwerofdownstreamdevice; i++) {
-		curr_descriptors_tbl = downstream_table[i].descriptor;
-		curr_device->downstreamdeviceindex = i + 1;
-		curr_device->downstreamdescriptorcount = downstream_table[i].descriptor_count;
+		curr_descriptors_tbl = downstream_table[i].table.descriptor;
+		curr_device->downstreamdeviceindex = downstream_table[i].idx; //i + 1;
+		curr_device->downstreamdescriptorcount = downstream_table[i].table.descriptor_count;
 		downstream_devices_length += sizeof(struct pldm_downstream_device);
 		uint8_t *descriptor_ptr = curr_device->downstreamdescriptors;
-		for (uint32_t j = 0; j < downstream_table[i].descriptor_count; j++) {
+		for (uint32_t j = 0; j < downstream_table[i].table.descriptor_count; j++) {
 			rc = fill_descriptor_into_buf(&curr_descriptors_tbl[j], descriptor_ptr,
 						      &curr_descriptor_length,
 						      downstream_devices_length);
@@ -553,6 +586,37 @@ static uint8_t plat_pldm_post_vr_update(void *fw_update_param)
 	set_vr_monitor_status(true);
 
 	return 0;
+}
+
+static bool plat_get_bic_fw_version(void *info_p, uint8_t *buf, uint8_t *len)
+{
+	CHECK_NULL_ARG_WITH_RETURN(info_p, false);
+	CHECK_NULL_ARG_WITH_RETURN(buf, false);
+	CHECK_NULL_ARG_WITH_RETURN(len, false);
+
+	uint8_t tmp_buf[4];
+	uint8_t idx = 0;
+
+#ifdef BIC_FW_VERSION_ADD_FRU_NAME
+	buf[idx++] = (char)BIC_FW_platform_0;
+	buf[idx++] = (char)BIC_FW_platform_1;
+#endif
+	tmp_buf[0] = BIC_FW_YEAR_MSB;
+	tmp_buf[1] = BIC_FW_YEAR_LSB;
+	tmp_buf[2] = BIC_FW_WEEK;
+	tmp_buf[3] = BIC_FW_VER;
+
+	idx += bin2hex(tmp_buf, 2, &buf[idx], 4);
+	buf[idx++] = '.';
+
+	idx += bin2hex(&tmp_buf[2], 1, &buf[idx], 2);
+	buf[idx++] = '.';
+
+	idx += bin2hex(&tmp_buf[3], 1, &buf[idx], 2);
+
+	*len = idx;
+
+	return true;
 }
 
 static bool plat_get_vr_fw_version(void *info_p, uint8_t *buf, uint8_t *len)
