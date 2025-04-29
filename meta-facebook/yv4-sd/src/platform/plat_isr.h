@@ -67,8 +67,13 @@ void ISR_APML_ALERT();
 void ISR_CPU_SMERR_BIC();
 
 void init_vr_event_work();
+// void init_throttle_work_q();
 void process_vr_pmalert_ocp_sel(struct k_work *work_item);
 void init_event_work();
 void addsel_work_handler(struct k_work *work_item);
+void set_mb_throttle_status(uint8_t gpio_num);
+void mb_throttle_handler(struct k_work *work);
+void set_sys_throttle_status(uint8_t gpio_num);
+void sys_throttle_handler(struct k_work *work);
 
 #endif

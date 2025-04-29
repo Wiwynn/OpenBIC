@@ -95,6 +95,7 @@ void pal_pre_init()
 	init_vr_event_work();
 	init_event_work();
 	init_pmic_event_work();
+	// init_throttle_work_q();
 	init_plat_worker(K_PRIO_PREEMPT(2)); // work queue for low priority jobs
 
 	plat_init_pldm_sensor_table();
@@ -128,7 +129,10 @@ void pal_set_sys_status()
 	set_DC_status(PWRGD_CPU_LVC3);
 	set_DC_on_delayed_status();
 	set_post_status(FM_BIOS_POST_CMPLT_BIC_N);
+	set_mb_throttle_status(FAST_PROCHOT_N);
+	set_sys_throttle_status(FM_CPU_BIC_PROCHOT_LVT3_N);
 	sync_bmc_ready_pin();
+	
 	apml_init();
 
 	if (get_post_status()) {

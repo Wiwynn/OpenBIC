@@ -51,6 +51,34 @@ LOG_MODULE_REGISTER(plat_isr, LOG_LEVEL_DBG);
 
 uint8_t hw_event_register[13] = { 0 };
 
+// // for MB_THROTTLE
+// #define MB_THROTTLE_WORKQ_STACK_SIZE 2048
+// #define MB_THROTTLE_WORKQ_PRIORITY   CONFIG_MAIN_THREAD_PRIORITY
+// K_THREAD_STACK_DEFINE(mb_throttle_workq_stack, MB_THROTTLE_WORKQ_STACK_SIZE);
+// struct k_work_q mb_throttle_work_q;
+
+// // for SYS_THROTTLE
+// #define SYS_THROTTLE_WORKQ_STACK_SIZE 2048
+// #define SYS_THROTTLE_WORKQ_PRIORITY   CONFIG_MAIN_THREAD_PRIORITY
+// K_THREAD_STACK_DEFINE(sys_throttle_workq_stack, SYS_THROTTLE_WORKQ_STACK_SIZE);
+// struct k_work_q sys_throttle_work_q;
+
+// void init_throttle_work_q(void)
+// {
+// 	k_work_queue_start(&mb_throttle_work_q,
+// 			   mb_throttle_workq_stack,
+// 			   K_THREAD_STACK_SIZEOF(mb_throttle_workq_stack),
+// 			   MB_THROTTLE_WORKQ_PRIORITY,
+// 			   NULL);
+
+// 	k_work_queue_start(&sys_throttle_work_q,
+// 			   sys_throttle_workq_stack,
+// 			   K_THREAD_STACK_SIZEOF(sys_throttle_workq_stack),
+// 			   SYS_THROTTLE_WORKQ_PRIORITY,
+// 			   NULL);
+// }
+
+
 add_vr_sel_info vr_event_work_item[] = {
 	{
 		.is_init = false,
@@ -309,12 +337,17 @@ K_WORK_DEFINE(switch_i3c_dimm_work, switch_i3c_dimm_mux_to_cpu);
 K_WORK_DELAYABLE_DEFINE(PROC_FAIL_work, PROC_FAIL_handler);
 K_WORK_DELAYABLE_DEFINE(ABORT_FRB2_WDT_THREAD, abort_frb2_wdt_thread);
 K_WORK_DELAYABLE_DEFINE(read_pmic_critical_work, read_pmic_error_when_dc_off);
+K_WORK_DELAYABLE_DEFINE(mb_throttle_work, mb_throttle_handler);
+K_WORK_DELAYABLE_DEFINE(sys_throttle_work, sys_throttle_handler);
 
 #define DC_ON_5_SECOND 5
 #define PROC_FAIL_START_DELAY_SECOND 10
 #define VR_EVENT_DELAY_MS 10
 // The PMIC needs a total of 200ms from CAMP signal assertion to complete the write operation
 #define READ_PMIC_CRITICAL_ERROR_MS 200
+static bool is_mb_throttle_assert = false;
+static bool is_sys_throttle_assert = false;
+
 void ISR_DC_ON()
 {
 	set_DC_status(PWRGD_CPU_LVC3);
@@ -441,32 +474,68 @@ void ISR_MB_THROTTLE()
 	 * FAST_PROCHOT_N has a glitch and causes BIC to record MB_throttle deassertion SEL.
 	 * Ignore this by checking whether MB_throttle is asserted before recording the deassertion.
 	 */
-	static bool is_mb_throttle_assert = false;
-	if (gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH && get_DC_status()) {
-		add_sel_info *event_item = find_event_work_items(FAST_PROCHOT_N);
-		if (event_item == NULL) {
-			LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
-				FAST_PROCHOT_N, gpio_get(FAST_PROCHOT_N));
-			return;
-		}
-
-		if ((gpio_get(FAST_PROCHOT_N) == GPIO_HIGH) && (is_mb_throttle_assert == true)) {
-			LOG_INF("ISR_MB_THROTTLE deassert");
-			is_mb_throttle_assert = false;
-			event_item->assert_type = EVENT_DEASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		} else if ((gpio_get(FAST_PROCHOT_N) == GPIO_LOW) &&
-			   (is_mb_throttle_assert == false)) {
-			LOG_INF("ISR_MB_THROTTLE assert");
-			hw_event_register[2]++;
-			is_mb_throttle_assert = true;
-			event_item->assert_type = EVENT_ASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		}
-	}
+	k_work_schedule_for_queue(&plat_work_q, &mb_throttle_work, K_NO_WAIT);
 }
+
+void set_mb_throttle_status(uint8_t gpio_num)
+{
+	is_mb_throttle_assert = (gpio_get(gpio_num) == 1) ? true : false;
+	LOG_WRN("is_mb_throttle_assert: %s", (is_mb_throttle_assert) ? "deassert" : "assert");
+}
+
+void mb_throttle_handler(struct k_work *work)
+{
+	int ret=0;
+	
+	ret = gpio_set(BIC_JTAG_SEL_R,GPIO_HIGH);
+	if (ret!=0){
+		LOG_ERR("Failed to set BIC_JTAG_SEL_R=1");
+	}
+	ret = gpio_set(P3V_BAT_SCALED_R_EN,GPIO_HIGH);
+	if (ret!=0){
+		LOG_ERR("Failed to set P3V_BAT_SCALED_R_EN=1");
+	}
+
+	k_sleep(K_USEC(600));
+    if (gpio_get(RST_RSMRST_BMC_N) != GPIO_HIGH || !get_DC_status())
+         return;
+
+	int prochot_status = gpio_get(FAST_PROCHOT_N);
+
+	if ((prochot_status == GPIO_HIGH && !is_mb_throttle_assert) ||
+		(prochot_status == GPIO_LOW && is_mb_throttle_assert)) {
+		return;
+	}
+
+	add_sel_info *event_item = find_event_work_items(FAST_PROCHOT_N);
+	if (event_item == NULL) {
+		LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
+			FAST_PROCHOT_N, prochot_status);
+		return;
+	}
+
+	if (prochot_status == GPIO_HIGH) {
+		// LOG_INF("MB_THROTTLE -");
+		is_mb_throttle_assert = false;
+		event_item->assert_type = EVENT_DEASSERTED;				
+	} else {
+		// LOG_INF("MB_THROTTLE +");
+		hw_event_register[2]++;
+		is_mb_throttle_assert = true;
+		event_item->assert_type = EVENT_ASSERTED;
+	}
+	k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
+
+	ret = gpio_set(BIC_JTAG_SEL_R,GPIO_LOW);
+	if (ret!=0){
+		LOG_ERR("Failed to set BIC_JTAG_SEL_R=0");
+	}
+	ret = gpio_set(P3V_BAT_SCALED_R_EN,GPIO_LOW);
+	if (ret!=0){
+		LOG_ERR("Failed to set P3V_BAT_SCALED_R_EN=0");
+	}
+ }
+
 
 void ISR_SOC_THMALTRIP()
 {
@@ -485,36 +554,50 @@ void ISR_SOC_THMALTRIP()
 
 void ISR_SYS_THROTTLE()
 {
-	/* Same as MB_THROTTLE, glitch of FAST_PROCHOT_N will affect FM_CPU_BIC_PROCHOT_LVT3_N.
-	 * Ignore the fake event by checking whether SYS_throttle is asserted before recording the deassertion.
+	/* SYS_THROTTLE glitch workaround
+	 * FM_CPU_BIC_PROCHOT_LVT3_N has a glitch and causes BIC to record SYS_throttle deassertion SEL.
+	 * Ignore this by checking whether SYS_throttle is asserted before recording the deassertion.
 	 */
-	static bool is_sys_throttle_assert = false;
-	if ((gpio_get(RST_CPU_RESET_BIC_N) == GPIO_HIGH) &&
-	    (gpio_get(PWRGD_CPU_LVC3) == GPIO_HIGH)) {
-		add_sel_info *event_item = find_event_work_items(FM_CPU_BIC_PROCHOT_LVT3_N);
-		if (event_item == NULL) {
-			LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
-				FM_CPU_BIC_PROCHOT_LVT3_N, gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N));
-			return;
-		}
+	k_work_schedule_for_queue(&plat_work_q, &sys_throttle_work, K_NO_WAIT);
+}
 
-		if ((gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N) == GPIO_HIGH) &&
-		    (is_sys_throttle_assert == true)) {
-			LOG_INF("ISR_SYS_THROTTLE deassert");
-			is_sys_throttle_assert = false;
-			event_item->assert_type = EVENT_DEASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		} else if ((gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N) == GPIO_LOW) &&
-			   (is_sys_throttle_assert == false)) {
-			LOG_INF("ISR_SYS_THROTTLE assert");
-			hw_event_register[4]++;
-			is_sys_throttle_assert = true;
-			event_item->assert_type = EVENT_ASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		}
+void set_sys_throttle_status(uint8_t gpio_num)
+{
+	is_sys_throttle_assert = (gpio_get(gpio_num) == 1) ? true : false;
+	LOG_WRN("is_sys_throttle_assert: %s", (is_sys_throttle_assert) ? "deassert" : "assert");
+}
+
+void sys_throttle_handler(struct k_work *work)
+{
+	k_sleep(K_MSEC(1));
+    if (gpio_get(RST_CPU_RESET_BIC_N) != GPIO_HIGH || gpio_get(PWRGD_CPU_LVC3) != GPIO_HIGH)
+         return;
+
+	int prochot_status = gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N);
+
+	if ((prochot_status == GPIO_HIGH && !is_sys_throttle_assert) ||
+		(prochot_status == GPIO_LOW && is_sys_throttle_assert)) {
+		return;
 	}
+
+	add_sel_info *event_item = find_event_work_items(FM_CPU_BIC_PROCHOT_LVT3_N);
+	if (event_item == NULL) {
+		LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
+			FM_CPU_BIC_PROCHOT_LVT3_N, prochot_status);
+		return;
+	}
+
+	if (prochot_status == GPIO_HIGH) {
+		LOG_INF("SYS_THROTTLE -");
+		is_sys_throttle_assert = false;
+		event_item->assert_type = EVENT_DEASSERTED;
+	} else {
+		LOG_INF("SYS_THROTTLE +");
+		hw_event_register[4]++;
+		is_sys_throttle_assert = true;
+		event_item->assert_type = EVENT_ASSERTED;
+	}
+	k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work, K_NO_WAIT);
 }
 
 void ISR_HSC_OC()
