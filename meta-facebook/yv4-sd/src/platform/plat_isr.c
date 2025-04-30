@@ -160,16 +160,18 @@ void init_event_work()
 
 void addsel_work_handler(struct k_work *work_item)
 {
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
-	add_sel_info *work_info = CONTAINER_OF(dwork, add_sel_info, add_sel_work);
-	struct pldm_addsel_data msg = { 0 };
-	msg.event_type = work_info->event_type;
-	msg.assert_type = work_info->assert_type;
+	sel_work_wrapper *wrap = CONTAINER_OF(work_item, sel_work_wrapper, work);
+	struct pldm_addsel_data msg = {
+		.event_type = wrap->event_type,
+		.assert_type = wrap->assert_type,
+	};
 
 	if (send_event_log_to_bmc(msg) != PLDM_SUCCESS) {
 		LOG_ERR("Failed to send event log, event type: 0x%x, assert type: 0x%x",
-			work_info->event_type, work_info->assert_type);
-	};
+			msg.event_type, msg.assert_type);
+	}
+
+	k_free(wrap); // [ADDED] Release dynamically allocated memory
 }
 
 static add_sel_info *find_event_work_items(uint8_t gpio_num)
@@ -310,6 +312,32 @@ K_WORK_DELAYABLE_DEFINE(PROC_FAIL_work, PROC_FAIL_handler);
 K_WORK_DELAYABLE_DEFINE(ABORT_FRB2_WDT_THREAD, abort_frb2_wdt_thread);
 K_WORK_DELAYABLE_DEFINE(read_pmic_critical_work, read_pmic_error_when_dc_off);
 
+// for MB_FAST PROCHOT
+#define MB_THROTTLE_WORKQ_STACK_SIZE 1024
+#define MB_THROTTLE_WORKQ_PRIORITY K_PRIO_PREEMPT(2)
+K_THREAD_STACK_DEFINE(mb_throttle_workq_stack, MB_THROTTLE_WORKQ_STACK_SIZE);
+struct k_work_q mb_throttle_work_q;
+
+// for SYS_THROTTLE
+#define SYS_THROTTLE_WORKQ_STACK_SIZE 1024
+#define SYS_THROTTLE_WORKQ_PRIORITY K_PRIO_PREEMPT(2)
+K_THREAD_STACK_DEFINE(sys_throttle_workq_stack, SYS_THROTTLE_WORKQ_STACK_SIZE);
+struct k_work_q sys_throttle_work_q;
+
+void init_fastprochot_work_q(void)
+{
+	k_work_queue_start(&mb_throttle_work_q, mb_throttle_workq_stack,
+			   K_THREAD_STACK_SIZEOF(mb_throttle_workq_stack),
+			   MB_THROTTLE_WORKQ_PRIORITY, NULL);
+}
+
+void init_throttle_work_q(void)
+{
+	k_work_queue_start(&sys_throttle_work_q, sys_throttle_workq_stack,
+			   K_THREAD_STACK_SIZEOF(sys_throttle_workq_stack),
+			   SYS_THROTTLE_WORKQ_PRIORITY, NULL);
+}
+
 #define DC_ON_5_SECOND 5
 #define PROC_FAIL_START_DELAY_SECOND 10
 #define VR_EVENT_DELAY_MS 10
@@ -437,33 +465,40 @@ void ISR_DBP_PRSNT()
 
 void ISR_MB_THROTTLE()
 {
-	/* FAST_PROCHOT_N glitch workaround
-	 * FAST_PROCHOT_N has a glitch and causes BIC to record MB_throttle deassertion SEL.
-	 * Ignore this by checking whether MB_throttle is asserted before recording the deassertion.
-	 */
 	static bool is_mb_throttle_assert = false;
-	if (gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH && get_DC_status()) {
+	int gpio_state = gpio_get(FAST_PROCHOT_N);
+
+	if ((gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) && get_DC_status()) {
 		add_sel_info *event_item = find_event_work_items(FAST_PROCHOT_N);
 		if (event_item == NULL) {
 			LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
-				FAST_PROCHOT_N, gpio_get(FAST_PROCHOT_N));
+				FAST_PROCHOT_N, gpio_state);
 			return;
 		}
 
-		if ((gpio_get(FAST_PROCHOT_N) == GPIO_HIGH) && (is_mb_throttle_assert == true)) {
-			LOG_INF("ISR_MB_THROTTLE deassert");
+		bool trigger = false;
+		uint8_t assert_type;
+		if ((gpio_state == GPIO_HIGH) && is_mb_throttle_assert) {
 			is_mb_throttle_assert = false;
-			event_item->assert_type = EVENT_DEASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		} else if ((gpio_get(FAST_PROCHOT_N) == GPIO_LOW) &&
-			   (is_mb_throttle_assert == false)) {
-			LOG_INF("ISR_MB_THROTTLE assert");
-			hw_event_register[2]++;
+			assert_type = EVENT_DEASSERTED;
+			trigger = true;
+		} else if ((gpio_state == GPIO_LOW) && !is_mb_throttle_assert) {
 			is_mb_throttle_assert = true;
-			event_item->assert_type = EVENT_ASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
+			assert_type = EVENT_ASSERTED;
+			hw_event_register[2]++;
+			trigger = true;
+		}
+
+		if (trigger) {
+			sel_work_wrapper *wrap = k_malloc(sizeof(sel_work_wrapper));
+			if (!wrap) {
+				LOG_ERR("Failed to allocate sel_work_wrapper");
+				return;
+			}
+			wrap->event_type = event_item->event_type;
+			wrap->assert_type = assert_type;
+			k_work_init_delayable(&wrap->work, addsel_work_handler);
+			k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
 		}
 	}
 }
@@ -489,30 +524,40 @@ void ISR_SYS_THROTTLE()
 	 * Ignore the fake event by checking whether SYS_throttle is asserted before recording the deassertion.
 	 */
 	static bool is_sys_throttle_assert = false;
+	int gpio_state_sys_throttle = gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N);
+
 	if ((gpio_get(RST_CPU_RESET_BIC_N) == GPIO_HIGH) &&
 	    (gpio_get(PWRGD_CPU_LVC3) == GPIO_HIGH)) {
 		add_sel_info *event_item = find_event_work_items(FM_CPU_BIC_PROCHOT_LVT3_N);
 		if (event_item == NULL) {
 			LOG_ERR("Fail to find event items, gpio num: 0x%x, gpio status: 0x%x",
-				FM_CPU_BIC_PROCHOT_LVT3_N, gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N));
+				FM_CPU_BIC_PROCHOT_LVT3_N, gpio_state_sys_throttle);
 			return;
 		}
 
-		if ((gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N) == GPIO_HIGH) &&
-		    (is_sys_throttle_assert == true)) {
-			LOG_INF("ISR_SYS_THROTTLE deassert");
+		bool trigger = false;
+		uint8_t assert_type;
+		if ((gpio_state_sys_throttle == GPIO_HIGH) && is_sys_throttle_assert) {
 			is_sys_throttle_assert = false;
-			event_item->assert_type = EVENT_DEASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
-		} else if ((gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N) == GPIO_LOW) &&
-			   (is_sys_throttle_assert == false)) {
-			LOG_INF("ISR_SYS_THROTTLE assert");
-			hw_event_register[4]++;
+			assert_type = EVENT_DEASSERTED;
+			trigger = true;
+		} else if ((gpio_state_sys_throttle == GPIO_LOW) && !is_sys_throttle_assert) {
 			is_sys_throttle_assert = true;
-			event_item->assert_type = EVENT_ASSERTED;
-			k_work_schedule_for_queue(&plat_work_q, &event_item->add_sel_work,
-						  K_NO_WAIT);
+			assert_type = EVENT_ASSERTED;
+			hw_event_register[4]++;
+			trigger = true;
+		}
+
+		if (trigger) {
+			sel_work_wrapper *wrap = k_malloc(sizeof(sel_work_wrapper));
+			if (!wrap) {
+				LOG_ERR("Failed to allocate sel_work_wrapper");
+				return;
+			}
+			wrap->event_type = event_item->event_type;
+			wrap->assert_type = assert_type;
+			k_work_init_delayable(&wrap->work, addsel_work_handler);
+			k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
 		}
 	}
 }

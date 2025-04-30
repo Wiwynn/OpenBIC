@@ -157,6 +157,10 @@
   status = "okay";
 };
 
+&gpio0 {
+  aspeed,deb-interval-us = <1000>;
+};
+
 &gpio0_a_d {
   aspeed,persist-maps = <0x08000000>;
 };
@@ -255,3 +259,5 @@
   status = "okay";
   addr = <0xca2>;
 };
+
+

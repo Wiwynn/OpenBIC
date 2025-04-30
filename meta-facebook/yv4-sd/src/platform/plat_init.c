@@ -50,7 +50,11 @@ SCU_CFG scu_cfg[] = {
 
 void pal_pre_init()
 {
+	const struct device *gpio_dev;
+    gpio_dev = device_get_binding("GPIO0_A_D");
+	
 	gpio_init(NULL);
+	gpio_pin_configure(gpio_dev, 26, GPIO_INPUT | GPIO_INT_DEBOUNCE); //Add debounce 'deb-interval-us' for fast prochot
 	scu_init(scu_cfg, sizeof(scu_cfg) / sizeof(SCU_CFG));
 	aspeed_print_sysrst_info();
 
@@ -93,6 +97,8 @@ void pal_pre_init()
 	}
 
 	init_vr_event_work();
+	init_throttle_work_q();
+	init_fastprochot_work_q();
 	init_event_work();
 	init_pmic_event_work();
 	init_plat_worker(K_PRIO_PREEMPT(2)); // work queue for low priority jobs
