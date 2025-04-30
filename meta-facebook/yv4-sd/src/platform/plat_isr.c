@@ -461,6 +461,7 @@ void ISR_DBP_PRSNT()
 void ISR_MB_THROTTLE()
 {
 	gpio_set(BIC_JTAG_SEL_R,GPIO_HIGH);
+	k_sleep(K_USEC(10));
 	int gpio_state = gpio_get(FAST_PROCHOT_N);
 
 	if ((gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) && get_DC_status()) {
@@ -471,16 +472,23 @@ void ISR_MB_THROTTLE()
 			return;
 		}
 
-		static sel_work_wrapper mb_throttle_work[2];
+		static sel_work_wrapper mb_throttle_work[20];
 		static int mb_index = 0;
-		sel_work_wrapper *wrap = &mb_throttle_work[mb_index++ % 2];
-		wrap->sel_data.event_type = event_item->event_type;
+		sel_work_wrapper *wrap = &mb_throttle_work[mb_index++ % 20];
+		wrap->sel_data.event_type = FAST_PROCHOT_ASSERT;
 		wrap->sel_data.assert_type = (gpio_state == GPIO_LOW) ? EVENT_ASSERTED : EVENT_DEASSERTED;
 		if (gpio_state == GPIO_LOW) {
 			hw_event_register[2]++;
 		}
-		k_work_init_delayable(&wrap->work, addsel_work_handler);
-		k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
+		int ret1 = -1;
+		int ret2 = -1;
+		ret1 = k_work_init_delayable(&wrap->work, addsel_work_handler);
+		ret2 = k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
+		LOG_INF("ret1=%d,ret2=%d",ret1,ret2);
+	}
+	else
+	{
+		LOG_ERR("Fail ISR_MB_THROTTLE");
 	}
 	gpio_set(BIC_JTAG_SEL_R,GPIO_LOW);
 }
