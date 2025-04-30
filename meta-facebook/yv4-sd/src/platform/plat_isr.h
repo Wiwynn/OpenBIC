@@ -45,8 +45,7 @@ typedef struct _add_sel_info {
 
 typedef struct {
 	struct k_work_delayable work;
-	uint8_t event_type;
-	uint8_t assert_type;
+	struct pldm_addsel_data sel_data;
 } sel_work_wrapper;
 
 void ISR_DC_ON();

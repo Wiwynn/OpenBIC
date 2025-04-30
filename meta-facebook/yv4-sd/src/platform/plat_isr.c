@@ -161,18 +161,13 @@ void init_event_work()
 void addsel_work_handler(struct k_work *work_item)
 {
 	sel_work_wrapper *wrap = CONTAINER_OF(work_item, sel_work_wrapper, work);
-	struct pldm_addsel_data msg = {
-		.event_type = wrap->event_type,
-		.assert_type = wrap->assert_type,
-	};
-
-	if (send_event_log_to_bmc(msg) != PLDM_SUCCESS) {
-		LOG_ERR("Failed to send event log, event type: 0x%x, assert type: 0x%x",
-			msg.event_type, msg.assert_type);
+	if (send_event_log_to_bmc(wrap->sel_data) != PLDM_SUCCESS) {
+		LOG_ERR("Failed to send SEL: event_type=0x%x, assert_type=0x%x",
+			wrap->sel_data.event_type, wrap->sel_data.assert_type);
 	}
-
-	k_free(wrap); // [ADDED] Release dynamically allocated memory
+	// no free needed, since all work structs are persistent (stack/static/global)
 }
+
 
 static add_sel_info *find_event_work_items(uint8_t gpio_num)
 {
@@ -490,13 +485,11 @@ void ISR_MB_THROTTLE()
 		}
 
 		if (trigger) {
-			sel_work_wrapper *wrap = k_malloc(sizeof(sel_work_wrapper));
-			if (!wrap) {
-				LOG_ERR("Failed to allocate sel_work_wrapper");
-				return;
-			}
-			wrap->event_type = event_item->event_type;
-			wrap->assert_type = assert_type;
+			static sel_work_wrapper mb_throttle_work[2];
+			static int mb_index = 0;
+			sel_work_wrapper *wrap = &mb_throttle_work[mb_index++ % 2];
+			wrap->sel_data.event_type = event_item->event_type;
+			wrap->sel_data.assert_type = assert_type;
 			k_work_init_delayable(&wrap->work, addsel_work_handler);
 			k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
 		}
@@ -520,9 +513,6 @@ void ISR_SOC_THMALTRIP()
 
 void ISR_SYS_THROTTLE()
 {
-	/* Same as MB_THROTTLE, glitch of FAST_PROCHOT_N will affect FM_CPU_BIC_PROCHOT_LVT3_N.
-	 * Ignore the fake event by checking whether SYS_throttle is asserted before recording the deassertion.
-	 */
 	static bool is_sys_throttle_assert = false;
 	int gpio_state_sys_throttle = gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N);
 
@@ -549,18 +539,17 @@ void ISR_SYS_THROTTLE()
 		}
 
 		if (trigger) {
-			sel_work_wrapper *wrap = k_malloc(sizeof(sel_work_wrapper));
-			if (!wrap) {
-				LOG_ERR("Failed to allocate sel_work_wrapper");
-				return;
-			}
-			wrap->event_type = event_item->event_type;
-			wrap->assert_type = assert_type;
+			static sel_work_wrapper sys_throttle_work[2];
+			static int sys_index = 0;
+			sel_work_wrapper *wrap = &sys_throttle_work[sys_index++ % 2];
+			wrap->sel_data.event_type = event_item->event_type;
+			wrap->sel_data.assert_type = assert_type;
 			k_work_init_delayable(&wrap->work, addsel_work_handler);
 			k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
 		}
 	}
 }
+
 
 void ISR_HSC_OC()
 {
