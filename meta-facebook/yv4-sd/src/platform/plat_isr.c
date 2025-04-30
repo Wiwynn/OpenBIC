@@ -481,10 +481,9 @@ void ISR_MB_THROTTLE()
 			hw_event_register[2]++;
 		}
 		int ret1 = -1;
-		int ret2 = -1;
-		ret1 = k_work_init_delayable(&wrap->work, addsel_work_handler);
-		ret2 = k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
-		LOG_INF("ret1=%d,ret2=%d",ret1,ret2);
+		k_work_init_delayable(&wrap->work, addsel_work_handler);
+		ret1 = k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
+		LOG_INF("ret1=%d",ret1);
 	}
 	else
 	{
