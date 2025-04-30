@@ -461,7 +461,6 @@ void ISR_DBP_PRSNT()
 void ISR_MB_THROTTLE()
 {
 	gpio_set(BIC_JTAG_SEL_R,GPIO_HIGH);
-	static bool is_mb_throttle_assert = false;
 	int gpio_state = gpio_get(FAST_PROCHOT_N);
 
 	if ((gpio_get(RST_RSMRST_BMC_N) == GPIO_HIGH) && get_DC_status()) {
@@ -472,28 +471,16 @@ void ISR_MB_THROTTLE()
 			return;
 		}
 
-		bool trigger = false;
-		uint8_t assert_type;
-		if ((gpio_state == GPIO_HIGH) && is_mb_throttle_assert) {
-			is_mb_throttle_assert = false;
-			assert_type = EVENT_DEASSERTED;
-			trigger = true;
-		} else if ((gpio_state == GPIO_LOW) && !is_mb_throttle_assert) {
-			is_mb_throttle_assert = true;
-			assert_type = EVENT_ASSERTED;
+		static sel_work_wrapper mb_throttle_work[2];
+		static int mb_index = 0;
+		sel_work_wrapper *wrap = &mb_throttle_work[mb_index++ % 2];
+		wrap->sel_data.event_type = event_item->event_type;
+		wrap->sel_data.assert_type = (gpio_state == GPIO_LOW) ? EVENT_ASSERTED : EVENT_DEASSERTED;
+		if (gpio_state == GPIO_LOW) {
 			hw_event_register[2]++;
-			trigger = true;
 		}
-
-		if (trigger) {
-			static sel_work_wrapper mb_throttle_work[2];
-			static int mb_index = 0;
-			sel_work_wrapper *wrap = &mb_throttle_work[mb_index++ % 2];
-			wrap->sel_data.event_type = event_item->event_type;
-			wrap->sel_data.assert_type = assert_type;
-			k_work_init_delayable(&wrap->work, addsel_work_handler);
-			k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
-		}
+		k_work_init_delayable(&wrap->work, addsel_work_handler);
+		k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
 	}
 	gpio_set(BIC_JTAG_SEL_R,GPIO_LOW);
 }
@@ -515,7 +502,6 @@ void ISR_SOC_THMALTRIP()
 
 void ISR_SYS_THROTTLE()
 {
-	static bool is_sys_throttle_assert = false;
 	int gpio_state_sys_throttle = gpio_get(FM_CPU_BIC_PROCHOT_LVT3_N);
 
 	if ((gpio_get(RST_CPU_RESET_BIC_N) == GPIO_HIGH) &&
@@ -527,28 +513,16 @@ void ISR_SYS_THROTTLE()
 			return;
 		}
 
-		bool trigger = false;
-		uint8_t assert_type;
-		if ((gpio_state_sys_throttle == GPIO_HIGH) && is_sys_throttle_assert) {
-			is_sys_throttle_assert = false;
-			assert_type = EVENT_DEASSERTED;
-			trigger = true;
-		} else if ((gpio_state_sys_throttle == GPIO_LOW) && !is_sys_throttle_assert) {
-			is_sys_throttle_assert = true;
-			assert_type = EVENT_ASSERTED;
+		static sel_work_wrapper sys_throttle_work[2];
+		static int sys_index = 0;
+		sel_work_wrapper *wrap = &sys_throttle_work[sys_index++ % 2];
+		wrap->sel_data.event_type = event_item->event_type;
+		wrap->sel_data.assert_type = (gpio_state_sys_throttle == GPIO_LOW) ? EVENT_ASSERTED : EVENT_DEASSERTED;
+		if (gpio_state_sys_throttle == GPIO_LOW) {
 			hw_event_register[4]++;
-			trigger = true;
 		}
-
-		if (trigger) {
-			static sel_work_wrapper sys_throttle_work[2];
-			static int sys_index = 0;
-			sel_work_wrapper *wrap = &sys_throttle_work[sys_index++ % 2];
-			wrap->sel_data.event_type = event_item->event_type;
-			wrap->sel_data.assert_type = assert_type;
-			k_work_init_delayable(&wrap->work, addsel_work_handler);
-			k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
-		}
+		k_work_init_delayable(&wrap->work, addsel_work_handler);
+		k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
 	}
 }
 
