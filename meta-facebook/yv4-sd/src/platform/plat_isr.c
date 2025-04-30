@@ -460,6 +460,7 @@ void ISR_DBP_PRSNT()
 
 void ISR_MB_THROTTLE()
 {
+	gpio_set(BIC_JTAG_SEL_R,GPIO_HIGH);
 	static bool is_mb_throttle_assert = false;
 	int gpio_state = gpio_get(FAST_PROCHOT_N);
 
@@ -494,6 +495,7 @@ void ISR_MB_THROTTLE()
 			k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
 		}
 	}
+	gpio_set(BIC_JTAG_SEL_R,GPIO_LOW);
 }
 
 void ISR_SOC_THMALTRIP()

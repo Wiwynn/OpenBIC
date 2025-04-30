@@ -18,6 +18,7 @@
 #define PLAT_ISR_H
 
 #include <stdint.h>
+#include "pldm.h"
 
 extern uint8_t hw_event_register[13];
 
