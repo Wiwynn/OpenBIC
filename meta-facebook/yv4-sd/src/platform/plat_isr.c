@@ -480,10 +480,13 @@ void ISR_MB_THROTTLE()
 		if (gpio_state == GPIO_LOW) {
 			hw_event_register[2]++;
 		}
-		int ret1 = -1;
+		int ret = -1;
 		k_work_init_delayable(&wrap->work, addsel_work_handler);
-		ret1 = k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
-		LOG_INF("ret1=%d",ret1);
+		ret = k_work_schedule_for_queue(&mb_throttle_work_q, &wrap->work, K_NO_WAIT);
+		if(ret!=1)
+		{
+			LOG_ERR("Fail MB_THROTTLE Kwork failed, %d", ret);
+		}
 	}
 	else
 	{
@@ -520,16 +523,25 @@ void ISR_SYS_THROTTLE()
 			return;
 		}
 
-		static sel_work_wrapper sys_throttle_work[2];
+		static sel_work_wrapper sys_throttle_work[20];
 		static int sys_index = 0;
-		sel_work_wrapper *wrap = &sys_throttle_work[sys_index++ % 2];
+		sel_work_wrapper *wrap = &sys_throttle_work[sys_index++ % 20];
 		wrap->sel_data.event_type = event_item->event_type;
 		wrap->sel_data.assert_type = (gpio_state_sys_throttle == GPIO_LOW) ? EVENT_ASSERTED : EVENT_DEASSERTED;
 		if (gpio_state_sys_throttle == GPIO_LOW) {
 			hw_event_register[4]++;
 		}
+		int ret = -1;
 		k_work_init_delayable(&wrap->work, addsel_work_handler);
-		k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
+		ret = k_work_schedule_for_queue(&sys_throttle_work_q, &wrap->work, K_NO_WAIT);
+		if(ret!=1)
+		{
+			LOG_ERR("Fail SYS_THROTTLE Kwork failed, %d", ret);
+		}
+	}
+	else
+	{
+		LOG_ERR("Fail ISR_SYS_THROTTLE");
 	}
 }
 
