@@ -47,7 +47,7 @@ SCU_CFG scu_cfg[] = {
 	{ 0x7e6e2610, 0x04020000 },
 	{ 0x7e6e2618, 0x00c30000 },
 	{ 0x7e780040, 0x10000000 }, // Enable Timer#2 GPIOD4
-	{ 0x7e780054, 0x0003d090 }, // Timer#2 set to 5ms
+	{ 0x7e780054, 0x0001e7e4 }, // Timer#2 set to 2498us
 };
 
 void pal_pre_init()
