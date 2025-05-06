@@ -44,6 +44,7 @@
 #define EVENT_RESEND_DELAY_MS 300000 // 5 minutes delay for resend
 #define MAX_RESEND_ATTEMPTS 3
 
+
 // Structure to hold event resend data
 struct event_resend_data {
 	struct pldm_addsel_data event_msg;
@@ -578,7 +579,7 @@ exit:
 
 void OEM_1S_RESET_I3C_CONTROLLER(ipmi_msg *msg)
 {
-	// CHECK_NULL_ARG(msg);
+	CHECK_NULL_ARG(msg);
 
 	LOG_INF("[DEBUG][Mandy] Add reset i3c controller command test");
 	msg->completion_code = CC_SUCCESS;

@@ -2448,6 +2448,7 @@ end:
 __weak void OEM_1S_RESET_I3C_CONTROLLER(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
+	LOG_ERR("[DEBUG][Mandy] Reset handler called");
 
 	msg->data_len = 0;
 	msg->completion_code = CC_INVALID_CMD;
