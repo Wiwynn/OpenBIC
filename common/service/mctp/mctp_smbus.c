@@ -25,6 +25,8 @@
 #include <zephyr.h>
 #include "libutil.h"
 #include "plat_def.h"
+#include <device.h>
+#include <drivers/i3c/i3c.h>
 
 #ifndef MCTP_SMBUS_WRITE_MAX_RETRY
 #define MCTP_SMBUS_WRITE_MAX_RETRY 1
@@ -146,6 +148,17 @@ static uint16_t mctp_smbus_read(void *mctp_p, uint8_t *buf, uint32_t len,
 	}
 	if (rlen < sizeof(smbus_hdr)) {
 		LOG_ERR("recv invalid len %d", rlen);
+		LOG_INF("[DEBUG MANDY][Checkpoint 1] Start cmd_reset_i3c_0");
+		const struct device *dev = device_get_binding("I3C_0");
+	
+		if (!dev) {
+			LOG_ERR("[DEBUG MANDY][Checkpoint 1.1] Failed to get I3C_0 device");
+			return 1;
+		}
+	
+		i3c_aspeed_reset_and_callback(dev);
+	
+		LOG_INF("[DEBUG MANDY][Checkpoint 3] End cmd_reset_i3c_0");				
 		return 0;
 	}
 

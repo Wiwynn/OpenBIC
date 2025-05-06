@@ -22,6 +22,8 @@
 #include "hal_i2c_target.h"
 #include "libutil.h"
 #include "plat_def.h"
+// #include <device.h>
+// #include <drivers/i3c/i3c.h>
 
 /* LOG SET */
 #include <logging/log.h>
@@ -128,6 +130,17 @@ static int i2c_target_read_requested(struct i2c_slave_config *config, uint8_t *v
 
 	if (!data->target_rd_msg.msg_length) {
 		LOG_WRN("Data not ready");
+		// LOG_INF("[DEBUG MANDY][Checkpoint 1] Start cmd_reset_i3c_0");
+		// const struct device *dev = device_get_binding("I3C_0");
+	
+		// if (!dev) {
+		// 	LOG_ERR("[DEBUG MANDY][Checkpoint 1.1] Failed to get I3C_0 device");
+		// 	return 1;
+		// }
+	
+		// i3c_aspeed_reset_and_callback(dev);
+	
+		// LOG_INF("[DEBUG MANDY][Checkpoint 3] End cmd_reset_i3c_0");		
 		return 1;
 	}
 
