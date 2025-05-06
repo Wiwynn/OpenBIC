@@ -2762,7 +2762,7 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		break;
 #endif
 	case CMD_OEM_1S_RESET_I3C_CONTROLLER:
-		LOG_DBG("Received RESET I3C controller command");
+		LOG_INF("Received RESET I3C controller command");
 		OEM_1S_RESET_I3C_CONTROLLER(msg);
 		break;
 	default:
