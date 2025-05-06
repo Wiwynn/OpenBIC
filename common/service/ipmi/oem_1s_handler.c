@@ -2445,6 +2445,15 @@ end:
 }
 #endif
 
+__weak void OEM_1S_RESET_I3C_CONTROLLER(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	msg->data_len = 0;
+	msg->completion_code = CC_INVALID_CMD;
+	return;
+}
+
 void IPMI_OEM_1S_handler(ipmi_msg *msg)
 {
 	CHECK_NULL_ARG(msg);
@@ -2752,6 +2761,10 @@ void IPMI_OEM_1S_handler(ipmi_msg *msg)
 		OEM_1S_SPI_REGISTER_READ(msg);
 		break;
 #endif
+	case CMD_OEM_1S_RESET_I3C_CONTROLLER:
+		LOG_DBG("Received RESET I3C controller command");
+		OEM_1S_RESET_I3C_CONTROLLER(msg);
+		break;
 	default:
 		LOG_ERR("Invalid OEM message, netfn(0x%x) cmd(0x%x)", msg->netfn, msg->cmd);
 		msg->data_len = 0;

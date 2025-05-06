@@ -574,3 +574,13 @@ exit:
 		LOG_ERR("Failed to lock I3C dimm MUX");
 	}
 }
+
+
+void OEM_1S_RESET_I3C_CONTROLLER(ipmi_msg *msg)
+{
+	CHECK_NULL_ARG(msg);
+
+	LOG_INF("[DEBUG][Mandy] Add reset i3c controller command test");
+	msg->completion_code = CC_SUCCESS;
+	return;
+}
