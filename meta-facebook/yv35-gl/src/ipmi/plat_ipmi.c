@@ -238,17 +238,19 @@ void OEM_1S_WRITE_READ_DIMM(ipmi_msg *msg)
 
 	switch (i3c_hub_type) {
 	case RG3M87B12_DEVICE_INFO:
-		if (!rg3mxxb12_set_slave_port(I3C_BUS4, RG3MXXB12_DEFAULT_STATIC_ADDRESS, slave_port_setting)) {
-				LOG_ERR("Failed to set rg3mxxb12 slave port to slave port: 0x%x", slave_port_setting);
-				msg->completion_code = CC_UNSPECIFIED_ERROR;
-				goto exit;
+		if (!rg3mxxb12_set_slave_port(I3C_BUS4, RG3MXXB12_DEFAULT_STATIC_ADDRESS,
+					      slave_port_setting)) {
+			LOG_ERR("Failed to set rg3mxxb12 slave port to slave port: 0x%x", slave_port_setting);
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			goto exit;
 		}
 		break;
 	case P3H2840_DEVICE_INFO:
-		if (!p3h284x_set_slave_port(I3C_BUS4, P3H284X_DEFAULT_STATIC_ADDRESS, slave_port_setting)) {
-				LOG_ERR("Failed to set p3h284x slave port to slave port: 0x%x", slave_port_setting);
-				msg->completion_code = CC_UNSPECIFIED_ERROR;
-				goto exit;
+		if (!p3h284x_set_slave_port(I3C_BUS4, P3H284X_DEFAULT_STATIC_ADDRESS,
+					    slave_port_setting)) {
+			LOG_ERR("Failed to set p3h284x slave port to slave port: 0x%x", slave_port_setting);
+			msg->completion_code = CC_UNSPECIFIED_ERROR;
+			goto exit;
 		}
 		break;
 	default:

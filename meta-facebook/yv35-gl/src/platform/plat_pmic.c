@@ -356,24 +356,24 @@ void clear_pmic_error()
 						     I3C_HUB_TO_DIMMABCD;
 
 		switch (i3c_hub_type) {
-			case RG3M87B12_DEVICE_INFO:
-				if (!rg3mxxb12_set_slave_port(I3C_BUS4, RG3MXXB12_DEFAULT_STATIC_ADDRESS,
-								slave_port_setting)) {
-					LOG_ERR("Failed to change rg3mxxb12 I3C HUB (I2C mode) channel");
-					continue;
-				}
-				break;
-			case P3H2840_DEVICE_INFO:
-				if (!p3h284x_set_slave_port(I3C_BUS4, P3H284X_DEFAULT_STATIC_ADDRESS,
-								slave_port_setting)) {
-					LOG_ERR("Failed to change p3h284x I3C HUB (I2C mode) channel");
-					continue;
-				}
-				break;
-			default:
-				LOG_ERR("Get i3c hub type failed - change I3C HUB (I2C mode) channel");
+		case RG3M87B12_DEVICE_INFO:
+			if (!rg3mxxb12_set_slave_port(I3C_BUS4, RG3MXXB12_DEFAULT_STATIC_ADDRESS,
+							slave_port_setting)) {
+				LOG_ERR("Failed to change rg3mxxb12 I3C HUB (I2C mode) channel");
 				continue;
 			}
+			break;
+		case P3H2840_DEVICE_INFO:
+			if (!p3h284x_set_slave_port(I3C_BUS4, P3H284X_DEFAULT_STATIC_ADDRESS,
+							slave_port_setting)) {
+				LOG_ERR("Failed to change p3h284x I3C HUB (I2C mode) channel");
+				continue;
+			}
+			break;
+		default:
+			LOG_ERR("Get i3c hub type failed - change I3C HUB (I2C mode) channel");
+			continue;
+		}
 
 		// Broadcast CCC after switch DIMM mux
 		// I3C_CCC_RSTDAA: Reset dynamic address assignment
