@@ -802,22 +802,23 @@ void cxl1_ready_handler()
 		LOG_INF("CXL1 is ready");
 		/* Switch muxs to BIC*/
 		switch_mux_to_bic(IOE_SWITCH_CXL1_VR_TO_BIC);
-		k_work_schedule(&set_cxl1_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
+		// k_work_schedule(&set_cxl1_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
 
-		goto exit;
+		// goto exit;
+		return;
 	}
 	LOG_ERR("CXL1 is not ready, check %s timeout, ret: %d", CXL1_HEART_BEAT_LABEL, ret);
 	switch_mux_to_bic(IOE_SWITCH_CXL1_VR_TO_BIC);
 	set_cxl_vr_access(CXL_ID_1, true);
 
-exit:
-	// Start delayable heartbeat monitor
-	if (!k_work_delayable_is_pending(&cxl1_hb_monitor_work)) {
-		LOG_INF("Start to monitor CXL1 HB");
-		k_work_schedule(&cxl1_hb_monitor_work, K_NO_WAIT);
-	} else {
-		LOG_INF("CXL1 HB monitor already scheduled");
-	}
+// exit:
+// 	// Start delayable heartbeat monitor
+// 	if (!k_work_delayable_is_pending(&cxl1_hb_monitor_work)) {
+// 		LOG_INF("Start to monitor CXL1 HB");
+// 		k_work_schedule(&cxl1_hb_monitor_work, K_NO_WAIT);
+// 	} else {
+// 		LOG_INF("CXL1 HB monitor already scheduled");
+// 	}
 	return;
 }
 
@@ -858,22 +859,23 @@ void cxl2_ready_handler()
 		LOG_INF("CXL2 is ready");
 		/* Switch muxs to BIC*/
 		switch_mux_to_bic(IOE_SWITCH_CXL2_VR_TO_BIC);
-		k_work_schedule(&set_cxl2_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
+		// k_work_schedule(&set_cxl2_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
 
-		goto exit;
+		// goto exit;
+		return;
 	}
 	LOG_ERR("CXL2 is not ready, check %s timeout, ret: %d", CXL2_HEART_BEAT_LABEL, ret);
 	switch_mux_to_bic(IOE_SWITCH_CXL2_VR_TO_BIC);
 	set_cxl_vr_access(CXL_ID_2, true);
 
-exit:
-	// Start delayable heartbeat monitor
-	if (!k_work_delayable_is_pending(&cxl2_hb_monitor_work)) {
-		LOG_INF("Start to monitor CXL2 HB");
-		k_work_schedule(&cxl2_hb_monitor_work, K_NO_WAIT);
-	} else {
-		LOG_INF("CXL2 HB monitor already scheduled");
-	}
+// exit:
+// 	// Start delayable heartbeat monitor
+// 	if (!k_work_delayable_is_pending(&cxl2_hb_monitor_work)) {
+// 		LOG_INF("Start to monitor CXL2 HB");
+// 		k_work_schedule(&cxl2_hb_monitor_work, K_NO_WAIT);
+// 	} else {
+// 		LOG_INF("CXL2 HB monitor already scheduled");
+// 	}
 	return;
 }
 
