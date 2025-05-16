@@ -61,8 +61,6 @@ static k_tid_t cxl2_tid = NULL;
 enum { HB_STATE_UNKNOWN = 0, HB_STATE_OK, HB_STATE_LOW };
 uint8_t cxl1_hb_state = HB_STATE_UNKNOWN;
 uint8_t cxl2_hb_state = HB_STATE_UNKNOWN;
-static bool allow_cxl1_hb = false;
-static bool allow_cxl2_hb = false;
 
 cxl_power_control_gpio cxl_power_ctrl_pin[MAX_CXL_ID] = {
 	[0] = {
@@ -413,23 +411,9 @@ void execute_power_off_sequence()
 
 	is_cxl_ready[CXL_ID_1] = false;
 	is_cxl_ready[CXL_ID_2] = false;
-	allow_cxl1_hb = false;
-	allow_cxl2_hb = false;
 
 	gpio_set(PG_CARD_OK, POWER_OFF);
 	set_DC_status(PG_CARD_OK);
-
-	if (k_work_cancel_delayable(&cxl1_hb_monitor_work) != 0) {
-		LOG_ERR("Failed to cancel cxl1_hb_monitor_work");
-	}
-
-	cxl1_hb_state = HB_STATE_UNKNOWN;
-
-	if (k_work_cancel_delayable(&cxl2_hb_monitor_work) != 0) {
-		LOG_ERR("Failed to cancel cxl2_hb_monitor_work");
-	}
-
-	cxl2_hb_state = HB_STATE_UNKNOWN;
 
 	if (k_work_cancel_delayable(&set_dc_on_5s_work) != 0) {
 		LOG_ERR("Cancel set dc off delay work fail");
@@ -450,6 +434,18 @@ void execute_power_off_sequence()
 	if (k_work_cancel_delayable(&set_cxl2_vr_ready_work) != 0) {
 		LOG_WRN("Failed to cancel set_cxl2_vr_ready_work");
 	}
+
+	if (k_work_cancel_delayable(&cxl1_hb_monitor_work) != 0) {
+		LOG_ERR("Failed to cancel cxl1_hb_monitor_work");
+	}
+
+	cxl1_hb_state = HB_STATE_UNKNOWN;
+
+	if (k_work_cancel_delayable(&cxl2_hb_monitor_work) != 0) {
+		LOG_ERR("Failed to cancel cxl2_hb_monitor_work");
+	}
+
+	cxl2_hb_state = HB_STATE_UNKNOWN;
 
 	set_DC_on_delayed_status_with_value(false);
 
@@ -673,10 +669,6 @@ void cxl1_heartbeat_monitor_handler()
 	struct pldm_addsel_data sel_msg = { 0 };
 	const struct device *hb = device_get_binding(CXL1_HEART_BEAT_LABEL);
 	int ret;
-	if (!allow_cxl1_hb) {
-        LOG_INF("CXL1 HB skipped due to power sequence");
-        return;
-    }
 
 	if (!hb) {
 		LOG_ERR("HB monitor: CXL1 device not found");
@@ -704,17 +696,6 @@ void cxl1_heartbeat_monitor_handler()
 			}
 			cxl1_hb_state = HB_STATE_LOW;
 		}
-	} else {
-		LOG_WRN("CXL1 HB monitor: fetch failed");
-		if (cxl1_hb_state == HB_STATE_UNKNOWN || cxl1_hb_state != HB_STATE_LOW) {
-			sel_msg.event_type = CXL1_HB;
-			sel_msg.assert_type = EVENT_DEASSERTED;
-			LOG_INF("Deassert: CXL1 HB fetch failed, treat as lost");
-			if (send_event_log_to_bmc(sel_msg) != PLDM_SUCCESS) {
-				LOG_ERR("Failed to send deassert event log");
-			}
-			cxl1_hb_state = HB_STATE_LOW;
-		}
 	}
 
 	// Reschedule self
@@ -727,10 +708,6 @@ void cxl2_heartbeat_monitor_handler()
 	struct pldm_addsel_data sel_msg = { 0 };
 	const struct device *hb = device_get_binding(CXL2_HEART_BEAT_LABEL);
 	int ret;
-	if (!allow_cxl2_hb) {
-        LOG_INF("CXL2 HB skipped due to power sequence");
-        return;
-    }
 
 	if (!hb) {
 		LOG_ERR("HB monitor: CXL2 device not found");
@@ -759,19 +736,7 @@ void cxl2_heartbeat_monitor_handler()
 			}
 			cxl2_hb_state = HB_STATE_LOW;
 		}
-	} else {
-		LOG_WRN("CXL2 HB monitor: fetch failed");
-		if (cxl2_hb_state == HB_STATE_UNKNOWN || cxl2_hb_state != HB_STATE_LOW) {
-			sel_msg.event_type = CXL2_HB;
-			sel_msg.assert_type = EVENT_DEASSERTED;
-
-			LOG_INF("Deassert: CXL2 HB fetch failed, treat as lost");
-			if (send_event_log_to_bmc(sel_msg) != PLDM_SUCCESS) {
-				LOG_ERR("Failed to send deassert event log");
-			}
-			cxl2_hb_state = HB_STATE_LOW;
-		}
-	}
+	} 
 
 	// Reschedule self
 	k_work_schedule(&cxl2_hb_monitor_work, K_SECONDS(MONITOR_INTERVAL_SECONDS));
@@ -817,7 +782,6 @@ void cxl1_ready_handler()
 		k_work_schedule(&set_cxl1_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
 
 		goto exit;
-		// return;
 	}
 	LOG_ERR("CXL1 is not ready, check %s timeout, ret: %d", CXL1_HEART_BEAT_LABEL, ret);
 	switch_mux_to_bic(IOE_SWITCH_CXL1_VR_TO_BIC);
@@ -825,7 +789,6 @@ void cxl1_ready_handler()
 
 exit:
 	// Start delayable heartbeat monitor
-	allow_cxl1_hb = true;
 	if (!k_work_delayable_is_pending(&cxl1_hb_monitor_work)) {
 		LOG_INF("Start to monitor CXL1 HB");
 		k_work_schedule(&cxl1_hb_monitor_work, K_NO_WAIT);
@@ -875,7 +838,6 @@ void cxl2_ready_handler()
 		k_work_schedule(&set_cxl2_vr_ready_work, K_SECONDS(VR_READY_DELAY_SEC));
 
 		goto exit;
-		// return;
 	}
 	LOG_ERR("CXL2 is not ready, check %s timeout, ret: %d", CXL2_HEART_BEAT_LABEL, ret);
 	switch_mux_to_bic(IOE_SWITCH_CXL2_VR_TO_BIC);
@@ -883,7 +845,6 @@ void cxl2_ready_handler()
 
 exit:
 	// Start delayable heartbeat monitor
-	allow_cxl2_hb = true;
 	if (!k_work_delayable_is_pending(&cxl2_hb_monitor_work)) {
 		LOG_INF("Start to monitor CXL2 HB");
 		k_work_schedule(&cxl2_hb_monitor_work, K_NO_WAIT);
