@@ -419,6 +419,18 @@ void execute_power_off_sequence()
 	gpio_set(PG_CARD_OK, POWER_OFF);
 	set_DC_status(PG_CARD_OK);
 
+	if (k_work_cancel_delayable(&cxl1_hb_monitor_work) != 0) {
+		LOG_ERR("Failed to cancel cxl1_hb_monitor_work");
+	}
+
+	cxl1_hb_state = HB_STATE_UNKNOWN;
+
+	if (k_work_cancel_delayable(&cxl2_hb_monitor_work) != 0) {
+		LOG_ERR("Failed to cancel cxl2_hb_monitor_work");
+	}
+
+	cxl2_hb_state = HB_STATE_UNKNOWN;
+
 	if (k_work_cancel_delayable(&set_dc_on_5s_work) != 0) {
 		LOG_ERR("Cancel set dc off delay work fail");
 	}
@@ -438,18 +450,6 @@ void execute_power_off_sequence()
 	if (k_work_cancel_delayable(&set_cxl2_vr_ready_work) != 0) {
 		LOG_WRN("Failed to cancel set_cxl2_vr_ready_work");
 	}
-
-	if (k_work_cancel_delayable(&cxl1_hb_monitor_work) != 0) {
-		LOG_ERR("Failed to cancel cxl1_hb_monitor_work");
-	}
-
-	cxl1_hb_state = HB_STATE_UNKNOWN;
-
-	if (k_work_cancel_delayable(&cxl2_hb_monitor_work) != 0) {
-		LOG_ERR("Failed to cancel cxl2_hb_monitor_work");
-	}
-
-	cxl2_hb_state = HB_STATE_UNKNOWN;
 
 	set_DC_on_delayed_status_with_value(false);
 
