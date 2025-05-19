@@ -36,6 +36,8 @@ K_WORK_DELAYABLE_DEFINE(set_cxl1_vr_ready_work, set_cxl1_vr_access_delayed_statu
 K_WORK_DELAYABLE_DEFINE(set_cxl2_vr_ready_work, set_cxl2_vr_access_delayed_status);
 K_WORK_DELAYABLE_DEFINE(cxl1_ready_thread, cxl1_ready_handler);
 K_WORK_DELAYABLE_DEFINE(cxl2_ready_thread, cxl2_ready_handler);
+K_WORK_DELAYABLE_DEFINE(cxl1_hb_monitor_work, cxl1_heartbeat_monitor_handler);
+K_WORK_DELAYABLE_DEFINE(cxl2_hb_monitor_work, cxl2_heartbeat_monitor_handler);
 K_TIMER_DEFINE(enable_asic1_rst_timer, enable_asic1_rst, NULL);
 K_TIMER_DEFINE(enable_asic2_rst_timer, enable_asic2_rst, NULL);
 
@@ -60,8 +62,6 @@ enum { HB_STATE_UNKNOWN = 0, HB_STATE_OK, HB_STATE_LOW };
 uint8_t cxl1_hb_state = HB_STATE_UNKNOWN;
 uint8_t cxl2_hb_state = HB_STATE_UNKNOWN;
 
-static struct k_work_delayable cxl1_hb_monitor_work;
-static struct k_work_delayable cxl2_hb_monitor_work;
 extern struct k_work_q plat_work_q;
 void init_cxl_heartbeat_monitor_work()
 {
