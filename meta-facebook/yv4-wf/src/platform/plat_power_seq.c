@@ -682,8 +682,12 @@ void cxl1_heartbeat_monitor_handler()
 		return;
 	}
 
+	if (!get_DC_status()) {
+		LOG_INF("CXL1 HB monitor: DC is off");
+		return;
+	}
 	ret = sensor_sample_fetch(hb);
-	if (ret == 0 && sensor_channel_get(hb, SENSOR_CHAN_RPM, &hb_val) == 0) {
+	if (ret == 0 && sensor_channel_get(hb, SENSOR_CHAN_RPM, &hb_val) == 0 && get_DC_status()) {
 		if (hb_val.val1 >= 10 && cxl1_hb_state != HB_STATE_OK) {
 			sel_msg.event_type = CXL1_HB;
 			sel_msg.assert_type = EVENT_ASSERTED;
@@ -720,9 +724,12 @@ void cxl2_heartbeat_monitor_handler()
 		LOG_ERR("HB monitor: CXL2 device not found");
 		return;
 	}
-
+	if (!get_DC_status()) {
+		LOG_INF("CXL2 HB monitor: DC is off");
+		return;
+	}
 	ret = sensor_sample_fetch(hb);
-	if (ret == 0 && sensor_channel_get(hb, SENSOR_CHAN_RPM, &hb_val) == 0) {
+	if (ret == 0 && sensor_channel_get(hb, SENSOR_CHAN_RPM, &hb_val) == 0 && get_DC_status()) {
 		if (hb_val.val1 >= 10 && cxl2_hb_state != HB_STATE_OK) {
 			sel_msg.event_type = CXL2_HB;
 			sel_msg.assert_type = EVENT_ASSERTED;

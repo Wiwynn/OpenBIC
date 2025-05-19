@@ -33,7 +33,7 @@
 #define P1V8_POWER_OFF_DELAY_MSEC 3500
 
 #define POWER_SEQ_CTRL_STACK_SIZE 1000
-#define MONITOR_INTERVAL_SECONDS 5
+#define MONITOR_INTERVAL_SECONDS 10
 typedef struct _cxl_power_control_gpio {
 	int enclk_100m_osc;
 	int p075v_asic_en;
