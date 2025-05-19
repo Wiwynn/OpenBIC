@@ -36,8 +36,6 @@ K_WORK_DELAYABLE_DEFINE(set_cxl1_vr_ready_work, set_cxl1_vr_access_delayed_statu
 K_WORK_DELAYABLE_DEFINE(set_cxl2_vr_ready_work, set_cxl2_vr_access_delayed_status);
 K_WORK_DELAYABLE_DEFINE(cxl1_ready_thread, cxl1_ready_handler);
 K_WORK_DELAYABLE_DEFINE(cxl2_ready_thread, cxl2_ready_handler);
-K_WORK_DELAYABLE_DEFINE(cxl1_hb_monitor_work, cxl1_heartbeat_monitor_handler);
-K_WORK_DELAYABLE_DEFINE(cxl2_hb_monitor_work, cxl2_heartbeat_monitor_handler);
 K_TIMER_DEFINE(enable_asic1_rst_timer, enable_asic1_rst, NULL);
 K_TIMER_DEFINE(enable_asic2_rst_timer, enable_asic2_rst, NULL);
 
@@ -61,6 +59,15 @@ static k_tid_t cxl2_tid = NULL;
 enum { HB_STATE_UNKNOWN = 0, HB_STATE_OK, HB_STATE_LOW };
 uint8_t cxl1_hb_state = HB_STATE_UNKNOWN;
 uint8_t cxl2_hb_state = HB_STATE_UNKNOWN;
+
+static struct k_work_delayable cxl1_hb_monitor_work;
+static struct k_work_delayable cxl2_hb_monitor_work;
+extern struct k_work_q plat_work_q;
+void init_cxl_heartbeat_monitor_work()
+{
+	k_work_init_delayable(&cxl1_hb_monitor_work, cxl1_heartbeat_monitor_handler);
+	k_work_init_delayable(&cxl2_hb_monitor_work, cxl2_heartbeat_monitor_handler);
+}
 
 cxl_power_control_gpio cxl_power_ctrl_pin[MAX_CXL_ID] = {
 	[0] = {
@@ -699,7 +706,7 @@ void cxl1_heartbeat_monitor_handler()
 	}
 
 	// Reschedule self
-	k_work_schedule(&cxl1_hb_monitor_work, K_SECONDS(MONITOR_INTERVAL_SECONDS));
+	k_work_schedule_for_queue(&plat_work_q, &cxl1_hb_monitor_work, K_SECONDS(MONITOR_INTERVAL_SECONDS));
 }
 
 void cxl2_heartbeat_monitor_handler()
@@ -739,7 +746,7 @@ void cxl2_heartbeat_monitor_handler()
 	} 
 
 	// Reschedule self
-	k_work_schedule(&cxl2_hb_monitor_work, K_SECONDS(MONITOR_INTERVAL_SECONDS));
+	k_work_schedule_for_queue(&plat_work_q, &cxl2_hb_monitor_work, K_SECONDS(MONITOR_INTERVAL_SECONDS));
 }
 
 void cxl1_ready_handler()
@@ -791,7 +798,7 @@ exit:
 	// Start delayable heartbeat monitor
 	if (!k_work_delayable_is_pending(&cxl1_hb_monitor_work)) {
 		LOG_INF("Start to monitor CXL1 HB");
-		k_work_schedule(&cxl1_hb_monitor_work, K_NO_WAIT);
+		k_work_schedule_for_queue(&plat_work_q, &cxl1_hb_monitor_work, K_NO_WAIT);
 	} else {
 		LOG_INF("CXL1 HB monitor already scheduled");
 	}
@@ -847,7 +854,7 @@ exit:
 	// Start delayable heartbeat monitor
 	if (!k_work_delayable_is_pending(&cxl2_hb_monitor_work)) {
 		LOG_INF("Start to monitor CXL2 HB");
-		k_work_schedule(&cxl2_hb_monitor_work, K_NO_WAIT);
+		k_work_schedule_for_queue(&plat_work_q, &cxl2_hb_monitor_work, K_NO_WAIT);
 	} else {
 		LOG_INF("CXL2 HB monitor already scheduled");
 	}
