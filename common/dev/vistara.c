@@ -69,8 +69,17 @@ bool vistara_cci_command(uint8_t cxl_eid, mctp_cci_msg cci_msg, uint8_t *resp, u
 	}
 
 	memcpy(&cci_msg.ext_params, &ext_params, sizeof(mctp_ext_params));
-	if (mctp_cci_read(mctp_inst, &cci_msg, resp, resp_len) != resp_len) {
-		LOG_ERR("CCI command 0x%x read fail", cci_msg.hdr.op);
+
+	int ret = mctp_cci_read(mctp_inst, &cci_msg, resp, resp_len);
+	if (ret != resp_len) {
+		if (ret < 0) {
+			LOG_ERR("CCI command 0x%x read failed from EID %d, ret = %d",  
+			        cci_msg.hdr.op, cxl_eid, ret);
+		} else {
+			LOG_ERR("CCI command 0x%x read incomplete from EID %d: expected %d, got %d",
+				cci_msg.hdr.op, cxl_eid, (int)resp_len, (int)ret);
+			LOG_HEXDUMP_ERR(resp, resp_len, "Partial CCI response:");
+		}
 		return false;
 	}
 

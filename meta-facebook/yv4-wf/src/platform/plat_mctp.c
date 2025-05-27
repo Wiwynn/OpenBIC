@@ -348,18 +348,22 @@ void plat_update_mctp_routing_table(uint8_t eid)
 	// Set platform eid
 	plat_eid = eid;
 	LOG_INF("plat_eid= %d ", plat_eid);
+	LOG_INF("[Debug] plat_eid= %d ", plat_eid);
 
 	// update sd bic eid
 	mctp_route_entry *p = plat_mctp_route_tbl + 1;
 	p->endpoint = eid - 2;
+	LOG_INF("[Debug] Updated SD BIC EID: %d", p->endpoint);
 
 	// update cxl1 eid
 	p = plat_mctp_route_tbl + 2;
 	p->endpoint = eid + 2;
+	LOG_INF("[Debug] Updated CXL1 EID: %d", p->endpoint);
 
 	// update cxl2 eid
 	p = plat_mctp_route_tbl + 3;
 	p->endpoint = eid + 3;
+	LOG_INF("[Debug] Updated CXL2 EID: %d", p->endpoint);
 
 	update_entity_name_with_eid(eid);
 

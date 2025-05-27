@@ -48,3 +48,5 @@ target_include_directories(app PRIVATE src/platform)
 
 # Fail build if there are any warnings
 target_compile_options(app PRIVATE -Werror)
+zephyr_compile_definitions(CONFIG_MCTP=1)
+zephyr_compile_definitions(CONFIG_MCTP_SHELL=1)
