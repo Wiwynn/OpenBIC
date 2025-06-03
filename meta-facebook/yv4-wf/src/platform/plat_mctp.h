@@ -48,4 +48,9 @@ void create_set_dev_endpoint_thread();
 uint8_t plat_get_eid();
 mctp *find_mctp_by_bus(uint8_t bus);
 
+//[JIRA-1823] For Debug
+bool get_eid_set_done(uint8_t cxl_id);
+void clear_eid_set_done_status(void);
+//[JIRA-1823] For Debug
+
 #endif /* _PLAT_MCTP_h */

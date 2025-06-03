@@ -412,6 +412,8 @@ void execute_power_off_sequence()
 	is_cxl_ready[CXL_ID_1] = false;
 	is_cxl_ready[CXL_ID_2] = false;
 
+	clear_eid_set_done_status(); //[JIRA-1823] For Debug
+
 	gpio_set(PG_CARD_OK, POWER_OFF);
 	set_DC_status(PG_CARD_OK);
 

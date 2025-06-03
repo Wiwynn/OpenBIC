@@ -95,6 +95,24 @@ static void set_endpoint_resp_timeout(void *args)
 	LOG_DBG("Endpoint 0x%x set endpoint failed on bus %d", p->endpoint, p->bus);
 }
 
+//[JIRA-1823] For Debug
+static bool eid_set_done[MAX_CXL_ID] = { false, false };
+
+bool get_eid_set_done(uint8_t cxl_id)
+{
+	if (cxl_id >= MAX_CXL_ID)
+		return false;
+	return eid_set_done[cxl_id];
+}
+
+void clear_eid_set_done_status()
+{
+	eid_set_done[CXL_ID_1] = false;
+	eid_set_done[CXL_ID_2] = false;
+}
+
+//[JIRA-1823] For Debug
+
 static void set_dev_endpoint(void)
 {
 	bool set_eid[MAX_CXL_ID] = { false, false };
@@ -143,11 +161,13 @@ static void set_dev_endpoint(void)
 					case I2C_BUS_CXL1: {
 						LOG_INF("Send set EID command to CXL1");
 						set_eid[CXL_ID_1] = true;
+						eid_set_done[CXL_ID_1] = true; //[JIRA-1823] For Debug
 						break;
 					}
 					case I2C_BUS_CXL2: {
 						LOG_INF("Send set EID command to CXL2");
 						set_eid[CXL_ID_2] = true;
+						eid_set_done[CXL_ID_2] = true; //[JIRA-1823] For Debug
 						break;
 					}
 					}
