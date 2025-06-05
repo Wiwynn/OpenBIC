@@ -115,6 +115,7 @@ void clear_eid_set_done_status()
 
 static void set_dev_endpoint(void)
 {
+	LOG_INF("Start to set CXL EID");
 	bool set_eid[MAX_CXL_ID] = { false, false };
 	// The CXL FW is unstable and its booting up time is random now.
 	// Temporary add retry mechanism for it.
@@ -280,6 +281,7 @@ void set_dev_endpoint_thread(void *arg1, void *arg2, void *arg3)
 
 void create_set_dev_endpoint_thread()
 {
+	LOG_INF("Create set_dev_endpoint_thread");
 	if ((set_dev_endpoint_tid != NULL) &&
 	    ((strcmp(k_thread_state_str(set_dev_endpoint_tid), "dead") != 0) &&
 	     (strcmp(k_thread_state_str(set_dev_endpoint_tid), "unknown") != 0))) {

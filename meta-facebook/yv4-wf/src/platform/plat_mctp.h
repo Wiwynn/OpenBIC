@@ -51,6 +51,7 @@ mctp *find_mctp_by_bus(uint8_t bus);
 //[JIRA-1823] For Debug
 bool get_eid_set_done(uint8_t cxl_id);
 void clear_eid_set_done_status(void);
+uint8_t plat_get_cxl_eid(uint8_t cxl_id);
 //[JIRA-1823] For Debug
 
 #endif /* _PLAT_MCTP_h */
