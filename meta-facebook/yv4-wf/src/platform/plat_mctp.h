@@ -52,6 +52,10 @@ mctp *find_mctp_by_bus(uint8_t bus);
 bool get_eid_set_done(uint8_t cxl_id);
 void clear_eid_set_done_status(void);
 uint8_t plat_get_cxl_eid(uint8_t cxl_id);
+bool check_cxl_eid(uint8_t cxl_id);
+bool set_cxl_eid(uint8_t cxl_id);
+extern uint32_t cxl1_eid_reset_count;
+extern uint32_t cxl2_eid_reset_count;
 //[JIRA-1823] For Debug
 
 #endif /* _PLAT_MCTP_h */

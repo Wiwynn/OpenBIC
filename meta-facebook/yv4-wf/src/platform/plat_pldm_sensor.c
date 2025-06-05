@@ -28,6 +28,7 @@
 #include "plat_pldm_sensor.h"
 #include "plat_isr.h"
 #include "plat_class.h"
+#include "plat_mctp.h"
 
 LOG_MODULE_REGISTER(plat_pldm_sensor);
 
@@ -6707,8 +6708,62 @@ float plat_get_dimm_cache(uint8_t cxl_id, uint8_t dimm_id)
 	return result;
 }
 
+// void plat_set_dimm_cache(uint8_t *resp_buf, uint8_t cxl_id, uint8_t status)
+// {
+// 	if (k_mutex_lock(&cxl_dimm_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
+// 		cxl_dimm_temp[cxl_id][DIMMA_ID] = -1;
+// 		cxl_dimm_temp[cxl_id][DIMMB_ID] = -1;
+// 		cxl_dimm_temp[cxl_id][DIMMC_ID] = -1;
+// 		cxl_dimm_temp[cxl_id][DIMMD_ID] = -1;
+// 		return;
+// 	}
+
+// 	for (int i = 0; i < MAX_DIMM_ID; i++) {
+// 		if (status == SENSOR_READ_SUCCESS) {
+// 			read_ddr_temp_resp *ddr_temp = (read_ddr_temp_resp *)(resp_buf + i * 8);
+// 			cxl_dimm_temp[cxl_id][i] = *((float *)&ddr_temp->dimm_temp);
+// 			LOG_HEXDUMP_DBG(ddr_temp->dimm_temp, sizeof(float), "ddr temp");
+// 		} else {
+// 			cxl_dimm_temp[cxl_id][i] = -1;
+// 		}
+// 	}
+
+// 	k_mutex_unlock(&cxl_dimm_mutex);
+// }
+
+// #define PLAT_CXL_EID_RETRY_CNT 3
+#define PLAT_CXL_EID_RETRY_SLEEP_MS 1000
+
 void plat_set_dimm_cache(uint8_t *resp_buf, uint8_t cxl_id, uint8_t status)
 {
+	if (status != SENSOR_READ_SUCCESS) {
+		LOG_WRN("DIMM temp read fail, check EID for CXL%d", cxl_id + 1);
+
+		if (!check_cxl_eid(cxl_id)) {
+			if (cxl_id == 0) {
+				cxl1_eid_reset_count++;
+				LOG_WRN("CXL1 EID reset count: %u", cxl1_eid_reset_count);
+			} else if (cxl_id == 1) {
+				cxl2_eid_reset_count++;
+				LOG_WRN("CXL2 EID reset count: %u", cxl2_eid_reset_count);
+			}
+
+			LOG_WRN("CXL%d EID check fail, try to set EID", cxl_id + 1);
+
+			k_msleep(200);
+			set_cxl_eid(cxl_id);
+
+			k_msleep(1000);
+			if (check_cxl_eid(cxl_id)) {
+				LOG_INF("CXL%d EID check after set EID: SUCCESS", cxl_id + 1);
+			} else {
+				LOG_ERR("CXL%d EID still not ready after set EID", cxl_id + 1);
+			}
+		} else {
+			LOG_INF("CXL%d EID check success, device is alive", cxl_id + 1);
+		}
+	}
+
 	if (k_mutex_lock(&cxl_dimm_mutex, K_MSEC(CXL_DIMM_MUTEX_WAITING_TIME_MS))) {
 		cxl_dimm_temp[cxl_id][DIMMA_ID] = -1;
 		cxl_dimm_temp[cxl_id][DIMMB_ID] = -1;
@@ -6717,14 +6772,14 @@ void plat_set_dimm_cache(uint8_t *resp_buf, uint8_t cxl_id, uint8_t status)
 		return;
 	}
 
-	for (int i = 0; i < MAX_DIMM_ID; i++) {
-		if (status == SENSOR_READ_SUCCESS) {
+	if (status == SENSOR_READ_SUCCESS) {
+		for (int i = 0; i < MAX_DIMM_ID; i++) {
 			read_ddr_temp_resp *ddr_temp = (read_ddr_temp_resp *)(resp_buf + i * 8);
 			cxl_dimm_temp[cxl_id][i] = *((float *)&ddr_temp->dimm_temp);
-			LOG_HEXDUMP_DBG(ddr_temp->dimm_temp, sizeof(float), "ddr temp");
-		} else {
-			cxl_dimm_temp[cxl_id][i] = -1;
 		}
+	} else {
+		for (int i = 0; i < MAX_DIMM_ID; i++)
+			cxl_dimm_temp[cxl_id][i] = -1;
 	}
 
 	k_mutex_unlock(&cxl_dimm_mutex);

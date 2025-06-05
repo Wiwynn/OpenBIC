@@ -198,6 +198,8 @@ void execute_power_on_sequence()
 		k_work_schedule(&set_dc_on_5s_work, K_SECONDS(DC_ON_DELAY5_SEC));
 
 		create_check_cxl_ready_thread();
+		cxl1_eid_reset_count = 0;
+		cxl2_eid_reset_count = 0;
 	}
 }
 
@@ -411,6 +413,8 @@ void execute_power_off_sequence()
 
 	is_cxl_ready[CXL_ID_1] = false;
 	is_cxl_ready[CXL_ID_2] = false;
+	cxl1_eid_reset_count = 0;
+	cxl2_eid_reset_count = 0;
 
 	clear_eid_set_done_status(); //[JIRA-1823] For Debug
 
