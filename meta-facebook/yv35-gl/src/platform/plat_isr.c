@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <logging/log.h>
+#include <stdlib.h>
 
 #include "hal_gpio.h"
 #include "hal_vw_gpio.h"
@@ -24,6 +25,8 @@
 #include "ipmi.h"
 #include "power_status.h"
 #include "kcs.h"
+#include "pmbus.h"
+#include "util_worker.h"
 
 #include "plat_i2c.h"
 #include "plat_isr.h"
@@ -32,8 +35,11 @@
 #include "plat_dimm.h"
 #include "plat_sensor_table.h"
 #include "plat_pmic.h"
+#include "plat_ipmi.h"
 
 LOG_MODULE_REGISTER(plat_isr);
+
+add_vr_sel_info vr_pwr_fault_work_item;
 
 void send_gpio_interrupt(uint8_t gpio_num)
 {
@@ -402,6 +408,133 @@ void ISR_HSC_OC()
 	}
 }
 
+const vr_pwr_fault_t vr_pwr_fault_table[] = {
+	{ BIT(0), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCD1_HV, I2C_BUS5, PVCCD0_PVCCD1_ADDR, 1 },
+	{ BIT(1), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCD0_HV, I2C_BUS5, PVCCD0_PVCCD1_ADDR, 0 },
+	{ BIT(2), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCINF,   I2C_BUS5, FIVRA_PVCCINF_ADDR, 1 },
+	{ BIT(3), IPMI_EVENT_VR_POWER_FAULT_VR_VCCIN,     I2C_BUS5, PVCCIN_EHV_ADDR,    0 },
+	{ BIT(4), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCFA_EHV_FIVRA, I2C_BUS5, FIVRA_PVCCINF_ADDR, 0 },
+	{ BIT(5), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCFA_EHV,       I2C_BUS5, PVCCIN_EHV_ADDR,    1 },
+};
+
+const uint8_t vr_pmbus_data_list[] = {
+	// PMBus command code 0x78 ~ 0x80
+	PMBUS_STATUS_BYTE,
+	PMBUS_STATUS_WORD,
+	PMBUS_STATUS_VOUT,
+	PMBUS_STATUS_IOUT,
+	PMBUS_STATUS_INPUT,
+	PMBUS_STATUS_TEMPERATURE,
+	PMBUS_STATUS_CML,
+	PMBUS_STATUS_OTHER,
+	PMBUS_STATUS_MFR_SPECIFIC
+};
+
+void vr_pwr_fault_handler(struct k_work *work_item)
+{
+	uint8_t retry = 5;
+	uint8_t cpld_vr_data = 0x00;
+	uint8_t vr_vender_type = get_vr_vender_type();
+
+	// Read CPLD register check which VR power rail occur VR power fault
+	I2C_MSG msg = { 0 };
+	msg.bus = SB_CPLD_BUS;
+	msg.target_addr = CPLD_ADDR;
+	msg.tx_len = 1;
+	msg.rx_len = 1;
+	msg.data[0] = CPLD_VR_FAULT_REG;
+	if (i2c_master_read(&msg, retry)) {
+		LOG_ERR("Failed to get CPLD reg, bus: 0x%x, addr: 0x%x, reg: 0x%x", msg.bus, msg.target_addr, CPLD_VR_FAULT_REG);
+		return;
+	} else {
+		cpld_vr_data = msg.data[0];
+	}
+
+	if (cpld_vr_data == 0x00) {
+		LOG_ERR("No VR power fault detected from CPLD reg !");
+		return;
+	}
+
+	// Check can get VR vender type
+	if (vr_vender_type == VR_TYPE_UNKNOWN) {
+		LOG_ERR("Failed to get VR vender type !");
+		return;
+	};
+
+	disable_sensor_poll();
+	k_msleep(10); // wait 10ms for vr monitor stop
+
+	// Check which VR power rail occur VR power fault
+	for (int i = 0; i < ARRAY_SIZE(vr_pwr_fault_table); i++) {
+		if (cpld_vr_data & vr_pwr_fault_table[i].bit) { // detect which VR power rail fault occur
+			//LOG_ERR("VR power fault detected: bit %d set, event=0x%x", i, vr_pwr_fault_table[i].event);
+
+			// set to the correct VR page
+			msg.bus = vr_pwr_fault_table[i].bus;
+			msg.target_addr = vr_pwr_fault_table[i].addr;
+			msg.tx_len = 2;
+			msg.data[0] = PMBUS_PAGE;
+			msg.data[1] = vr_pwr_fault_table[i].page;
+			if (i2c_master_write(&msg, retry)) {
+				LOG_ERR("Failed to set VR page, bus: %d, addr: 0x%x, page: 0x%x", vr_pwr_fault_table[i].bus, vr_pwr_fault_table[i].addr, vr_pwr_fault_table[i].page);
+				enable_sensor_poll();
+				return;
+			}
+
+			for (int j = 0; j < ARRAY_SIZE(vr_pmbus_data_list); j++) {
+				uint8_t pmbus_cmd = vr_pmbus_data_list[j];
+
+				// Skip pmbus command code sample
+				/*if ((vr_vender_type == VR_TYPE_XDPE15284) && (pmbus_cmd == PMBUS_STATUS_CML)) {
+					LOG_DBG("Skip PMBUS_STATUS_CML for XDPE15284");
+					continue;
+				}*/
+				memset(msg.data, 0, sizeof(msg.data)); // clear data buffer
+
+				msg.tx_len = 1;
+				msg.data[0] = pmbus_cmd;
+				if (pmbus_cmd == PMBUS_STATUS_WORD) {
+					msg.rx_len = 2;
+				} else {
+					msg.rx_len = 1;
+				}
+
+				if (i2c_master_read(&msg, retry)) {
+					LOG_ERR("Failed to get VR reg, bus: %d, addr: 0x%x, reg: 0x%x", msg.bus, msg.target_addr, pmbus_cmd);
+					continue;
+				} else {
+					if (pmbus_cmd == PMBUS_STATUS_WORD) {
+						uint8_t low_byte = msg.data[0];
+						uint8_t high_byte = msg.data[1];
+
+						pal_record_vr_power_fault(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,vr_pwr_fault_table[i].event, pmbus_cmd, low_byte);
+						pal_record_vr_power_fault(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,vr_pwr_fault_table[i].event, pmbus_cmd, high_byte);
+					} else {
+						pal_record_vr_power_fault(IPMI_EVENT_TYPE_SENSOR_SPECIFIC,vr_pwr_fault_table[i].event, pmbus_cmd, msg.data[0]);
+					}
+				}
+			}
+		}
+	}
+
+	enable_sensor_poll();
+}
+
+void init_vr_pwr_fault_work()
+{
+	k_work_init_delayable(&vr_pwr_fault_work_item.add_vr_work, vr_pwr_fault_handler);
+}
+
+void ISR_VR_PWR_FAULT()
+{
+	// Check DC on and CPLD pull the FM_FAST_PROCHOT_EN_R_N pin high
+	if ((get_DC_status() == true) && (gpio_get(FM_FAST_PROCHOT_EN_R_N) == GPIO_HIGH)) {
+		LOG_ERR("Triggered VR power fault successfully !");
+		k_work_schedule_for_queue(&plat_work_q, &vr_pwr_fault_work_item.add_vr_work, K_MSEC(VR_PWR_FAULT_DELAY_MS));
+	} else {
+		LOG_ERR("Triggered VR power fault falied !");
+	}
+}
 
 static void cpu_memory_hot_handler()
 {
