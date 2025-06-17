@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <logging/log.h>
+//#include <stdlib.h>
 
 #include "hal_gpio.h"
 #include "hal_vw_gpio.h"
@@ -24,6 +25,9 @@
 #include "ipmi.h"
 #include "power_status.h"
 #include "kcs.h"
+#include "pmbus.h"
+#include "util_worker.h"
+#include "vr_fault.h"
 
 #include "plat_i2c.h"
 #include "plat_isr.h"
@@ -32,6 +36,7 @@
 #include "plat_dimm.h"
 #include "plat_sensor_table.h"
 #include "plat_pmic.h"
+#include "plat_ipmi.h"
 
 LOG_MODULE_REGISTER(plat_isr);
 
@@ -402,6 +407,50 @@ void ISR_HSC_OC()
 	}
 }
 
+add_vr_sel_info vr_pwr_fault_work_item;
+
+const vr_pwr_fault_t vr_pwr_fault_table[] = {
+	{ BIT(0), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCD1_HV, I2C_BUS5, PVCCD0_PVCCD1_ADDR, 1 },
+	{ BIT(1), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCD0_HV, I2C_BUS5, PVCCD0_PVCCD1_ADDR, 0 },
+	{ BIT(2), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCINF,   I2C_BUS5, FIVRA_PVCCINF_ADDR, 1 },
+	{ BIT(3), IPMI_EVENT_VR_POWER_FAULT_VR_VCCIN,     I2C_BUS5, PVCCIN_EHV_ADDR,    0 },
+	{ BIT(4), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCFA_EHV_FIVRA, I2C_BUS5, FIVRA_PVCCINF_ADDR, 0 },
+	{ BIT(5), IPMI_EVENT_VR_POWER_FAULT_VR_PVCCFA_EHV,       I2C_BUS5, PVCCIN_EHV_ADDR,    1 },
+};
+const size_t vr_pwr_fault_table_size = ARRAY_SIZE(vr_pwr_fault_table);
+
+const cpld_vr_reg_t cpld_vr_reg_table = {
+	SB_CPLD_BUS, CPLD_ADDR, CPLD_VR_FAULT_REG
+};
+
+bool pal_skip_pmbus_cmd_code(uint8_t vendor_type, uint8_t cmd, uint8_t page)
+{
+	if ((vendor_type == VR_TYPE_XDPE15284) && (cmd == PMBUS_STATUS_OTHER)){
+		return true;
+	}
+
+	if ((vendor_type == VR_TYPE_MP2985) && (cmd == PMBUS_STATUS_OTHER) && (page == 1)) {
+		return true;
+	}
+
+	return false;
+}
+
+void init_vr_pwr_fault_work()
+{
+	k_work_init_delayable(&vr_pwr_fault_work_item.add_vr_work, vr_pwr_fault_handler);
+}
+
+void ISR_VR_PWR_FAULT()
+{
+	// Check DC on and CPLD pull the FM_FAST_PROCHOT_EN_R_N pin high
+	if ((get_DC_status() == true) && (gpio_get(FM_FAST_PROCHOT_EN_R_N) == GPIO_HIGH)) {
+		LOG_ERR("Triggered VR power fault successfully !");
+		k_work_schedule_for_queue(&plat_work_q, &vr_pwr_fault_work_item.add_vr_work, K_MSEC(VR_PWR_FAULT_DELAY_MS));
+	} else {
+		LOG_ERR("Triggered VR power fault falied !");
+	}
+}
 
 static void cpu_memory_hot_handler()
 {
