@@ -21,10 +21,12 @@
 #include "hal_i2c.h"
 #include "power_status.h"
 #include "plat_gpio.h"
+#include "plat_pldm_sensor.h"
 #include "plat_power_seq.h"
 #include "plat_mctp.h"
 #include "plat_isr.h"
 #include "plat_class.h"
+#include "sensor.h"
 
 LOG_MODULE_REGISTER(plat_isr);
 
@@ -33,32 +35,9 @@ LOG_MODULE_REGISTER(plat_isr);
 add_vr_sel_info vr_event_work_items[] = {
 	{
 		.is_init = false,
-		.vr_num = 0,
-		.vr_i2c_bus = I2C_BUS8,
-		.vr_addr = 0x62,
-		.page_cnt = 2,
-	},
-	{
-		.is_init = false,
-		.vr_num = 1,
-		.vr_i2c_bus = I2C_BUS8,
-		.vr_addr = 0x5a,
-		.page_cnt = 2,
-	},
-	{
-		.is_init = false,
-		.vr_num = 2,
-		.vr_i2c_bus = I2C_BUS3,
-		.vr_addr = 0x76,
-		.page_cnt = 2,
-	},
-	{
-		.is_init = false,
-		.vr_num = 3,
-		.vr_i2c_bus = I2C_BUS3,
-		.vr_addr = 0x72,
-		.page_cnt = 2,
-	},
+		.gpio_num = IOE1_INT_R_N,
+	}
+
 };
 
 void init_vr_event_work()
@@ -73,97 +52,213 @@ void init_vr_event_work()
 	}
 }
 
+const vr_fault_info vr_fault_table[] = {
+	// { vr_source, ioe_reg_idx, ioe_reg_bit, vr_gpio, is_pmbus_vr, vr_i2c_bus, vr_addr, vr_page }
+	//ALT_SMB_BIC_PMIC1
+	{ PVDDQ_AB_ASIC1, ADDR_IOE1, IOE_P03, PWRGD_PVDDQ_AB_ASIC1, true, I2C_BUS8, ADDR_VR_P0V85_ASIC1, 0 },
+	{ P0V85_ASIC1, ADDR_IOE1, IOE_P03, PWRGD_P0V85_ASIC1, true, I2C_BUS8, ADDR_VR_P0V85_ASIC1, 1 },
+	{ PVDDQ_CD_ASIC1, ADDR_IOE1, IOE_P03, PWRGD_PVDDQ_CD_ASIC1, true, I2C_BUS8, ADDR_VR_P0V8_ASIC1, 0 },
+	{ P0V8_ASIC1, ADDR_IOE1, IOE_P03, PWRGD_P0V8_ASIC1, true, I2C_BUS8, ADDR_VR_P0V8_ASIC1, 1 },
+
+	//ALT_SMB_BIC_PMIC2
+	{ PVDDQ_AB_ASIC2, ADDR_IOE1, IOE_P04, PWRGD_PVDDQ_AB_ASIC2, true, I2C_BUS3, ADDR_VR_P0V85_ASIC2, 0 },
+	{ P0V85_ASIC2, ADDR_IOE1, IOE_P04, PWRGD_P0V85_ASIC2, true, I2C_BUS3, ADDR_VR_P0V85_ASIC2, 1 },
+	{ PVDDQ_CD_ASIC2, ADDR_IOE1, IOE_P04, PWRGD_PVDDQ_CD_ASIC2, true, I2C_BUS3, ADDR_VR_P0V8_ASIC2, 0 },
+	{ P0V8_ASIC2, ADDR_IOE1, IOE_P04, PWRGD_P0V8_ASIC2, true, I2C_BUS3, ADDR_VR_P0V8_ASIC2, 1 },
+
+	//non-PMBUS VRs
+	{ PVTT_AB_ASIC1, 0, 0, PWRGD_PVTT_AB_ASIC1, false, 0, 0, 0 },
+	{ PVTT_AB_ASIC2, 1, 0, PWRGD_PVTT_AB_ASIC2, false, 0, 0, 0 },
+	{ PVTT_CD_ASIC1, 2, 0, PWRGD_PVTT_CD_ASIC1, false, 0, 0, 0 },
+	{ PVTT_CD_ASIC2, 3, 0, PWRGD_PVTT_CD_ASIC2, false, 0, 0, 0 },
+	{ PVPP_AB_ASIC1, 0, 0, PWRGD_PVPP_AB_ASIC1, false, 0, 0, 0 },
+	{ PVPP_AB_ASIC2, 1, 0, PWRGD_PVPP_AB_ASIC2, false, 0, 0, 0 },
+	{ PVPP_CD_ASIC1, 2, 0, PWRGD_PVPP_CD_ASIC1, false, 0, 0, 0 },
+	{ PVPP_CD_ASIC2, 3, 0, PWRGD_PVPP_CD_ASIC2, false, 0, 0, 0 },
+	{ P12V_E1S_0, 2, 0, PWRGD_P12V_E1S_0_R, false, 0, 0, 0 },
+	{ P3V3_E1S_0, 2, 0, PWRGD_P3V3_E1S_0_R, false, 0, 0, 0 },
+
+};
+
+const uint8_t vr_reg_list[][8] = {
+	// INFINEON
+	{ PMBUS_STATUS_WORD, PMBUS_STATUS_BYTE, PMBUS_STATUS_VOUT, PMBUS_STATUS_IOUT,
+	  PMBUS_STATUS_INPUT, PMBUS_STATUS_TEMPERATURE, PMBUS_STATUS_CML,
+	  PMBUS_STATUS_MFR_SPECIFIC },
+	// MPS, MP2971 doesn't support PMBUS_STATUS_MFR_SPECIFIC.
+	{ PMBUS_STATUS_WORD, PMBUS_STATUS_BYTE, PMBUS_STATUS_VOUT, PMBUS_STATUS_IOUT,
+	  PMBUS_STATUS_INPUT, PMBUS_STATUS_TEMPERATURE, PMBUS_STATUS_CML },
+};
+
+void plat_isr_clear_vr_fault(uint8_t vr_addr, uint8_t vr_bus, uint8_t page)
+{
+
+	// Clear VR fault by command code 03h - CLEAR_FAULTS
+	uint8_t retry = 5;
+	int ret = 0;
+	I2C_MSG msg = { 0 };
+	msg.bus = vr_bus;
+	msg.target_addr = vr_addr;
+
+	/* set page for power rail */
+	msg.tx_len = 2;
+	msg.data[0] = PMBUS_PAGE;
+	msg.data[1] = page;
+	if (i2c_master_write(&msg, retry)) {
+		LOG_ERR("[%s] Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
+			msg.bus, msg.target_addr, page);
+		return;
+	}
+
+	/* write CLEAR_FAULTS */
+	msg.tx_len = 1;
+	msg.data[0] = PMBUS_CLEAR_FAULTS;
+	ret = i2c_master_write(&msg, retry);
+	if (ret != 0) {
+		LOG_ERR("[%s] Clear faults failed, bus: 0x%x, addr: 0x%x", __func__,
+			msg.bus, msg.target_addr);
+		return;
+	}
+	LOG_INF("[%s] Clear faults bit success, bus: 0x%x, addr: 0x%x", __func__,
+		msg.bus, msg.target_addr);
+}
 void process_vr_event_handler(struct k_work *work_item)
 {
-	int ret = -1;
-	uint8_t retry = 5;
-
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	add_vr_sel_info *work_info = CONTAINER_OF(dwork, add_vr_sel_info, add_sel_work);
+	LOG_INF("[%s] Handle GPIO(%d) interrupt", __func__, work_info->gpio_num);
 
-	const uint8_t registers_to_read[] = { PMBUS_STATUS_BYTE,	PMBUS_STATUS_VOUT,
-					      PMBUS_STATUS_IOUT,	PMBUS_STATUS_INPUT,
-					      PMBUS_STATUS_TEMPERATURE, PMBUS_STATUS_CML,
-					      PMBUS_STATUS_MFR_SPECIFIC };
-	const size_t num_registers = sizeof(registers_to_read) / sizeof(registers_to_read[0]);
-	size_t status_array_size = num_registers; // main-source: xdpe12284c
+	uint8_t ioe_reg_data[1] = {0};
+    get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe_reg_data[0]);
 
-	// Check VR type. MPS mp2971 doesn't support PMBUS_STATUS_MFR_SPECIFIC.
-	uint8_t ioe_reg_value = 0;
-	ret = get_ioe_value(ADDR_IOE3, TCA9555_INPUT_PORT_REG_1, &ioe_reg_value);
-	if (ret == -1) {
-		LOG_ERR("Failed to get the VR type. Assume it is mp2971.");
-		status_array_size--;
-	} else if (GETBIT(ioe_reg_value, IOE_P14)) {
-		// second-source: mp2971
-		status_array_size--;
-	}
+	int pwg_gpio_val = 0;
+	bool is_power_fault = false;
 
-	struct pldm_addsel_data sel_msg = { 0 };
-	sel_msg.event_type = VR_FAULT;
-	sel_msg.assert_type = EVENT_ASSERTED;
+	for (int i = 0; i < ARRAY_SIZE(vr_fault_table); ++i) {
+        pwg_gpio_val = gpio_get(vr_fault_table[i].vr_gpio);
+		if (vr_fault_table[i].is_pmbus_vr == false) {
+			// Non-PMBUS VR
+			is_power_fault = (pwg_gpio_val);
+			LOG_INF("[%s] Check VR fault, src: %d, is_power_fault: %d",
+				__func__, vr_fault_table[i].vr_source, is_power_fault);
 
-	for (int page = 0; page < work_info->page_cnt; ++page) {
-		sel_msg.event_data_1 = PVDDQ_AB_ASIC1 + (work_info->vr_num * 2) + page;
+			if (is_power_fault == false) 	
+				continue;
 
-		I2C_MSG msg = { 0 };
-		msg.bus = work_info->vr_i2c_bus;
-		msg.target_addr = work_info->vr_addr;
-
-		/* set page for power rail */
-		msg.tx_len = 2;
-		msg.data[0] = PMBUS_PAGE;
-		msg.data[1] = page;
-		if (i2c_master_write(&msg, retry)) {
-			LOG_ERR("process_vr_event_handler, set page fail");
-			continue;
-		}
-
-		/* read STATUS_WORD */
-		msg.tx_len = 1;
-		msg.rx_len = 2;
-		msg.data[0] = PMBUS_STATUS_WORD;
-		ret = i2c_master_read(&msg, retry);
-		if (ret != 0) {
-			LOG_ERR("Get vr status word fail, bus: 0x%x, addr: 0x%x", msg.bus,
-				msg.target_addr);
-		} else {
-			LOG_WRN("STATUS_WORD MSB: 0x%x, LSB: 0x%x", msg.data[1], msg.data[0]);
-
-			sel_msg.event_data_2 = msg.data[1];
-			sel_msg.event_data_3 = msg.data[0];
-
+			// power fault, send SEL message
+			struct pldm_addsel_data sel_msg = { 0 };
+			sel_msg.event_type = VR_FAULT;
+			sel_msg.assert_type = EVENT_ASSERTED;
+			sel_msg.event_data_1 = vr_fault_table[i].vr_source;
 			if (PLDM_SUCCESS != send_event_log_to_bmc(sel_msg)) {
-				LOG_ERR("Failed to send event, type: 0x%x, STATUS reg: 0x%x, info: 0x%x%x",
-					sel_msg.event_type, PMBUS_STATUS_WORD, sel_msg.event_data_2,
+				LOG_ERR("[%s] Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+					__func__, sel_msg.event_data_1, sel_msg.event_data_2,
 					sel_msg.event_data_3);
-			};
-		}
+			} else {
+				LOG_INF("[%s] Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+					__func__, sel_msg.event_data_1, sel_msg.event_data_2,
+					sel_msg.event_data_3);
+			}
 
-		/* read other STATUS registers */
-		msg.tx_len = 1;
-		msg.rx_len = 1;
-		for (size_t reg_i = 0; reg_i < status_array_size; ++reg_i) {
-			msg.data[0] = registers_to_read[reg_i];
-			ret = i2c_master_read(&msg, retry);
-			if (ret != 0) {
-				LOG_ERR("Get vr status fail, pmbus_reg: 0x%x, bus: 0x%x, addr: 0x%x",
-					registers_to_read[reg_i], msg.bus, msg.target_addr);
+		} else {
+			// PMBUS VR
+			is_power_fault = (pwg_gpio_val) && GETBIT(ioe_reg_data[0], vr_fault_table[i].ioe_bit);
+			LOG_INF("[%s] Check VR fault, src: %d, ioe_reg_idx: %d, ioe_bit: %d, is_power_fault: %d",
+				__func__, vr_fault_table[i].vr_source, vr_fault_table[i].ioe_reg_idx, vr_fault_table[i].ioe_bit, is_power_fault);
+			
+			disable_sensor_poll();
+			// wait 10ms for vr monitor stop
+			k_msleep(10);
+
+			if (is_power_fault == false){
+				plat_isr_clear_vr_fault(vr_fault_table[i].vr_addr,
+					vr_fault_table[i].vr_i2c_bus,
+					vr_fault_table[i].vr_page);
+				enable_sensor_poll();
 				continue;
 			}
-			//status_info[reg_i] = msg.data[0];
-			LOG_WRN("STATUS reg: 0x%x, info: 0x%x", registers_to_read[reg_i],
-				msg.data[0]);
 
-			sel_msg.event_data_2 = registers_to_read[reg_i];
-			sel_msg.event_data_3 = msg.data[0];
-			if (send_event_log_to_bmc(sel_msg) != PLDM_SUCCESS) {
-				LOG_ERR("Failed to send event, type: 0x%x, STATUS reg: 0x%x, info: 0x%x",
-					sel_msg.event_type, sel_msg.event_data_2,
-					sel_msg.event_data_3);
-			};
+			// power fault, send SEL message
+			I2C_MSG msg = { 0 };
+			msg.bus = vr_fault_table[i].vr_i2c_bus;
+			msg.target_addr = vr_fault_table[i].vr_addr;
+
+			uint8_t vr_reg_list_idx = 0;
+			uint8_t vr_reg_list_len = 0;
+			uint8_t vr_dev;
+
+			plat_pldm_sensor_get_vr_dev(&vr_dev);
+			switch (vr_dev) {
+			case sensor_dev_xdpe12284c: // main-source: INFINEON
+				vr_reg_list_idx = 0;
+				vr_reg_list_len = 8;
+				break;
+			case sensor_dev_mp2971: // 2nd-source: MPS
+				vr_reg_list_idx = 1;
+				vr_reg_list_len = 7;
+				break;
+			}
+
+			/* set page for power rail */
+			uint8_t retry = 5;
+			msg.tx_len = 2;
+			msg.data[0] = PMBUS_PAGE;
+			msg.data[1] = vr_fault_table[i].vr_page;
+			if (i2c_master_write(&msg, retry)) {
+				LOG_ERR("[%s] Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
+					vr_fault_table[i].vr_i2c_bus, vr_fault_table[i].vr_addr, vr_fault_table[i].vr_page);
+				enable_sensor_poll();
+				continue;
+			}
+
+			// collect status data
+			struct pldm_addsel_data sel_msg[vr_reg_list_len];
+			memset(sel_msg, 0, sizeof(sel_msg));
+			uint8_t sel_msg_idx = 0;
+			for(int curr_reg = 0; curr_reg < vr_reg_list_len; curr_reg++) {
+				msg.tx_len = 1;
+				msg.rx_len = 1;
+				msg.data[0] = vr_reg_list[vr_reg_list_idx][curr_reg];
+				if(msg.data[0]== PMBUS_STATUS_WORD)
+					msg.rx_len = 2;
+				if (i2c_master_read(&msg, retry)) {
+					LOG_ERR("[%s] Failed to get vr reg, bus: %d, addr: 0x%x, reg: 0x%x",
+						__func__, msg.bus, msg.target_addr,
+						vr_reg_list[vr_reg_list_idx][curr_reg]);
+					enable_sensor_poll();
+					continue;
+				}
+
+				sel_msg[sel_msg_idx].event_type = VR_FAULT;
+				sel_msg[sel_msg_idx].assert_type = EVENT_ASSERTED;
+				sel_msg[sel_msg_idx].event_data_1 = vr_fault_table[i].vr_source;
+				sel_msg[sel_msg_idx].event_data_2 =
+						(vr_reg_list[vr_reg_list_idx][curr_reg] == PMBUS_STATUS_WORD) ?
+								msg.data[1] :
+								vr_reg_list[vr_reg_list_idx][curr_reg];
+				sel_msg[sel_msg_idx].event_data_3 = msg.data[0];
+
+				sel_msg_idx += 1;
+
+			}
+			enable_sensor_poll(); 
+
+			// send SEL to BMC
+			for (int record = 0; record < sel_msg_idx; record++) {
+				if (PLDM_SUCCESS != send_event_log_to_bmc(sel_msg[record])) {
+					LOG_ERR("[%s] Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+						__func__, sel_msg[record].event_data_1,
+						sel_msg[record].event_data_2,
+						sel_msg[record].event_data_3);
+				} else {
+					LOG_INF("[%s] Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+						__func__, sel_msg[record].event_data_1,
+						sel_msg[record].event_data_2,
+						sel_msg[record].event_data_3);
+				}
+			}
 		}
-	}
+    }
 }
 
 void set_e1s_pe_reset()
@@ -327,24 +422,21 @@ void ISR_IOE1_INT()
 {
 	uint8_t ioe_reg_value = 0;
 
-	if (get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe_reg_value) == -1) {
-		LOG_ERR("Failed to read IOE1 register");
-		return;
-	}
+	LOG_INF("[%s] IOE1_INT_R_N triggered", __func__);
 
-	if (!GETBIT(ioe_reg_value, IOE_P03)) {
-		LOG_ERR("ALT_SMB_BIC_PMIC1_N triggered");
+	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &ioe_reg_value) == 0)
+	{
 		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[0].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
-		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[1].add_sel_work,
-					  K_MSEC(VR_EVENT_DELAY_MS));
-	}
-
-	if (!GETBIT(ioe_reg_value, IOE_P04)) {
-		LOG_ERR("ALT_SMB_BIC_PMIC2_N triggered");
-		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[2].add_sel_work,
-					  K_MSEC(VR_EVENT_DELAY_MS));
-		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[3].add_sel_work,
-					  K_MSEC(VR_EVENT_DELAY_MS));
+	}else
+	{
+		LOG_ERR("[%s] The MUX has not been switched to BIC yet", __func__);
+		if (get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe_reg_value) == -1)
+		{
+			LOG_ERR("Failed to read IOE1 register");
+			return;
+		}
+		LOG_INF("[%s] Clear IOE1_INT register", __func__);
+		return;
 	}
 }

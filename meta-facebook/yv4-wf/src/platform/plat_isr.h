@@ -63,8 +63,20 @@ typedef struct _add_vr_sel_info {
 	uint8_t vr_i2c_bus;
 	uint8_t vr_addr;
 	uint8_t page_cnt;
+	uint8_t gpio_num;
 	struct k_work_delayable add_sel_work;
 } add_vr_sel_info;
+
+typedef struct {
+    uint8_t vr_source; 
+    uint8_t ioe_reg_idx; 
+    uint8_t ioe_bit;
+    bool is_pmbus_vr;
+    uint8_t vr_gpio;
+    uint8_t vr_i2c_bus;
+    uint8_t vr_addr;
+    uint8_t vr_page;
+} vr_fault_info;
 
 void ISR_MB_DC_STAGUS_CHAGNE();
 void ISR_MB_PCIE_RST();
@@ -76,5 +88,5 @@ void ISR_IOE1_INT();
 
 void init_vr_event_work();
 void process_vr_event_handler(struct k_work *work_item);
-
+void plat_isr_clear_vr_fault(uint8_t vr_addr, uint8_t vr_bus, uint8_t page);
 #endif
