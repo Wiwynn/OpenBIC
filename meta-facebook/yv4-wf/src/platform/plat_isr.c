@@ -148,7 +148,7 @@ void plat_isr_clear_vr_fault(uint8_t vr_addr, uint8_t vr_bus, uint8_t page)
 	msg.data[0] = PMBUS_PAGE;
 	msg.data[1] = page;
 	if (i2c_master_write(&msg, retry)) {
-		LOG_ERR("[%s] Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
+		LOG_ERR("Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
 			msg.bus, msg.target_addr, page);
 		return;
 	}
@@ -158,11 +158,11 @@ void plat_isr_clear_vr_fault(uint8_t vr_addr, uint8_t vr_bus, uint8_t page)
 	msg.data[0] = PMBUS_CLEAR_FAULTS;
 	ret = i2c_master_write(&msg, retry);
 	if (ret != 0) {
-		LOG_ERR("[%s] Clear faults failed, bus: 0x%x, addr: 0x%x", __func__,
+		LOG_ERR("Clear faults failed, bus: 0x%x, addr: 0x%x", __func__,
 			msg.bus, msg.target_addr);
 		return;
 	}
-	LOG_INF("[%s] Clear faults bit success, bus: 0x%x, addr: 0x%x", __func__,
+	LOG_INF("Clear faults bit success, bus: 0x%x, addr: 0x%x", __func__,
 		msg.bus, msg.target_addr);
 }
 
@@ -187,27 +187,36 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 {
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	add_vr_sel_info *work_info = CONTAINER_OF(dwork, add_vr_sel_info, add_sel_work);
-	LOG_INF("[%s] Handle GPIO(%d) interrupt", __func__, work_info->gpio_num);
+	LOG_INF("Handle GPIO(%d) interrupt", __func__, work_info->gpio_num);
 
 	//collect VR fault information from IOE1
 	uint8_t ioe_reg_data[1] = {0};
     get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe_reg_data[0]);
 
-	int pwg_gpio_data = GPIO_HIGH ;
-	int alt_pin_data = GPIO_HIGH;
 	bool is_power_fault = false;
 
 	for (int i = 0; i < ARRAY_SIZE(vr_fault_table); ++i) {
+		if (GETBIT(ioe_reg_data[0], vr_fault_table[i].ioe_bit))
+		{
+			continue;
+		}
 
-		pwg_gpio_data = gpio_get(vr_fault_table[i].vr_pwrgd_gpio);
-		alt_pin_data = GETBIT(ioe_reg_data[0], vr_fault_table[i].ioe_bit);
-
-		is_power_fault = (pwg_gpio_data) && (alt_pin_data);
-		LOG_INF("[%s] Check VR fault, src: %d, ioe_reg_idx: %d, ioe_bit: %d, is_power_fault: %d",
-			__func__, vr_fault_table[i].vr_source, vr_fault_table[i].ioe_reg_idx, vr_fault_table[i].ioe_bit, is_power_fault);
 		disable_sensor_poll();
-		// wait 10ms for vr monitor stop
-		k_msleep(10);
+		 // wait 10ms for vr monitor stop
+                k_msleep(10);
+
+		// situation1
+		if(gpio_get(vr_fault_table[i].vr_pwrgd_gpio))
+		{
+			plat_isr_clear_vr_fault(vr_fault_table[i].vr_addr,
+				vr_fault_table[i].vr_i2c_bus,
+				vr_fault_table[i].vr_page);
+			enable_sensor_poll();
+			continue;
+		}
+		LOG_INF("Check VR fault, src: %d, ioe_reg_idx: %d, ioe_bit: %d",
+			__func__, vr_fault_table[i].vr_source, vr_fault_table[i].ioe_reg_idx, vr_fault_table[i].ioe_bit);
+		
 
 		// situation2
 		if (is_power_fault == false){
@@ -248,7 +257,7 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 		msg.data[0] = PMBUS_PAGE;
 		msg.data[1] = vr_fault_table[i].vr_page;
 		if (i2c_master_write(&msg, retry)) {
-			LOG_ERR("[%s] Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
+			LOG_ERR("Set page failed, bus: 0x%x, addr: 0x%x, page: %d", __func__,
 				vr_fault_table[i].vr_i2c_bus, vr_fault_table[i].vr_addr, vr_fault_table[i].vr_page);
 			enable_sensor_poll();
 			continue;
@@ -265,7 +274,7 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 			if(msg.data[0]== PMBUS_STATUS_WORD)
 				msg.rx_len = 2;
 			if (i2c_master_read(&msg, retry)) {
-				LOG_ERR("[%s] Failed to get vr reg, bus: %d, addr: 0x%x, reg: 0x%x",
+				LOG_ERR("Failed to get vr reg, bus: %d, addr: 0x%x, reg: 0x%x",
 					__func__, msg.bus, msg.target_addr,
 					vr_reg_list[vr_reg_list_idx][curr_reg]);
 				enable_sensor_poll();
@@ -289,12 +298,12 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 		// send SEL to BMC
 		for (int record = 0; record < sel_msg_idx; record++) {
 			if (PLDM_SUCCESS != send_event_log_to_bmc(sel_msg[record])) {
-				LOG_ERR("[%s] Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+				LOG_ERR("Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
 					__func__, sel_msg[record].event_data_1,
 					sel_msg[record].event_data_2,
 					sel_msg[record].event_data_3);
 			} else {
-				LOG_INF("[%s] Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+				LOG_INF("Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
 					__func__, sel_msg[record].event_data_1,
 					sel_msg[record].event_data_2,
 					sel_msg[record].event_data_3);
@@ -313,7 +322,7 @@ void process_non_pmbus_vr_event_handler(struct k_work *work_item){
 
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	add_vr_sel_info *work_info = CONTAINER_OF(dwork, add_vr_sel_info, add_sel_work);
-	LOG_INF("[%s] Handle GPIO(%d) interrupt", __func__, work_info->gpio_num);
+	LOG_INF("Handle GPIO(%d) interrupt", __func__, work_info->gpio_num);
 
 	// Prepare the SEL (System Event Log) message for the VR fault event
 	struct pldm_addsel_data sel_msg = { 0 };
@@ -323,11 +332,11 @@ void process_non_pmbus_vr_event_handler(struct k_work *work_item){
 
 	// Send the SEL message to the BMC
 	if (PLDM_SUCCESS != send_event_log_to_bmc(sel_msg)) {
-		LOG_ERR("[%s] Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+		LOG_ERR("Failed to send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
 			__func__, sel_msg.event_data_1, sel_msg.event_data_2,
 			sel_msg.event_data_3);
 	} else {
-		LOG_INF("[%s] Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
+		LOG_INF("Send VR FAULT assert SEL, event data: 0x%x 0x%x 0x%x",
 			__func__, sel_msg.event_data_1, sel_msg.event_data_2,
 			sel_msg.event_data_3);
 	}
@@ -399,12 +408,12 @@ void set_cxl_led()
 void pwrgd_pvtt_cd_asic_vr_fault_check_handler()
 {
 	if (gpio_get(PWRGD_PVTT_CD_ASIC1) == GPIO_LOW) {
-		LOG_ERR("[%s] PWRGD_PVTT_CD_ASIC1 is LOW, trigger VR event work handler", __func__);
+		LOG_ERR("PWRGD_PVTT_CD_ASIC1 is LOW, trigger VR event work handler", __func__);
 		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_CD_ASIC1].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 	}
 	if (gpio_get(PWRGD_PVTT_CD_ASIC2) == GPIO_LOW) {
-		LOG_ERR("[%s] PWRGD_PVTT_CD_ASIC2 is LOW, trigger VR event work handler", __func__);
+		LOG_ERR("PWRGD_PVTT_CD_ASIC2 is LOW, trigger VR event work handler", __func__);
 		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_CD_ASIC2].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 	}
@@ -488,7 +497,7 @@ void ISR_P3V3_E1S_PWR_CHANGE()
 	// If PWRGD_P3V3_E1S_0_R is LOW, it means the power is not good.
 	// Trigger the VR event work handler to send SEL message.
 	}else if (gpio_get(PWRGD_P3V3_E1S_0_R) == GPIO_LOW) {
-		LOG_ERR("[%s] PWRGD_P3V3_E1S_0_R is LOW, trigger VR event work handler", __func__);
+		LOG_ERR("PWRGD_P3V3_E1S_0_R is LOW, trigger VR event work handler", __func__);
 		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_P3V3_E1S_0_R].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 	}
@@ -506,7 +515,7 @@ void ISR_P12V_E1S_PWR_CHANGE()
 	// If PWRGD_P12V_E1S_0_R is LOW, it means the power is not good.
 	// Trigger the VR event work handler to send SEL message.
 	if (gpio_get(PWRGD_P12V_E1S_0_R) == GPIO_LOW) {
-		LOG_ERR("[%s] PWRGD_P12V_E1S_0_R is LOW, trigger VR event work handler", __func__);
+		LOG_ERR("PWRGD_P12V_E1S_0_R is LOW, trigger VR event work handler", __func__);
 		k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_P12V_E1S_0_R].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 	}
@@ -522,11 +531,11 @@ void ISR_SET_CXL_LED_AND_CHECK_PWR_STATUS()
 	k_work_submit(&_set_cxl_led);
 }
 
-void ISR_IOE1_INT_PWR_IS_LOW()
+void ISR_IOE1_INT_VR_FAULT()
 {
 	uint8_t ioe_reg_value = 0;
 
-	LOG_INF("[%s] IOE1_INT_R_N is LOW, trigger VR event work handler", __func__);
+	LOG_INF("IOE1_INT_R_N is LOW, trigger VR event work handler", __func__);
 
 	if (get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &ioe_reg_value) == 0)
 	{
@@ -534,55 +543,55 @@ void ISR_IOE1_INT_PWR_IS_LOW()
 					  K_MSEC(VR_EVENT_DELAY_MS));
 	}else
 	{
-		LOG_ERR("[%s] The MUX has not been switched to BIC yet", __func__);
+		LOG_ERR("The MUX has not been switched to BIC yet", __func__);
 		if (get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe_reg_value) == -1)
 		{
-			LOG_ERR("[%s] Failed to read IOE1 register", __func__);
+			LOG_ERR("Failed to read IOE1 register", __func__);
 			return;
 		}
-		LOG_INF("[%s] Clear IOE1_INT register current data: 0x%x", __func__, ioe_reg_value);
+		LOG_INF("Clear IOE1_INT register current data: 0x%x", __func__, ioe_reg_value);
 		return;
 	}
 }
 
-void ISR_PVTT_AB_ASIC1_PWR_IS_LOW()
+void ISR_PVTT_AB_ASIC1_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVTT_AB_ASIC1 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVTT_AB_ASIC1 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC1].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
-void ISR_PVTT_AB_ASIC2_PWR_IS_LOW()
+void ISR_PVTT_AB_ASIC2_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVTT_AB_ASIC2 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVTT_AB_ASIC2 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC2].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
-void ISR_PVPP_AB_ASIC1_PWR_IS_LOW()
+void ISR_PVPP_AB_ASIC1_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVPP_AB_ASIC1 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVPP_AB_ASIC1 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC1].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
-void ISR_PVPP_AB_ASIC2_PWR_IS_LOW()
+void ISR_PVPP_AB_ASIC2_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVPP_AB_ASIC2 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVPP_AB_ASIC2 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC2].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
-void ISR_PVPP_CD_ASIC1_PWR_IS_LOW()
+void ISR_PVPP_CD_ASIC1_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVPP_CD_ASIC1 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVPP_CD_ASIC1 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC1].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
-void ISR_PVPP_CD_ASIC2_PWR_IS_LOW()
+void ISR_PVPP_CD_ASIC2_PWR_VR_FAULT()
 {
-	LOG_INF("[%s] PWRGD_PVPP_CD_ASIC2 is LOW, trigger VR event work handler", __func__);
+	LOG_INF("PWRGD_PVPP_CD_ASIC2 is LOW, trigger VR event work handler", __func__);
 	k_work_schedule_for_queue(&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC2].add_sel_work,
 					  K_MSEC(VR_EVENT_DELAY_MS));
 }
