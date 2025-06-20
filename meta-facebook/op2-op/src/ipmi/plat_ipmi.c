@@ -23,6 +23,7 @@
 #include "m88rt51632.h"
 #include "rg3mxxb12.h"
 #include "p3h284x.h"
+#include "kb900x.h"
 #include "power_status.h"
 #include "plat_class.h"
 #include "plat_i2c.h"
@@ -165,6 +166,21 @@ void OEM_1S_GET_FW_VERSION(ipmi_msg *msg)
 						msg->completion_code = CC_SUCCESS;
 					}
 					break;
+				case RETIMER_TYPE_KB900X:
+					if (retimer_version == RETIMER_UNKNOWN_VERSION) {
+						if (kb900x_get_fw_version(i2c_msg, msg->data)) {
+							msg->data_len = 4;
+							msg->completion_code = CC_SUCCESS;
+						} else {
+							msg->completion_code = CC_UNSPECIFIED_ERROR;
+						}
+					} else {
+						convert_uint32_t_to_uint8_t_pointer(
+							retimer_version, msg->data, 4, BIG_ENDIAN);
+						msg->data_len = 4;
+						msg->completion_code = CC_SUCCESS;
+					}
+					break;
 				default:
 					msg->completion_code = CC_UNSPECIFIED_ERROR;
 					break;
@@ -257,6 +273,10 @@ void OEM_1S_FW_UPDATE(ipmi_msg *msg)
 			break;
 		case RETIMER_TYPE_M88RT51632:
 			status = m88rt51632_fw_update(&i2c_msg, offset, length, &msg->data[7],
+						      (target & IS_SECTOR_END_MASK));
+			break;
+		case RETIMER_TYPE_KB900X:
+			status = kb900x_pcie_retimer_fw_update(&i2c_msg, offset, length, &msg->data[7],
 						      (target & IS_SECTOR_END_MASK));
 			break;
 		default:

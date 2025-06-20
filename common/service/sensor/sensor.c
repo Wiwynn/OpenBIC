@@ -154,6 +154,7 @@ const char *const sensor_type_name[] = {
 	sensor_name_to_num(tmp421)
 	sensor_name_to_num(bmr316)
 	sensor_name_to_num(lx6301)
+	sensor_name_to_num(kb900x)
 };
 // clang-format on
 
@@ -380,6 +381,9 @@ SENSOR_DRIVE_INIT_DECLARE(bmr316);
 #endif
 #ifdef ENABLE_LX6301
 SENSOR_DRIVE_INIT_DECLARE(lx6301);
+#endif
+#ifdef ENABLE_KB900X
+SENSOR_DRIVE_INIT_DECLARE(kb900x);
 #endif
 
 // The sequence needs to same with SENSOR_DEV ID
@@ -762,6 +766,11 @@ sensor_drive_api sensor_drive_tbl[] = {
 	SENSOR_DRIVE_TYPE_INIT_MAP(lx6301),
 #else
 	SENSOR_DRIVE_TYPE_UNUSE(lx6301),
+#endif
+#ifdef ENABLE_KB900X
+	SENSOR_DRIVE_TYPE_INIT_MAP(kb900x),
+#else
+	SENSOR_DRIVE_TYPE_UNUSE(kb900x),
 #endif
 };
 

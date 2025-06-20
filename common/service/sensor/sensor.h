@@ -192,6 +192,7 @@ enum SENSOR_DEV {
 	sensor_dev_tmp421 = 0x4A,
 	sensor_dev_bmr316 = 0x4B,
 	sensor_dev_lx6301 = 0x4C,
+	sensor_dev_kb900x = 0x4D,
 	sensor_dev_max
 };
 
@@ -736,10 +737,10 @@ typedef struct _g788p81u_init_arg_ {
 } g788p81u_init_arg;
 
 typedef struct _pt5161l_init_arg_ {
+	bool is_init;
 	uint8_t temp_cal_code_pma_a[4]; // temp calibration codes for PMA A
 	uint8_t temp_cal_code_pma_b[4]; // temp calibration codes for PMA B
 	uint8_t temp_cal_code_avg; // average temp calibration code
-	bool is_init;
 } pt5161l_init_arg;
 
 typedef struct _mp2985_init_arg {

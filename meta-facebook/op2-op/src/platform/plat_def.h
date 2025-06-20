@@ -20,4 +20,6 @@
 #define BMC_USB_PORT "CDC_ACM_0"
 #define SHELL_PWR_SEQ
 
+#define ENABLE_KB900X
+
 #endif
