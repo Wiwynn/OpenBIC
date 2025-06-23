@@ -178,7 +178,7 @@ void cmd_get_sensor_threshold(const struct shell *shell, size_t argc, char **arg
 	}
 }
 
-SHELL_CMD_REGISTER(sensor, &sub_sensor_cmds, "Platform sensor commands", NULL);
+// SHELL_CMD_REGISTER(sensor, &sub_sensor_cmds, "Platform sensor commands", NULL);
 
 //Add for verify prochot END
 
