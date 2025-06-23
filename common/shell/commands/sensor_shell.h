@@ -30,6 +30,10 @@ void cmd_sensor_cfg_list_all_sensor(const struct shell *shell, size_t argc, char
 void cmd_sensor_cfg_get_table_all_sensor(const struct shell *shell, size_t argc, char **argv);
 void cmd_sensor_cfg_get_table_single_sensor(const struct shell *shell, size_t argc, char **argv);
 void cmd_control_sensor_polling(const struct shell *shell, size_t argc, char **argv);
+//Add for verify prochot
+#define META_THRESHOLD_UNIT 1
+void cmd_set_sensor_threshold(const struct shell *shell, size_t argc, char **argv);
+void cmd_get_sensor_threshold(const struct shell *shell, size_t argc, char **argv);
 
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	sub_sensor_cmds,
@@ -41,6 +45,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 		  cmd_sensor_cfg_get_table_single_sensor),
 	SHELL_CMD(control_sensor_polling, NULL, "Enable/Disable sensor polling",
 		  cmd_control_sensor_polling),
+	SHELL_CMD(set, NULL, "Set sensor threshold", cmd_set_sensor_threshold),
+	SHELL_CMD(get, NULL, "Get sensor threshold", cmd_get_sensor_threshold),
 	SHELL_SUBCMD_SET_END);
 
 #endif
