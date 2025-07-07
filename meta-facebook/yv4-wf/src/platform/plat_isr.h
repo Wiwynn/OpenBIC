@@ -59,6 +59,7 @@ typedef struct {
 
 typedef struct _add_vr_sel_info {
 	bool is_init;
+	uint8_t vr_num;
 	uint8_t vr_i2c_bus;
 	uint8_t vr_addr;
 	uint8_t page_cnt;
@@ -67,11 +68,13 @@ typedef struct _add_vr_sel_info {
 	struct k_work_delayable add_sel_work;
 } add_vr_sel_info;
 
+#define PMBUS_DRMOS_FAULT 0x80 // MPS MP2971 PMBus Command
+
 typedef struct {
 	uint8_t vr_source;
-	uint8_t ioe_reg_idx;
-	uint8_t ioe_bit;
+	uint8_t ioe_pin_num;
 	uint8_t vr_pwrgd_gpio;
+	uint8_t vr_mux_sel;
 	uint8_t vr_i2c_bus;
 	uint8_t vr_addr;
 	uint8_t vr_page;
@@ -96,18 +99,18 @@ void ISR_MB_PCIE_RST();
 void ISR_P3V3_E1S_PWR_CHANGE();
 void ISR_P12V_E1S_PWR_CHANGE();
 void ISR_CXL_PG_ON();
-void ISR_SET_CXL_LED_AND_CHECK_PWR_STATUS();
-void ISR_IOE1_INT_VR_FAULT();
-void ISR_PVTT_AB_ASIC1_PWR_VR_FAULT();
-void ISR_PVTT_AB_ASIC2_PWR_VR_FAULT();
-void ISR_PVPP_AB_ASIC1_PWR_VR_FAULT();
-void ISR_PVPP_AB_ASIC2_PWR_VR_FAULT();
-void ISR_PVPP_CD_ASIC1_PWR_VR_FAULT();
-void ISR_PVPP_CD_ASIC2_PWR_VR_FAULT();
+void ISR_PVTT_CD_ASIC1_PWR_CHANGE();
+void ISR_PVTT_CD_ASIC2_PWR_CHANGE();
+void ISR_IOE1_INT();
+void ISR_PVTT_AB_ASIC1_VR_FAULT();
+void ISR_PVTT_AB_ASIC2_VR_FAULT();
+void ISR_PVPP_AB_ASIC1_VR_FAULT();
+void ISR_PVPP_AB_ASIC2_VR_FAULT();
+void ISR_PVPP_CD_ASIC1_VR_FAULT();
+void ISR_PVPP_CD_ASIC2_VR_FAULT();
 
 void init_vr_event_work();
 void process_pmbus_vr_event_handler(struct k_work *work_item);
 void process_non_pmbus_vr_event_handler(struct k_work *work_item);
-void plat_isr_clear_vr_fault(uint8_t vr_addr, uint8_t vr_bus, uint8_t page);
 
 #endif
