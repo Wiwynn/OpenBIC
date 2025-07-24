@@ -28,9 +28,12 @@
 #include "plat_i2c_target.h"
 #include "libutil.h"
 #include "plat_class.h"
+#include <logging/log.h>
 
 #define DEF_PLAT_CONFIG_PRIORITY 77
 #define DEF_PROJ_GPIO_PRIORITY 78
+
+LOG_MODULE_REGISTER(plat_init);
 
 SCU_CFG scu_cfg[] = {
 	//register    value
@@ -39,6 +42,7 @@ SCU_CFG scu_cfg[] = {
 	{ 0x7e6e2614, 0x0AABAB00 },
 	{ 0x7e6e2618, 0x50000000 },
 };
+uint8_t ioe_list[4] = { ADDR_IOE1, ADDR_IOE2, ADDR_IOE3, ADDR_IOE4 };
 
 DEVICE_DEFINE(PRE_DEF_PLAT_CONFIG, "PRE_DEF_PLATFOMR", &init_platform_config, NULL, NULL, NULL,
 	      POST_KERNEL, DEF_PLAT_CONFIG_PRIORITY, NULL);

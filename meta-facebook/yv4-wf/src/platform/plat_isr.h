@@ -44,6 +44,10 @@
 
 #define SET_CLK_BUF_DELAY_MS 100
 
+#define VR_EVENT_DELAY_MS 10
+
+extern bool is_cxl_power_on_success;
+
 enum set_ioe4_cmd {
 	SET_CLK = 0,
 	SET_PE_RST,
@@ -67,6 +71,7 @@ typedef struct _add_vr_sel_info {
 	uint8_t vr_source;
 	struct k_work_delayable add_sel_work;
 } add_vr_sel_info;
+extern add_vr_sel_info vr_event_work_items[];
 
 #define PMBUS_DRMOS_FAULT 0x80 // MPS MP2971 PMBus Command
 

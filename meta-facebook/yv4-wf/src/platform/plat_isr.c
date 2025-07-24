@@ -30,8 +30,6 @@
 
 LOG_MODULE_REGISTER(plat_isr);
 
-#define VR_EVENT_DELAY_MS 10
-
 add_vr_sel_info vr_event_work_items[] = {
 	{
 		.is_init = false,
@@ -150,9 +148,7 @@ const uint8_t vr_reg_list[][8] = {
 
 void process_pmbus_vr_event_handler(struct k_work *work_item)
 {
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
-	add_vr_sel_info *work_info = CONTAINER_OF(dwork, add_vr_sel_info, add_sel_work);
-	LOG_INF("Handle GPIO(%d) interrupt", work_info->gpio_num);
+	LOG_INF("Entering process pmbus vr event handler...");
 
 	uint8_t retry = 5;
 	uint8_t ioe1_reg_data = 0;
@@ -164,11 +160,11 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 	for (int i = 0; i < ARRAY_SIZE(vr_fault_table); ++i) {
 		bool is_vr_alert =
 			(GETBIT(ioe1_reg_data, vr_fault_table[i].ioe_pin_num) == GPIO_LOW) ? true :
-											    false;
+											     false;
 		LOG_INF("Check VR alert, src: %d, ioe1_reg_data: %x, ioe_pin_num: %d, is_vr_alert: %d",
 			vr_fault_table[i].vr_source, ioe1_reg_data, vr_fault_table[i].ioe_pin_num,
 			is_vr_alert);
-		if (is_vr_alert == false) {
+		if (is_vr_alert == false && is_cxl_power_on_success == true) {
 			continue;
 		}
 
@@ -317,6 +313,12 @@ void process_non_pmbus_vr_event_handler(struct k_work *work_item)
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work_item);
 	add_vr_sel_info *work_info = CONTAINER_OF(dwork, add_vr_sel_info, add_sel_work);
 	LOG_INF("Handle GPIO(%d) interrupt", work_info->gpio_num);
+
+	if (get_DC_status() == POWER_OFF) {
+		LOG_INF("GPIO(%d) low due to power off, skip VR fault handling",
+			work_info->gpio_num);
+		return;
+	}
 
 	struct pldm_addsel_data sel_msg = { 0 };
 	sel_msg.event_type = VR_FAULT;
@@ -548,47 +550,47 @@ void ISR_IOE1_INT()
 void ISR_PVTT_AB_ASIC1_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVTT_AB_ASIC1 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC1].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC1].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
 void ISR_PVTT_AB_ASIC2_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVTT_AB_ASIC2 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC2].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVTT_AB_ASIC2].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
 void ISR_PVPP_AB_ASIC1_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVPP_AB_ASIC1 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC1].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC1].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
 void ISR_PVPP_AB_ASIC2_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVPP_AB_ASIC2 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC2].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVPP_AB_ASIC2].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
 void ISR_PVPP_CD_ASIC1_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVPP_CD_ASIC1 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC1].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC1].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }
 
 void ISR_PVPP_CD_ASIC2_VR_FAULT()
 {
 	LOG_INF("PWRGD_PVPP_CD_ASIC2 event triggered");
-	k_work_schedule_for_queue(
-		&plat_work_q, &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC2].add_sel_work,
-		K_MSEC(VR_EVENT_DELAY_MS));
+	k_work_schedule_for_queue(&plat_work_q,
+				  &vr_event_work_items[NON_PMBUS_VR_PVPP_CD_ASIC2].add_sel_work,
+				  K_MSEC(VR_EVENT_DELAY_MS));
 }

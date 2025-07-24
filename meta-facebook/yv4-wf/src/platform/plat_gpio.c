@@ -394,6 +394,8 @@ void init_ioe_config()
 				ioe_cfg[i].addr, ioe_cfg[i].conf_reg);
 		}
 	}
+	// Reset IO Expander INT#
+	reset_IOE_INT();
 }
 
 int check_ioe4_e1s_prsnt_pin()
@@ -414,5 +416,21 @@ int check_ioe4_e1s_prsnt_pin()
 		return -1;
 	} else {
 		return 0;
+	}
+}
+
+void reset_IOE_INT(void)
+{
+	uint8_t ioe_reg_value = 0;
+	// Reset IO Expander INT#
+	for (int ioe_index = 0; ioe_index < ARRAY_SIZE(ioe_list); ioe_index++) {
+		if (get_ioe_value(ioe_list[ioe_index], TCA9555_INPUT_PORT_REG_0, &ioe_reg_value) ==
+		    -1) {
+			LOG_ERR("Failed to read IOE%d ", ioe_index + 1);
+			continue;
+		}
+		LOG_INF("Clear IOE%d_INT#  current data: 0x%x", ioe_index + 1,
+			ioe_reg_value);
+		ioe_reg_value = 0;
 	}
 }
