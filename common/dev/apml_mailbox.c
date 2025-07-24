@@ -115,7 +115,11 @@ void dimm_pwr_write(const apml_msg *msg)
 	sval.integer = raw_data / 1000;
 	sval.fraction = raw_data % 1000;
 	memcpy(&cfg->cache, &sval, sizeof(sensor_val));
+#ifdef ENABLE_PLDM_SENSOR
+	cfg->cache_status = PLDM_SENSOR_ENABLED;
+#else
 	cfg->cache_status = SENSOR_READ_4BYTE_ACUR_SUCCESS;
+#endif
 }
 
 void dimm_temp_write(const apml_msg *msg)
@@ -159,7 +163,11 @@ void dimm_temp_write(const apml_msg *msg)
 		sval.integer = (int16_t)temp;
 		sval.fraction = (temp - sval.integer) * 1000;
 		memcpy(&cfg->cache, &sval, sizeof(sensor_val));
+#ifdef ENABLE_PLDM_SENSOR
+		cfg->cache_status = PLDM_SENSOR_ENABLED;
+#else
 		cfg->cache_status = SENSOR_READ_4BYTE_ACUR_SUCCESS;
+#endif
 	} else {
 		if (cfg->priv_data) {
 			float *TS0_temp = &(((dimm_temp_priv_data *)(cfg->priv_data))->ts0_temp);

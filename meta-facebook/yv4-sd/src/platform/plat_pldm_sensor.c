@@ -3489,16 +3489,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_A_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_A_G_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[1],
 		},
 	},
 	{
@@ -3558,16 +3557,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_B_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_B_H_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[2],
 		},
 	},
 	{
@@ -3627,16 +3625,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_C_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_C_I_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[3],
 		},
 	},
 	{
@@ -3696,16 +3693,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_D_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_D_J_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[4],
 		},
 	},
 	{
@@ -3765,16 +3761,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_E_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_E_K_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[5],
 		},
 	},
 	{
@@ -3834,16 +3829,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_F_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_F_L_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[6],
 		},
 	},
 	{
@@ -3903,16 +3897,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_G_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_A_G_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[7],
 		},
 	},
 	{
@@ -3972,16 +3965,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_H_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_B_H_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[8],
 		},
 	},
 	{
@@ -4041,16 +4033,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_I_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_C_I_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[9],
 		},
 	},
 	{
@@ -4110,16 +4101,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_J_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_D_J_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[10],
 		},
 	},
 	{
@@ -4179,16 +4169,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_K_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_E_K_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[11],
 		},
 	},
 	{
@@ -4248,16 +4237,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_L_TEMP,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_SPD_F_L_ADDR,
-			.offset = DIMM_SPD_TEMP,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_TEMP,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[12],
 		},
 	},
 	{
@@ -4317,16 +4305,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_A_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_A_G_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[1],
 		},
 	},
 	{
@@ -4386,16 +4373,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_B_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_B_H_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[2],
 		},
 	},
 	{
@@ -4455,16 +4441,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_C_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_C_I_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[3],
 		},
 	},
 	{
@@ -4524,16 +4509,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_D_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_D_J_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[4],
 		},
 	},
 	{
@@ -4593,16 +4577,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_E_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_E_K_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[5],
 		},
 	},
 	{
@@ -4662,16 +4645,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_F_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_F_L_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[6],
 		},
 	},
 	{
@@ -4731,16 +4713,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_G_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_A_G_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[7],
 		},
 	},
 	{
@@ -4800,16 +4781,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_H_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_B_H_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[8],
 		},
 	},
 	{
@@ -4869,16 +4849,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_I_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_C_I_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[9],
 		},
 	},
 	{
@@ -4938,16 +4917,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_J_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_D_J_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[10],
 		},
 	},
 	{
@@ -5007,16 +4985,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_K_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_E_K_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[11],
 		},
 	},
 	{
@@ -5076,16 +5053,15 @@ pldm_sensor_info plat_pldm_sensor_dimm_table[] = {
 		},
 		.update_time = 0,
 		{
-			.num = NUM_DIMM_L_PMIC_PWR,
-			.type = sensor_dev_i3c_dimm,
-			.port = I3C_BUS3,
-			.target_addr = DIMM_PMIC_F_L_ADDR,
-			.offset = DIMM_PMIC_SWA_PWR,
+			.type = sensor_dev_apml_mailbox,
+			.port = I2C_BUS14,
+			.target_addr = SB_RMI_ADDR, //ADDR_APML
+			.offset = SBRMI_MAILBOX_GET_DIMM_PWR,
 			.access_checker = post_access,
 			.sample_count = SAMPLE_COUNT_DEFAULT,
 			.cache = 0,
 			.cache_status = PLDM_SENSOR_INITIALIZING,
-			.pre_sensor_read_hook = pre_dimm_i3c_read,
+			.init_args = &apml_mailbox_init_args[12],
 		},
 	},
 };
@@ -6733,6 +6709,10 @@ void plat_pldm_sensor_change_cpu_bus()
 		// For DVT and later, the hardware design was changed to I2C_BUS10
 		for (int i = 0; i < plat_pldm_sensor_get_sensor_count(CPU_SENSOR_THREAD_ID); i++) {
 			plat_pldm_sensor_cpu_table[i].pldm_sensor_cfg.port = I2C_BUS10;
+		}
+
+		for (int i = 0; i < plat_pldm_sensor_get_sensor_count(DIMM_SENSOR_THREAD_ID); i++) {
+			plat_pldm_sensor_dimm_table[i].pldm_sensor_cfg.port = I2C_BUS10;
 		}
 	}
 

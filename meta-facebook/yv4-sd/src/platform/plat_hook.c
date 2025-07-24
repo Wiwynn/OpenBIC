@@ -49,7 +49,15 @@ adc_asd_init_arg ast_adc_init_args[] = {
 	}
 };
 
-apml_mailbox_init_arg apml_mailbox_init_args[] = { [0] = { .data = 0x00000000, .retry = 0 } };
+apml_mailbox_init_arg apml_mailbox_init_args[] = {
+	[0] = { .data = 0x00000000, .retry = 0 },  [1] = { .data = 0x00000083, .retry = 0 },
+	[2] = { .data = 0x00000084, .retry = 0 },  [3] = { .data = 0x00000080, .retry = 0 },
+	[4] = { .data = 0x00000085, .retry = 0 },  [5] = { .data = 0x00000081, .retry = 0 },
+	[6] = { .data = 0x00000082, .retry = 0 },  [7] = { .data = 0x00000089, .retry = 0 },
+	[8] = { .data = 0x0000008A, .retry = 0 },  [9] = { .data = 0x00000086, .retry = 0 },
+	[10] = { .data = 0x0000008B, .retry = 0 }, [11] = { .data = 0x00000087, .retry = 0 },
+	[12] = { .data = 0x00000088, .retry = 0 },
+};
 
 vr_pre_proc_arg vr_pre_read_args[] = {
 	[0] = { 0x0 },
