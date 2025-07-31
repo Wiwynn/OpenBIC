@@ -118,7 +118,7 @@ void pal_post_init()
 	pldm_assign_gpio_effecter_id(PLAT_EFFECTER_ID_GPIO_HIGH_BYTE);
 	// Create a thread to keep sending AASA
 	start_setaasa();
-	start_get_dimm_info_thread();
+	// start_get_dimm_info_thread();
 	set_sys_ready_pin(BIC_READY_R);
 	reset_usb_hub();
 
@@ -152,6 +152,6 @@ void pal_set_sys_status()
 
 void pal_device_init()
 {
-	start_monitor_pmic_error_thread();
+	// start_monitor_pmic_error_thread();
 	start_monitor_prochot_sensor_thread();
 }

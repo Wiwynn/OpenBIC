@@ -54,11 +54,30 @@
 #define GET_DIMM_INFO_TIME_MS 1000
 #define GET_DIMM_INFO_STACK_SIZE 2304
 
-typedef struct dimm_info {
-	uint8_t is_present;
-	bool is_ready_monitor;
-	uint8_t spd_temp_data[MAX_LEN_I3C_GET_SPD_TEMP];
-	uint8_t pmic_pwr_data[MAX_LEN_I3C_GET_PMIC_PWR];
+#define SPD_MFG_START      0x200
+#define SPD_MFG_TOTAL_LEN  128
+#define SPD_TEMP_DATA_LEN  2
+#define PMIC_PWR_DATA_LEN  1
+
+typedef struct {
+	bool is_present;
+	uint8_t dimm_vendor_id[2];
+	uint8_t reg_vendor_id[2];
+	uint8_t pmic_vendor_id[2];
+
+	uint8_t mfg_year;
+	uint8_t mfg_week;
+	uint8_t mfg_location;
+
+	uint8_t serial_number[4];
+	uint8_t part_number[32];
+	uint8_t revision_code;
+	uint8_t dram_stepping;
+
+	uint8_t spd_raw_data[128];
+
+	uint8_t spd_temp_data[SPD_TEMP_DATA_LEN];
+	uint8_t pmic_pwr_data[PMIC_PWR_DATA_LEN];
 } dimm_info;
 
 enum NUMBER_DIMM_TEMP {

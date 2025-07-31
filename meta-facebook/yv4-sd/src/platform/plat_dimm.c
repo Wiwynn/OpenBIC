@@ -61,7 +61,6 @@ void get_dimm_info_handler()
 {
 	I2C_MSG msg = { 0 };
 
-	// Init mutex
 	if (k_mutex_init(&i3c_dimm_mutex)) {
 		LOG_ERR("i3c_dimm_mux_mutex mutex init fail");
 	}
@@ -71,36 +70,22 @@ void get_dimm_info_handler()
 		uint8_t dimm_id;
 		uint8_t dimm_mux_status = 0;
 
-		// Check sensor poll enable
-		if (get_sensor_poll_enable_flag() == false) {
-			k_msleep(GET_DIMM_INFO_TIME_MS);
-			continue;
-		}
-
-		// Avoid to get wrong thus only monitor after post complete
-		if (!get_post_status()) {
+		if (!get_sensor_poll_enable_flag() || !get_post_status()) {
 			k_msleep(GET_DIMM_INFO_TIME_MS);
 			continue;
 		}
 
 		ret = check_i3c_dimm_mux(&dimm_mux_status);
-		if (ret != 0) {
-			// Failed to get i3c dimm mux status from cpld
+		if (ret != 0 ||
+		   (dimm_mux_status & (1 << I3C_MUX_STATUS_ENABLE_FUNCTION_CHECK) &&
+		   !(dimm_mux_status & (1 << I3C_MUX_STATUS_PD_SPD_1_REMOTE_EN)))) {
+			k_msleep(GET_DIMM_INFO_TIME_MS);
 			continue;
 		}
-		if (dimm_mux_status & (1 << I3C_MUX_STATUS_ENABLE_FUNCTION_CHECK)) {
-			is_cpld_support_i3c_mux_check = true;
-			if (!(dimm_mux_status & (1 << I3C_MUX_STATUS_PD_SPD_1_REMOTE_EN))) {
-				// spd1 mux set to cpu now
-				continue;
-			}
-		}
 
-		if (is_dimm_checked_presnt == false) {
-			if (init_dimm_prsnt_status() < 0) {
-				k_msleep(GET_DIMM_INFO_TIME_MS);
-				continue;
-			}
+		if (!is_dimm_checked_presnt && init_dimm_prsnt_status() < 0) {
+			k_msleep(GET_DIMM_INFO_TIME_MS);
+			continue;
 		}
 
 		if (k_mutex_lock(&i3c_dimm_mutex, K_MSEC(I3C_DIMM_MUTEX_TIMEOUT_MS))) {
@@ -110,93 +95,82 @@ void get_dimm_info_handler()
 		}
 
 		for (dimm_id = 0; dimm_id < DIMM_ID_MAX; dimm_id++) {
-			if (dimm_data[dimm_id].is_present != DIMM_PRSNT) {
+			if (dimm_data[dimm_id].is_present != DIMM_PRSNT)
 				continue;
-			}
 
 			uint8_t i3c_ctrl_mux_data = (dimm_id / (DIMM_ID_MAX / 2)) ?
-							    I3C_MUX_BIC_TO_DIMMG_TO_L :
-							    I3C_MUX_BIC_TO_DIMMA_TO_F;
+						I3C_MUX_BIC_TO_DIMMG_TO_L :
+						I3C_MUX_BIC_TO_DIMMA_TO_F;
 
 			if (is_cpld_support_i3c_mux_check) {
 				ret = check_i3c_dimm_mux(&dimm_mux_status);
-				if (ret != 0) {
+				if (ret != 0 || !(dimm_mux_status & (1 << I3C_MUX_STATUS_PD_SPD_1_REMOTE_EN)))
 					continue;
-				}
-				if (!(dimm_mux_status & (1 << I3C_MUX_STATUS_PD_SPD_1_REMOTE_EN))) {
-					// spd1 mux set to cpu now
-					continue;
-				} else {
-					if (((dimm_mux_status & I3C_MUX_STATUS_SPD_MASK) >> 5) !=
-					    i3c_ctrl_mux_data) {
-						ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
-						if (ret != 0) {
-							clear_unaccessible_dimm_data(dimm_id);
-							continue;
-						}
-						ret = check_i3c_dimm_mux(&dimm_mux_status);
-						if (ret != 0) {
-							continue;
-						}
-						if (((dimm_mux_status & I3C_MUX_STATUS_SPD_MASK) >>
-						     5) != i3c_ctrl_mux_data) {
-							continue;
-						}
-					}
+
+				if (((dimm_mux_status & I3C_MUX_STATUS_SPD_MASK) >> 5) != i3c_ctrl_mux_data) {
+					ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
+					if (ret != 0 ||
+						(check_i3c_dimm_mux(&dimm_mux_status) != 0) ||
+						(((dimm_mux_status & I3C_MUX_STATUS_SPD_MASK) >> 5) != i3c_ctrl_mux_data))
+						continue;
 				}
 			} else {
-				ret = switch_i3c_dimm_mux(i3c_ctrl_mux_data);
-				if (ret != 0) {
+				if (switch_i3c_dimm_mux(i3c_ctrl_mux_data) != 0) {
 					clear_unaccessible_dimm_data(dimm_id);
 					continue;
 				}
 			}
 
-			// When OS reboot, we need to switch it back to CPU
 			if (!get_post_status()) {
 				switch_i3c_dimm_mux(I3C_MUX_CPU_TO_DIMM);
 				break;
 			}
 
+			// Read SPD: offset 0x200 ~ 0x27F (128 bytes)
 			memset(&msg, 0, sizeof(I2C_MSG));
 			msg.bus = I2C_BUS13;
 			msg.target_addr = spd_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
 			msg.tx_len = 1;
-			msg.rx_len = MAX_LEN_I3C_GET_SPD_TEMP;
-			msg.data[0] = DIMM_SPD_TEMP;
+			msg.rx_len = SPD_MFG_TOTAL_LEN;
+			msg.data[0] = SPD_MFG_START & 0xFF;  // 等同 0x200 & 0xFF = 0x00
+			msg.data[1] = (SPD_MFG_START >> 8) & 0xFF;  // = 0x02
+			msg.tx_len = 2;
+			if (i2c_master_read(&msg, 3) == 0)
+				memcpy(dimm_data[dimm_id].spd_raw_data, msg.data, msg.rx_len);
 
-			if (i2c_master_read(&msg, 3)) {
-				clear_unaccessible_dimm_data(dimm_id);
-				LOG_ERR("Failed to read DIMM %d SPD temperature", dimm_id);
-			} else {
-				memcpy(&dimm_data[dimm_id].spd_temp_data, &msg.data,
-				       sizeof(dimm_data[dimm_id].spd_temp_data));
-			}
+			dimm_data[dimm_id].dimm_vendor_id[0] = msg.data[0];       // 0x200
+			dimm_data[dimm_id].dimm_vendor_id[1] = msg.data[1];       // 0x201
+			dimm_data[dimm_id].mfg_location = msg.data[2];            // 0x202
+			dimm_data[dimm_id].mfg_year = msg.data[3];                // 0x203
+			dimm_data[dimm_id].mfg_week = msg.data[4];                // 0x204
+			memcpy(dimm_data[dimm_id].serial_number, &msg.data[5], 4); // 0x205~0x208
+			memcpy(dimm_data[dimm_id].part_number, &msg.data[9], 32); // 0x209~0x228
+			dimm_data[dimm_id].revision_code = msg.data[41];          // 0x227
+			dimm_data[dimm_id].reg_vendor_id[0] = msg.data[42];       // 0x228
+			dimm_data[dimm_id].reg_vendor_id[1] = msg.data[43];       // 0x229
+			dimm_data[dimm_id].dram_stepping = msg.data[44];          // 0x22A
 
-			memset(&msg, 0, sizeof(I2C_MSG));
+			// PMIC vendor ID from PMIC (not SPD)
+			msg.tx_len = 1;
+			msg.rx_len = 2;
 			msg.bus = I2C_BUS13;
 			msg.target_addr = pmic_i3c_addr_list[dimm_id % (DIMM_ID_MAX / 2)];
-			msg.tx_len = 1;
-			msg.rx_len = MAX_LEN_I3C_GET_PMIC_PWR;
-			msg.data[0] = DIMM_PMIC_SWA_PWR;
-
-			if (i2c_master_read(&msg, 3)) {
-				clear_unaccessible_dimm_data(dimm_id);
-				LOG_ERR("Failed to read DIMM %d SPD pwr", dimm_id);
-				continue;
-			} else {
-				memcpy(&dimm_data[dimm_id].pmic_pwr_data, &msg.data,
-				       sizeof(dimm_data[dimm_id].pmic_pwr_data));
+			msg.data[0] = 0x00;
+			if (i2c_master_read(&msg, 3) == 0) {
+				dimm_data[dimm_id].pmic_vendor_id[0] = msg.data[0];
+				dimm_data[dimm_id].pmic_vendor_id[1] = msg.data[1];
 			}
+			// LOG_HEXDUMP_INF(dimm_data[dimm_id].spd_raw_data, SPD_MFG_TOTAL_LEN, "SPD Raw Data:");
+
 		}
 
-		if (k_mutex_unlock(&i3c_dimm_mutex)) {
-			LOG_ERR("Failed to unlock I3C dimm MUX");
-		}
-
+		k_mutex_unlock(&i3c_dimm_mutex);
 		k_msleep(GET_DIMM_INFO_TIME_MS);
 	}
 }
+
+
+
 
 uint8_t sensor_num_map_dimm_id(uint8_t sensor_num)
 {
