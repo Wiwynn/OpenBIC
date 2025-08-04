@@ -58,6 +58,8 @@
 #define SPD_MFG_TOTAL_LEN  128
 #define SPD_TEMP_DATA_LEN  2
 #define PMIC_PWR_DATA_LEN  1
+#define SPD_MANUF_INFO_LEN 0x27
+#define I2C_RETRY       3
 
 typedef struct {
 	bool is_present;
@@ -78,6 +80,10 @@ typedef struct {
 
 	uint8_t spd_temp_data[SPD_TEMP_DATA_LEN];
 	uint8_t pmic_pwr_data[PMIC_PWR_DATA_LEN];
+	uint8_t spd_manuf_info[SPD_MANUF_INFO_LEN]; 
+	// bool is_spd_manuf_info_ready;
+
+	
 } dimm_info;
 
 enum NUMBER_DIMM_TEMP {
@@ -152,5 +158,10 @@ int check_i3c_dimm_mux(uint8_t *status_data);
 int all_brocast_ccc(I3C_MSG *i3c_msg);
 int init_dimm_prsnt_status();
 uint8_t get_dimm_present(uint8_t dimm_id);
+void get_spd_manuf_raw_data(int dimm_index, uint8_t *data);
+int pal_get_spd_manuf_info(uint8_t dimm_id, uint8_t *data);
+void set_spd_manuf_info_ready(uint8_t dimm_id, bool ready);
+bool get_spd_manuf_info_ready(uint8_t dimm_id);
+extern bool is_spd_manuf_info_ready[DIMM_ID_MAX];
 
 #endif
