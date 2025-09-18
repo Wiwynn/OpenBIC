@@ -405,6 +405,7 @@ static int schedule_kcs_work_handle(k_work_handler_t handler,
 			SAFE_FREE(kcs_buff);
 			return -1;
 		}
+		LOG_HEXDUMP_INF(kcs_work->ibuf, kcs_work->data_length, "[Hoik] handler POST Start/End");
 	}
 	// put work in kcs work queue
 	k_work_init_delayable(&kcs_work->work.delay_work, handler);
@@ -526,6 +527,7 @@ static void kcs_read_task(void *arvg0, void *arvg1, void *arvg2)
 			// IPMI OEM command for POST Start/End. Send SEL to BMC
 			if (((req->netfn == NETFN_OEM_REQ) && (req->cmd == CMD_OEM_POST_START)) ||
 			    ((req->netfn == NETFN_OEM_REQ) && (req->cmd == CMD_OEM_POST_END))) {
+				LOG_HEXDUMP_INF(&ibuf[0], rc, "[Hoik] KCS POST Start/End");
 				if (schedule_kcs_work_handle(kcs_oem_post_start_end_handler, kcs_buff, 
 					kcs_inst, ibuf, rc) != 0) {
 					continue;
