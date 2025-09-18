@@ -221,14 +221,26 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 			LOG_WRN("Send msg failed!");
 			continue;
 		}
+		if (msg->buf[5] == PLTRST_ASSERT && msg->buf[6] == EVENT_ASSERTED) {
+			LOG_HEXDUMP_INF(msg->buf, msg->len, "[Hoik] msg buf");
+			LOG_INF("[Hoik] Send PLDM msg, cmd=%x, inst_id=%x, retry=%d", msg->hdr.cmd,
+				msg->hdr.inst_id, retry_count);
+		}
 		if (k_msgq_get(event_msgq_p, &event, K_FOREVER)) {
 			LOG_WRN("Failed to get status from msgq!");
 			continue;
+		}
+		if (msg->buf[5] == PLTRST_ASSERT && msg->buf[6] == EVENT_ASSERTED) {
+			LOG_INF("[Hoik] Get PLDM resp, cmd=%x, inst_id=%x, event=%x", msg->hdr.cmd,
+				msg->hdr.inst_id, event);
 		}
 		if (event == PLDM_READ_EVENT_SUCCESS) {
 			ret_len = recv_arg_p->return_len;
 			SAFE_FREE(recv_arg_p);
 			SAFE_FREE(event_msgq_p);
+			if (msg->buf[5] == PLTRST_ASSERT && msg->buf[6] == EVENT_ASSERTED) {
+				LOG_INF("[Hoik] PLTRST inst_id=%x", msg->hdr.inst_id);
+			}
 			return ret_len;
 		}
 	}
@@ -450,6 +462,11 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 
 		/* set mctp extra parameters */
 		msg->ext_params.tag_owner = 1;
+		if (msg->buf[5] == PLTRST_ASSERT && msg->buf[6] == EVENT_ASSERTED && msg->hdr.cmd == 2) {
+			LOG_HEXDUMP_INF(msg->buf, msg->len, "[Hoik] msg buf");
+			msg->buf[msg->len - 1] = get_inst_id;
+			LOG_HEXDUMP_INF(msg->buf, msg->len, "[Hoik] after set inst_id");
+		}
 	}
 
 	uint16_t len = sizeof(msg->hdr) + msg->len;

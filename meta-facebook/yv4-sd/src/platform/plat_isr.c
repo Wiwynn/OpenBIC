@@ -765,6 +765,7 @@ void ISR_UV_DETECT()
 void IST_PLTRST()
 {
 	LOG_INF("IST_PLTRST assert");
+	LOG_INF("[Hoik] PLTRST ASSERT detected");
 	hw_event_register[10]++;
 
 	add_sel_info *event_item = find_event_work_items(RST_PLTRST_BIC_N);
