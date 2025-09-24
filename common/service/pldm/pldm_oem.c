@@ -199,6 +199,9 @@ uint8_t send_event_log_to_bmc(struct pldm_addsel_data sel_msg)
 
 	ptr->cmd_code = EVENT_LOG;
 	ptr->data_length = OEM_EVENT_LEN;
+	uint32_t now_time = k_uptime_get();
+	LOG_INF("[Hoik] timestamp=%u", now_time);
+	sel_msg.timestamp = now_time;
 	memcpy(ptr->messages, &sel_msg, sizeof(struct pldm_addsel_data));
 
 	msg.buf = (uint8_t *)ptr;
@@ -206,7 +209,7 @@ uint8_t send_event_log_to_bmc(struct pldm_addsel_data sel_msg)
 
 	uint8_t resp_len = sizeof(struct pldm_oem_write_file_io_resp);
 	uint8_t rbuf[resp_len];
-
+	LOG_HEXDUMP_INF(msg.buf, msg.len, "[Hoik] PLDM event log data:");
 	if (!mctp_pldm_read(find_mctp_by_bus(bmc_bus), &msg, rbuf, resp_len)) {
 		SAFE_FREE(ptr);
 		LOG_ERR("mctp_pldm_read fail");

@@ -405,7 +405,6 @@ static int schedule_kcs_work_handle(k_work_handler_t handler,
 			SAFE_FREE(kcs_buff);
 			return -1;
 		}
-		LOG_HEXDUMP_INF(kcs_work->ibuf, kcs_work->data_length, "[Hoik] handler POST Start/End");
 	}
 	// put work in kcs work queue
 	k_work_init_delayable(&kcs_work->work.delay_work, handler);

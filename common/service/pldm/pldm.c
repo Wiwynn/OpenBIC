@@ -221,14 +221,25 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 			LOG_WRN("Send msg failed!");
 			continue;
 		}
+		if ((msg->buf[5] == 0x1d || msg->buf[5] == 0x1e) && (msg->buf[6] == 0x01)) {
+			LOG_INF("[Hoik] Send PLDM msg, cmd=%x, inst_id=%x, retry=%d", msg->hdr.cmd,
+				msg->hdr.inst_id, retry_count);
+		}
 		if (k_msgq_get(event_msgq_p, &event, K_FOREVER)) {
 			LOG_WRN("Failed to get status from msgq!");
 			continue;
+		}
+		if ((msg->buf[5] == 0x1d || msg->buf[5] == 0x1e) && (msg->buf[6] == 0x01)) {
+			LOG_INF("[Hoik] Get PLDM resp, cmd=%x, inst_id=%x, event=%x", msg->hdr.cmd,
+				msg->hdr.inst_id, event);
 		}
 		if (event == PLDM_READ_EVENT_SUCCESS) {
 			ret_len = recv_arg_p->return_len;
 			SAFE_FREE(recv_arg_p);
 			SAFE_FREE(event_msgq_p);
+			if ((msg->buf[5] == 0x1d || msg->buf[5] == 0x1e) && (msg->buf[6] == 0x01)) {
+				LOG_INF("[Hoik] POST-start/end inst_id=%x", msg->hdr.inst_id);
+			}
 			return ret_len;
 		}
 	}
@@ -477,7 +488,9 @@ uint8_t mctp_pldm_send_msg(void *mctp_p, pldm_msg *msg)
 		sys_slist_append(&wait_recv_resp_list, &p->node);
 		k_mutex_unlock(&wait_recv_resp_mutex);
 	}
-
+	if ((msg->buf[5] == 0x1d || msg->buf[5] == 0x1e) && (msg->buf[6] == 0x01)) {
+		LOG_HEXDUMP_INF(buf, len, "[Hoik] mctp send buf");
+	}
 	uint8_t rc = mctp_send_msg(mctp_inst, buf, len, msg->ext_params);
 	if (rc == MCTP_ERROR) {
 		LOG_ERR("mctp_send_msg error!!");
