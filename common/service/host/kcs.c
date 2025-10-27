@@ -302,6 +302,7 @@ static void kcs_add_sel_handler(struct k_work *kcs_pldm_work)
 		ext_params.smbus_ext_params.addr = I2C_ADDR_BMC;
 		ext_params.ep = MCTP_EID_BMC;
 	}
+	LOG_HEXDUMP_INF(&kcs_work->ibuf, kcs_work->data_length, "[Hoik] add sel event:");
 	pldm_platform_event_message_req(find_mctp_by_bus(bmc_bus),
 					ext_params, 0xFB, &kcs_work->ibuf[4],
 					pldm_event_length);

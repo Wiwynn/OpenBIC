@@ -221,6 +221,10 @@ uint16_t mctp_pldm_read(void *mctp_p, pldm_msg *msg, uint8_t *rbuf, uint16_t rbu
 			LOG_WRN("Send msg failed!");
 			continue;
 		}
+		if(msg->hdr.cmd == PLDM_MONITOR_CMD_CODE_PLATFORM_EVENT_MESSAGE) {
+			LOG_INF("[Hoik] Send PLDM msg, cmd=%x, inst_id=%x, retry=%d", msg->hdr.cmd,
+				msg->hdr.inst_id, retry_count);
+		}
 		if (k_msgq_get(event_msgq_p, &event, K_FOREVER)) {
 			LOG_WRN("Failed to get status from msgq!");
 			continue;
