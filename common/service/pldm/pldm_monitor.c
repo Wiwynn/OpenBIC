@@ -364,8 +364,7 @@ uint8_t pldm_platform_event_message_req(void *mctp_inst, mctp_ext_params ext_par
 		return PLDM_ERROR_INVALID_LENGTH;
 	}
 
-	uint8_t req_len = sizeof(struct pldm_platform_event_message_req) + event_data_length -
-			  PLDM_MONITOR_EVENT_DATA_SIZE_MAX;
+	uint8_t req_len = sizeof(struct pldm_platform_event_message_req);
 	uint8_t resp_len = sizeof(struct pldm_platform_event_message_resp);
 	uint8_t rbuf[resp_len];
 
@@ -376,6 +375,7 @@ uint8_t pldm_platform_event_message_req(void *mctp_inst, mctp_ext_params ext_par
 	req.event_class = event_class;
 	req.format_version = 0x01;
 	req.tid = plat_pldm_get_tid();
+	req.event_timestamp = k_uptime_get();
 
 	memcpy(&req.event_data, event_data, event_data_length);
 
