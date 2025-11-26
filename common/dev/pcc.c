@@ -48,6 +48,21 @@
 #define PCCR0_EN BIT(0)
 #define POST_CODE_SIZE 4
 
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+static bool postcode_filter_enabled = true;
+
+#define FILTERED_POSTCODE_BUFFER_SIZE 5
+
+static uint32_t filtered_amd_postcodes[FILTERED_POSTCODE_BUFFER_SIZE];
+static uint8_t filtered_postcode_index = 0;
+static uint8_t filtered_postcode_count = 0;
+static struct k_mutex filtered_postcode_mutex;
+static struct k_work store_filtered_postcode_work;
+static uint32_t pending_filtered_postcode = 0;
+static atomic_t pending_flag = ATOMIC_INIT(0);
+
+#endif
+
 LOG_MODULE_REGISTER(pcc);
 
 K_THREAD_STACK_DEFINE(process_postcode_thread, PROCESS_POSTCODE_STACK_SIZE);
@@ -396,10 +411,46 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 	do {
 		data = rb[i];
 		addr = rb[i + 1];
-		four_byte_data |= data << (8 * (addr & 0x0F));
-		if ((addr & 0x0F) == 0x03) {
-			pcc_read_buffer[pcc_read_index] = four_byte_data;
+		uint8_t addr_offset = addr & 0x0F;
+
+		if (addr_offset == 0x00) {
 			four_byte_data = 0;
+		}
+
+		four_byte_data |= ((uint32_t)data) << (8 * addr_offset);
+
+		if (addr_offset == 0x03) {
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+			uint16_t high_word = (four_byte_data >> 16) & 0xFFFF;
+			bool is_amd_code = (high_word != 0x0000);			
+			if (atomic_cas(&pending_flag, 0, 1)) {
+				pending_filtered_postcode = four_byte_data;
+				k_work_submit(&store_filtered_postcode_work);
+			}
+
+			bool should_filter = false;
+
+			if (postcode_filter_enabled) {
+				if (is_amd_code || 
+				    four_byte_data == 0x00000000 || 
+				    four_byte_data == 0x0000ABCD) {
+					should_filter = true;
+					LOG_DBG("Filtered postcode: 0x%08X", four_byte_data);
+				}
+			}
+
+			if (!should_filter) {			
+				pcc_read_buffer[pcc_read_index] = four_byte_data;
+				if (pcc_read_len < PCC_BUFFER_LEN) {
+					pcc_read_len++;
+				}
+				pcc_read_index++;
+				if (pcc_read_index == PCC_BUFFER_LEN) {
+					pcc_read_index = 0;
+				}
+			}
+#else
+			pcc_read_buffer[pcc_read_index] = four_byte_data;
 			if (pcc_read_len < PCC_BUFFER_LEN) {
 				pcc_read_len++;
 			}
@@ -407,11 +458,88 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 			if (pcc_read_index == PCC_BUFFER_LEN) {
 				pcc_read_index = 0;
 			}
+#endif
+			four_byte_data = 0;
 		}
+
 		i = (i + 2) % rb_sz;
 	} while (i != ed_idx);
+
 	k_sem_give(&get_postcode_sem);
 }
+
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+void set_postcode_filter_enable(bool enable)
+{
+	postcode_filter_enabled = enable;
+	LOG_INF("Postcode filter %s", enable ? "enabled" : "disabled");
+}
+
+bool get_postcode_filter_enable(void)
+{
+	return postcode_filter_enabled;
+}
+
+uint8_t copy_filtered_amd_postcodes(uint32_t *buffer, uint8_t buffer_size)
+{
+	if (buffer == NULL || buffer_size == 0) {
+		return 0;
+	}
+
+	k_mutex_lock(&filtered_postcode_mutex, K_FOREVER);
+
+	uint8_t copy_count =
+		(filtered_postcode_count < buffer_size) ? filtered_postcode_count : buffer_size;
+
+	for (uint8_t i = 0; i < copy_count; i++) {
+		uint8_t src_idx =
+			(filtered_postcode_index + FILTERED_POSTCODE_BUFFER_SIZE - 1 - i) %
+			FILTERED_POSTCODE_BUFFER_SIZE;
+		buffer[i] = filtered_amd_postcodes[src_idx];
+	}
+
+	k_mutex_unlock(&filtered_postcode_mutex);
+
+	return copy_count;
+}
+
+void reset_filtered_amd_postcodes(void)
+{
+	k_mutex_lock(&filtered_postcode_mutex, K_FOREVER);
+	memset(filtered_amd_postcodes, 0, sizeof(filtered_amd_postcodes));
+	filtered_postcode_index = 0;
+	filtered_postcode_count = 0;
+	k_mutex_unlock(&filtered_postcode_mutex);
+	LOG_INF("Filtered AMD postcode buffer cleared");
+}
+
+uint8_t get_filtered_postcode_count(void)
+{
+	uint8_t count;
+	k_mutex_lock(&filtered_postcode_mutex, K_FOREVER);
+	count = filtered_postcode_count;
+	k_mutex_unlock(&filtered_postcode_mutex);
+	return count;
+}
+
+static void store_filtered_postcode_handler(struct k_work *work)
+{
+	uint32_t postcode = pending_filtered_postcode;
+	atomic_set(&pending_flag, 0);
+
+	k_mutex_lock(&filtered_postcode_mutex, K_FOREVER);
+
+	filtered_amd_postcodes[filtered_postcode_index] = postcode;
+	filtered_postcode_index = (filtered_postcode_index + 1) % FILTERED_POSTCODE_BUFFER_SIZE;
+
+	if (filtered_postcode_count < FILTERED_POSTCODE_BUFFER_SIZE) {
+		filtered_postcode_count++;
+	}
+
+	k_mutex_unlock(&filtered_postcode_mutex);
+}
+
+#endif
 
 void pcc_init()
 {
@@ -435,6 +563,16 @@ void pcc_init()
 
 	reg_data = sys_read32(LPC_HICR6_REG);
 	sys_write32((reg_data | 0x00080000) & ~0x0001ffff, LPC_HICR6_REG);
+
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+	k_mutex_init(&filtered_postcode_mutex);
+	memset(filtered_amd_postcodes, 0, sizeof(filtered_amd_postcodes));
+	filtered_postcode_index = 0;
+	filtered_postcode_count = 0;
+	atomic_set(&pending_flag, 0);
+
+	k_work_init(&store_filtered_postcode_work, store_filtered_postcode_handler);
+#endif
 
 	k_sem_init(&get_postcode_sem, 0, 1);
 
