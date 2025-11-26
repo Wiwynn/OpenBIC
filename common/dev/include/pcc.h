@@ -30,6 +30,15 @@ void reset_pcc_buffer();
 bool get_4byte_postcode_ok();
 void reset_4byte_postcode_ok();
 
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+void set_postcode_filter_enable(bool enable);
+bool get_postcode_filter_enable(void);
+uint8_t copy_filtered_amd_postcodes(uint32_t *buffer, uint8_t buffer_size);
+void reset_filtered_amd_postcodes(void);
+uint8_t get_filtered_postcode_count(void);
+
+#endif
+
 #endif
 
 #endif
