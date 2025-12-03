@@ -792,6 +792,7 @@ void OEM_1S_GET_FILTERED_AMD_POST_CODE(ipmi_msg *msg)
  *     data[5..8]   = Record #2
  *     data[9..12]  = Record #3
  *     ...
+ *     data[57..60] = Record #15
  */
 
 	msg->data[0] = count;

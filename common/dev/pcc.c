@@ -51,7 +51,7 @@
 #ifdef ENABLE_POSTCODE_FILTER_CONTROL
 static bool postcode_filter_enabled = true;
 
-#define FILTERED_POSTCODE_BUFFER_SIZE 5
+#define FILTERED_POSTCODE_BUFFER_SIZE 15
 
 static uint32_t filtered_amd_postcodes[FILTERED_POSTCODE_BUFFER_SIZE];
 static uint8_t filtered_postcode_index = 0;
@@ -422,7 +422,8 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 		if (addr_offset == 0x03) {
 #ifdef ENABLE_POSTCODE_FILTER_CONTROL
 			uint16_t high_word = (four_byte_data >> 16) & 0xFFFF;
-			bool is_amd_code = (high_word != 0x0000);			
+			uint8_t high_byte = (high_word >> 8) & 0xFF;
+			
 			if (atomic_cas(&pending_flag, 0, 1)) {
 				pending_filtered_postcode = four_byte_data;
 				k_work_submit(&store_filtered_postcode_work);
@@ -431,9 +432,12 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 			bool should_filter = false;
 
 			if (postcode_filter_enabled) {
-				if (is_amd_code || 
-				    four_byte_data == 0x00000000 || 
-				    four_byte_data == 0x0000ABCD) {
+				// 過濾條件：
+				// 1. 特殊值一定過濾
+				// 2. 不是 EA 開頭且不是 00 開頭的也過濾
+				if (four_byte_data == 0x00000000 || 
+				    four_byte_data == 0x0000ABCD ||
+				    (high_byte != 0xEA && high_byte != 0x00)) {
 					should_filter = true;
 					LOG_DBG("Filtered postcode: 0x%08X", four_byte_data);
 				}
