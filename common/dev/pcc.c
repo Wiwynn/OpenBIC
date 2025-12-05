@@ -61,6 +61,13 @@ static struct k_work store_filtered_postcode_work;
 static uint32_t pending_filtered_postcode = 0;
 static atomic_t pending_flag = ATOMIC_INIT(0);
 
+// PostCode 前綴定義
+#define POSTCODE_PREFIX_AMI         0xEE000000ul
+#define POSTCODE_PREFIX_ABL_ERROR   0xEA000000ul
+#define POSTCODE_PREFIX_AGESA_ERROR 0xB0000000ul
+
+#define GET_POSTCODE_PREFIX(code)   ((code) & 0xFF000000ul)
+
 #endif
 
 LOG_MODULE_REGISTER(pcc);
@@ -394,6 +401,144 @@ static void process_postcode(void *arvg0, void *arvg1, void *arvg2)
 	}
 }
 
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
+static inline bool is_postcode_need_send(uint32_t postcode)
+{
+	uint32_t prefix = GET_POSTCODE_PREFIX(postcode);
+	uint16_t low_word = postcode & 0xFFFF;
+	uint16_t high_word = (postcode >> 16) & 0xFFFF;
+	uint32_t value_24bit = postcode & 0x00FFFFFF;
+	
+	// 1. AMI postcode (0xEE 開頭) - 範圍 0xEE000000 - 0xEE00009F
+	if (prefix == POSTCODE_PREFIX_AMI) {
+		return (low_word <= 0x009F);
+	}
+	
+	// 2. 0x00+DDEE 開頭的 AMI postcode - 排除特定值
+	if (prefix == 0x00000000ul) {
+		// 排除 0x00000000 和 0x0000ABCD
+		if (postcode == 0x00000000 || postcode == 0x0000ABCD) {
+			return false;
+		}
+		// 其他 0x00xxxxxx 都送
+		return true;
+	}
+
+	if (high_word == 0xDDEE) {
+		return true;
+	}
+	
+	// 3. ABL Error codes (0xEA 開頭)
+	if (prefix == POSTCODE_PREFIX_ABL_ERROR) {
+		// 必須是 0xEA00xxxx 格式
+		if (high_word != 0xEA00) {
+			return false;
+		}
+		
+		// YV4-SD 平台的 ABL 錯誤碼列表
+		switch (low_word) {
+		// APCB/Debug 相關
+		case 0x0ACE: case 0x0ACF:
+		
+		// Memory 相關錯誤
+		case 0xBAAB: case 0xBAAC: case 0xBAAD:
+		
+		// ABL 階段錯誤
+		case 0xE0B5: case 0xE0B6:
+		case 0xE0BC: case 0xE0BD:
+		
+		// GMI/xGMI 錯誤碼
+		case 0xB1C0: case 0xB2C0: case 0xB3C0:
+		case 0xB4C0: case 0xB5C0: case 0xB6C0:
+		case 0xF1C0: case 0xF2C0: case 0xF3C0:
+		case 0xF4C0: case 0xF5C0: case 0xF6C0:
+		case 0xF9C0: case 0xFAC0:
+		
+		// 其他 ABL 錯誤
+		case 0xE0C5: case 0xE0C6:
+		case 0xE0F9:
+		case 0xE106: case 0xE10B:
+		
+		// E2xx 系列錯誤碼
+		case 0xE2A0: case 0xE2A1: case 0xE2A3: case 0xE2A4:
+		case 0xE2A5: case 0xE2A6: case 0xE2A7: case 0xE2A8:
+		case 0xE2A9: case 0xE2AA: case 0xE2AB: case 0xE2AC:
+		case 0xE2AD: case 0xE2AE:
+		case 0xE2B0: case 0xE2B1: case 0xE2B2: case 0xE2B3:
+		case 0xE2B4: case 0xE2B5: case 0xE2B6: case 0xE2B7:
+		case 0xE2B8: case 0xE2B9: case 0xE2BA: case 0xE2BB:
+		case 0xE2BC: case 0xE2BD: case 0xE2BE: case 0xE2BF:
+		
+		case 0xEBC0:
+		
+		case 0xE2C1: case 0xE2C2: case 0xE2C3: case 0xE2C4:
+		case 0xE2C5: case 0xE2C6: case 0xE2C7: case 0xE2C8:
+		case 0xE2C9: case 0xE2CA: case 0xE2CB: case 0xE2CC:
+		case 0xE2CD: case 0xE2CE: case 0xE2CF:
+		case 0xE2D0: case 0xE2D1: case 0xE2D2: case 0xE2D3:
+		case 0xE2D4: case 0xE2D5: case 0xE2D6: case 0xE2D7:
+		case 0xE2D8: case 0xE2D9: case 0xE2DA: case 0xE2DB:
+		case 0xE2DC: case 0xE2DD: case 0xE2DE: case 0xE2DF:
+		case 0xE2E0: case 0xE2E1: case 0xE2E2: case 0xE2E3:
+		case 0xE2E4: case 0xE2E5: case 0xE2E7: case 0xE2E8:
+		case 0xE2EB: case 0xE2EC: case 0xE2ED: case 0xE2EE:
+		case 0xE2EF:
+		case 0xE2F0: case 0xE2F1: case 0xE2F2: case 0xE2F3:
+		case 0xE2F4: case 0xE2F5: case 0xE2F6: case 0xE2F7:
+		case 0xE2F8: case 0xE2F9: case 0xE2FA: case 0xE2FB:
+		case 0xE2FC: case 0xE2FD: case 0xE2FE: case 0xE2FF:
+		
+		// E3xx 系列錯誤碼
+		case 0xE300: case 0xE301: case 0xE302: case 0xE303:
+		case 0xE304: case 0xE305: case 0xE306: case 0xE307:
+		case 0xE308: case 0xE309: case 0xE30A: case 0xE30B:
+		case 0xE30C: case 0xE30D: case 0xE30E: case 0xE30F:
+		case 0xE310: case 0xE311: case 0xE312: case 0xE313:
+		case 0xE314: case 0xE316:
+		case 0xE320: case 0xE321: case 0xE322:
+		case 0xE327: case 0xE328: case 0xE329: case 0xE32A:
+		case 0xE32B: case 0xE32C: case 0xE32D: case 0xE32E: case 0xE32F:
+		case 0xE330: case 0xE331: case 0xE332: case 0xE333:
+		case 0xE334: case 0xE335:
+		case 0xE33C: case 0xE33F:
+		case 0xE343: case 0xE345: case 0xE346: case 0xE347:
+		case 0xE360:
+			return true;
+		}
+		
+		return false;
+	}
+	
+	// 4. AGESA Error codes (0xB0 開頭)
+	if (prefix == POSTCODE_PREFIX_AGESA_ERROR) {
+		switch (value_24bit) {
+		// CPM 錯誤碼
+		case 0x000C01: case 0x000C02: case 0x000C03:
+		
+		// Memory/PMU 錯誤
+		case 0x00A1F9:
+		
+		// PSP 相關錯誤
+		case 0x00A537:
+		case 0x00A53B: case 0x00A53C: case 0x00A53D:
+		case 0x00A53E: case 0x00A53F:
+		
+		// Intrusion Detection 錯誤
+		case 0x00A56A: case 0x00A56E: case 0x00A56F:
+		
+		// P2C mailbox 錯誤
+		case 0x00A59F:
+			return true;
+		}
+		
+		return false;
+	}
+	
+	// 5. 其他前綴都過濾
+	return false;
+}
+#endif
+
 void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_t ed_idx)
 {
 	/* The sequence of read data from pcc driver is:
@@ -421,29 +566,28 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 
 		if (addr_offset == 0x03) {
 #ifdef ENABLE_POSTCODE_FILTER_CONTROL
-			uint16_t high_word = (four_byte_data >> 16) & 0xFFFF;
-			uint8_t high_byte = (high_word >> 8) & 0xFF;
-			
+			// ========== Step 1: 儲存到 filtered buffer ==========
+			// 所有 postcode 都會被儲存，供 IPMI 查詢使用
 			if (atomic_cas(&pending_flag, 0, 1)) {
 				pending_filtered_postcode = four_byte_data;
 				k_work_submit(&store_filtered_postcode_work);
 			}
 
-			bool should_filter = false;
+			bool should_send = true;
 
+			// ========== Step 2: 判斷是否要送給 BMC ==========
 			if (postcode_filter_enabled) {
-				// 過濾條件：
-				// 1. 特殊值一定過濾
-				// 2. 不是 EA 開頭且不是 00 開頭的也過濾
-				if (four_byte_data == 0x00000000 || 
-				    four_byte_data == 0x0000ABCD ||
-				    (high_byte != 0xEA && high_byte != 0x00)) {
-					should_filter = true;
-					LOG_DBG("Filtered postcode: 0x%08X", four_byte_data);
+				should_send = is_postcode_need_send(four_byte_data);
+				
+				if (!should_send) {
+					LOG_DBG("Postcode 0x%08X filtered", four_byte_data);
 				}
 			}
 
-			if (!should_filter) {			
+			// ========== Step 3: 存入 pcc_read_buffer ==========
+			// 只有需要送給 BMC 的 postcode 才會存入
+			if (should_send) {
+#endif
 				pcc_read_buffer[pcc_read_index] = four_byte_data;
 				if (pcc_read_len < PCC_BUFFER_LEN) {
 					pcc_read_len++;
@@ -452,23 +596,17 @@ void pcc_rx_callback(const uint8_t *rb, uint32_t rb_sz, uint32_t st_idx, uint32_
 				if (pcc_read_index == PCC_BUFFER_LEN) {
 					pcc_read_index = 0;
 				}
-			}
-#else
-			pcc_read_buffer[pcc_read_index] = four_byte_data;
-			if (pcc_read_len < PCC_BUFFER_LEN) {
-				pcc_read_len++;
-			}
-			pcc_read_index++;
-			if (pcc_read_index == PCC_BUFFER_LEN) {
-				pcc_read_index = 0;
+#ifdef ENABLE_POSTCODE_FILTER_CONTROL
 			}
 #endif
+			// 重置 four_byte_data，準備接收下一個 postcode
 			four_byte_data = 0;
 		}
 
 		i = (i + 2) % rb_sz;
 	} while (i != ed_idx);
 
+	// 通知 process_postcode_thread 有新的 postcode
 	k_sem_give(&get_postcode_sem);
 }
 
