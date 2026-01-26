@@ -1,0 +1,2 @@
+osource "/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/zephyr/soc/$(ARCH)/Kconfig"
+osource "/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/zephyr/soc/$(ARCH)/*/Kconfig"

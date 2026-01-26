@@ -1,0 +1,3 @@
+"cmsis":"/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/modules/hal/cmsis":"/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/modules/hal/cmsis"
+"mbedtls":"/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/modules/crypto/mbedtls":"${ZEPHYR_MBEDTLS_CMAKE_DIR}"
+"mcuboot":"/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/bootloader/mcuboot":"/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/bootloader/mcuboot/boot/bootutil/zephyr"

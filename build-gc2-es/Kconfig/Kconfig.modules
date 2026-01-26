@@ -1,0 +1,6 @@
+menu "mbedtls (/mnt/data/home/pablo1997/MyAllProject/ZephyrOpenbic/TestGc2Bic_0102/modules/crypto/mbedtls)"
+osource "$(ZEPHYR_MBEDTLS_KCONFIG)"
+config ZEPHYR_MBEDTLS_MODULE
+	bool
+	default y
+endmenu
