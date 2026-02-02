@@ -26,11 +26,17 @@
 #include "plat_led.h"
 #include "plat_class.h"
 #include "plat_ioexp.h"
+#include "shell_plat_power_sequence.h"
+#include "kernel.h"
 
 #define POLLING_CPLD_STACK_SIZE 2048
 #define CPLD_POLLING_INTERVAL_MS 1000 // 1 second polling interval
 
 #define CHECK_ALL_BITS 0xFF
+#define CHECK_BITS_8 0x80
+#define CHECK_BITS_78 0xC0
+#define CHECK_BITS_678 0xE0
+#define CHECK_BITS_6 0x40
 
 LOG_MODULE_REGISTER(plat_cpld);
 
@@ -45,11 +51,9 @@ bool plat_write_cpld(uint8_t offset, uint8_t *data)
 }
 
 // cpld polling
+K_TIMER_DEFINE(check_ubc_delayed_timer, check_ubc_delayed_timer_handler, NULL);
 void check_cpld_handler();
 K_WORK_DELAYABLE_DEFINE(check_cpld_work, check_cpld_handler);
-
-void check_ubc_delayed_timer_handler(struct k_timer *timer);
-K_TIMER_DEFINE(init_ubc_delayed_timer, check_ubc_delayed_timer_handler, NULL);
 void check_ubc_delayed(struct k_work *work);
 K_WORK_DEFINE(check_ubc_delayed_work, check_ubc_delayed);
 void check_ubc_delayed_timer_handler(struct k_timer *timer)
@@ -57,6 +61,10 @@ void check_ubc_delayed_timer_handler(struct k_timer *timer)
 	k_work_submit(&check_ubc_delayed_work);
 }
 
+struct k_timer *get_ubc_delaytimer()
+{
+	return &check_ubc_delayed_timer;
+}
 K_THREAD_STACK_DEFINE(cpld_polling_stack, POLLING_CPLD_STACK_SIZE);
 struct k_thread cpld_polling_thread;
 k_tid_t cpld_polling_tid;
@@ -83,12 +91,17 @@ bool vr_error_callback(cpld_info *cpld_info, uint8_t *current_cpld_value);
 
 // clang-format off
 cpld_info cpld_info_table[] = {
-	{ VR_POWER_FAULT_1_REG, 			0x00, 0x00, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS, .event_type = VR_POWER_FAULT },
-	{ VR_POWER_FAULT_2_REG, 			0x00, 0x00, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS, .event_type = VR_POWER_FAULT },
-	{ VR_POWER_FAULT_3_REG, 			0x00, 0x00, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS, .event_type = VR_POWER_FAULT },
-	{ VR_POWER_FAULT_4_REG, 			0x00, 0x00, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS, .event_type = VR_POWER_FAULT },
-	{ VR_POWER_FAULT_5_REG, 			0x00, 0x00, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS, .event_type = VR_POWER_FAULT },
-	{ VR_SMBUS_ALERT_EVENT_LOG_REG, 	0xFF, 0xFF, true, 0x00, false, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_POWER_FAULT_1_REG, 			0x00, 0x00, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_POWER_FAULT_2_REG, 			0x00, 0x00, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_POWER_FAULT_3_REG, 			0x00, 0x00, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_POWER_FAULT_4_REG, 			0x00, 0x00, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_POWER_FAULT_5_REG, 			0x00, 0x00, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ VR_SMBUS_ALERT_EVENT_LOG_REG, 	0xFF, 0xFF, true, 0x00, false, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_ALL_BITS },
+	{ LEAK_DETECT_REG, 					0xFF, 0xFF, true, 0x00, false, 0x00, .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_BITS_6 },
+	{ HBM_CATTRIP_REG, 					0xFF, 0xFF, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_BITS_78 },
+	{ SYSTEM_ALERT_FAULT_REG, 			0xFF, 0xFF, true, 0x00, false, 0x00, .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_BITS_8 },
+	{ ASIC_TEMP_OVER_REG, 				0xFF, 0xFF, true, 0x00, true, 0x00,  .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_BITS_8 },
+	{ TEMP_IC_OVER_FAULT_REG, 			0xFF, 0xFF, true, 0x00, false, 0x00, .status_changed_cb = vr_error_callback, .bit_check_mask = CHECK_BITS_678 },
 };
 
 int power_info = 0;
@@ -125,26 +138,7 @@ void check_ubc_delayed(struct k_work *work)
 	 * 0 -> UBC is disabled
 	 */
 	bool is_ubc_enabled = (gpio_get(FM_PLD_UBC_EN_R) == GPIO_HIGH);
-
-	bool is_dc_on = is_mb_dc_on();
-
-	if (is_ubc_enabled) {
-		if (is_dc_on != is_ubc_enabled) {
-			//send event to bmc
-			uint16_t error_code = (POWER_ON_SEQUENCE_TRIGGER_CAUSE << 13);
-			error_log_event(error_code, LOG_ASSERT);
-			LOG_ERR("Generated error code: 0x%x", error_code);
-		}
-	}
-
 	ubc_enabled_delayed_status = is_ubc_enabled;
-
-	LOG_DBG("UBC enabled delayed status: %d", ubc_enabled_delayed_status);
-
-	/* cpld tbd
-	if (is_ubc_enabled == true) {
-		k_work_submit(&vr_vout_work);
-	} */
 }
 
 bool is_ubc_enabled_delayed_enabled(void)
@@ -346,7 +340,7 @@ void poll_cpld_registers()
 					cpld_info_table[i].status_changed_cb(
 						&cpld_info_table[i], &data);
 				}
-				if (cpld_info_table[i].event_type == VR_POWER_FAULT) {
+				if (cpld_info_table[i].is_send_bmc) {
 					process_mtia_vr_power_fault_sel(&cpld_info_table[i],
 									&data);
 					set_led_flag(true);
@@ -468,8 +462,7 @@ void check_cpld_handler()
 void init_cpld_polling(void)
 {
 	check_cpld_polling_alert_status();
-
-	k_timer_start(&init_ubc_delayed_timer, K_MSEC(1000), K_NO_WAIT);
+	k_timer_start(&check_ubc_delayed_timer, K_MSEC(1000), K_NO_WAIT);
 	k_sem_init(&all_vr_pm_alert_sem, 0, 1);
 	k_timer_start(&ragular_cpld_polling_sem_timer, K_MSEC(1000), K_MSEC(1000));	
 	cpld_polling_tid =
