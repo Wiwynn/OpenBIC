@@ -1523,7 +1523,12 @@ void control_sensor_polling(uint8_t sensor_num, uint8_t optional, uint8_t cache_
 
 	sensor_cfg *config = &sensor_config[sensor_config_index_map[sensor_num]];
 	config->is_enable_polling = optional;
-	config->cache_status = cache_status;
+
+	if (optional == ENABLE_SENSOR_POLLING) {
+		config->cache_status = SENSOR_INIT_STATUS; 
+	} else {
+		config->cache_status = cache_status;
+	}
 }
 
 bool check_reading_pointer_null_is_allowed(sensor_cfg *cfg)

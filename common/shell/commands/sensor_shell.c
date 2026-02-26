@@ -570,8 +570,7 @@ void cmd_control_sensor_polling(const struct shell *shell, size_t argc, char **a
 			for (sensor_index = 0;
 			     sensor_index < sensor_monitor_table[table_idx].cfg_count;
 			     ++sensor_index) {
-				sensor_cfg *cfg = &cfg_table[sensor_index];
-				cfg->is_enable_polling = operation;
+				control_sensor_polling(cfg_table[sensor_index].num, operation, SENSOR_POLLING_DISABLE);
 			}
 		}
 
@@ -584,29 +583,12 @@ void cmd_control_sensor_polling(const struct shell *shell, size_t argc, char **a
 	uint8_t sensor_num = strtol(argv[2], NULL, 16);
 	uint8_t operation = strtol(argv[3], NULL, 16);
 
-	uint8_t is_set_all = 0;
-
-	sensor_cfg *cfg = sensor_get_idx_by_sensor_num(table_idx, sensor_num);
-	if (cfg == NULL) {
-		/* Set all sensor polling mode only suppot 1-base sensor number */
-		if (sensor_num == 0) {
-			is_set_all = 1;
-		} else {
-			shell_warn(
-				shell,
-				"[%s]: can't find sensor number in sensor config table, table index: 0x%x, sensor number: 0x%x",
-				__func__, table_idx, sensor_num);
-			return;
-		}
-	}
-
 	if ((operation != DISABLE_SENSOR_POLLING) && (operation != ENABLE_SENSOR_POLLING)) {
 		shell_warn(shell, "[%s]: operation is invalid, operation: %d", __func__, operation);
 		return;
 	}
 
-	if (is_set_all) {
-		uint8_t sensor_index = 0;
+	if (sensor_num == 0) {
 		sensor_cfg *cfg_table = sensor_monitor_table[table_idx].monitor_sensor_cfg;
 		if (cfg_table == NULL) {
 			shell_warn(
@@ -616,20 +598,26 @@ void cmd_control_sensor_polling(const struct shell *shell, size_t argc, char **a
 			return;
 		}
 
-		for (sensor_index = 0; sensor_index < sensor_monitor_table[table_idx].cfg_count;
-		     ++sensor_index) {
-			sensor_cfg *sensor_cfg = &cfg_table[sensor_index];
-			sensor_cfg->is_enable_polling = operation;
+		for (uint8_t i = 0; i < sensor_monitor_table[table_idx].cfg_count; ++i) {
+			control_sensor_polling(cfg_table[i].num, operation, SENSOR_POLLING_DISABLE);
 		}
 		shell_print(shell, "All table: 0x%x sensors' polling successfully %s.", table_idx,
 			    ((operation == DISABLE_SENSOR_POLLING) ? "disabled" : "enabled"));
 		return;
 	}
 
-	cfg->is_enable_polling = ((operation == DISABLE_SENSOR_POLLING) ? DISABLE_SENSOR_POLLING :
-									  ENABLE_SENSOR_POLLING);
+	sensor_cfg *cfg = sensor_get_idx_by_sensor_num(table_idx, sensor_num);
+	if (cfg == NULL) {
+		shell_warn(
+			shell,
+			"[%s]: can't find sensor number in sensor config table, table index: 0x%x, sensor number: 0x%x",
+			__func__, table_idx, sensor_num);
+		return;
+	}
+
+	control_sensor_polling(cfg->num, operation, SENSOR_POLLING_DISABLE);
+
 	shell_print(shell, "Table idx: 0x%x, Sensor number 0x%x %s sensor polling success",
 		    table_idx, sensor_num,
 		    ((operation == DISABLE_SENSOR_POLLING) ? "disable" : "enable"));
-	return;
 }
