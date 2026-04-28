@@ -251,13 +251,11 @@ static void set_dev_endpoint(void)
 					case I2C_BUS_CXL1: {
 						LOG_INF("Send set EID command to CXL1");
 						set_eid[CXL_ID_1] = true;
-						create_init_ddr_slot_info_thread(CXL_ID_1);
 						break;
 					}
 					case I2C_BUS_CXL2: {
 						LOG_INF("Send set EID command to CXL2");
 						set_eid[CXL_ID_2] = true;
-						create_init_ddr_slot_info_thread(CXL_ID_2);
 						break;
 					}
 					}
@@ -272,8 +270,13 @@ static void set_dev_endpoint(void)
 		// Delay for 10 seconds before the next attempt
 		k_sleep(K_SECONDS(10));
 	}
+	k_sleep(K_SECONDS(3));
+	
+	create_init_ddr_slot_info_thread(CXL_ID_1);
+	create_init_ddr_slot_info_thread(CXL_ID_2);	
+
 	cxl_set_eid_in_progress[CXL_ID_1] = false;
-	cxl_set_eid_in_progress[CXL_ID_2] = false;	
+	cxl_set_eid_in_progress[CXL_ID_2] = false;
 }
 
 static uint8_t mctp_msg_recv(void *mctp_p, uint8_t *buf, uint32_t len, mctp_ext_params ext_params)

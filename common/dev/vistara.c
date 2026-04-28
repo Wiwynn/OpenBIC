@@ -47,6 +47,11 @@ __weak bool plat_is_cxl_set_eid_in_progress(uint8_t cxl_id)
 	return false;
 }
 
+__weak bool plat_is_dimm_present_check_in_progress(uint8_t cxl_id)
+{
+	return false;
+}
+
 bool vistara_read_ddr_temp(uint8_t cxl_eid, uint8_t *resp)
 {
 	CHECK_NULL_ARG_WITH_RETURN(resp, false);
@@ -80,7 +85,7 @@ bool vistara_read_ddr_slot_info(uint8_t cxl_eid, uint8_t *resp)
 }
 
 int vistara_init_ddr_slot_info(uint8_t cxl_id)
-{
+{	
 	if (cxl_id >= MAX_CXL_COUNT) {
 		LOG_ERR("Invalid CXL ID: %d (max: %d)", cxl_id + 1, MAX_CXL_COUNT - 1);
 		return 0;
@@ -253,7 +258,14 @@ uint8_t vistara_read(sensor_cfg *cfg, int *reading)
 		if (plat_is_cxl_set_eid_in_progress(cxl_id)) {
 			LOG_WRN("Skip CXL%d DIMM temp query because set EID is in progress",cxl_id + 1);
 			return SENSOR_FAIL_TO_ACCESS;
-	}
+		}
+
+		if (plat_is_dimm_present_check_in_progress(cxl_id)) {
+			LOG_WRN("Skip CXL%d DIMM temp query because DIMM present check is in progress",
+				cxl_id + 1);
+			return SENSOR_FAIL_TO_ACCESS;
+		}
+
 		if (init_arg->is_cached) {
 			k_mutex_lock(&g_ddr_slot_cache.mutex[cxl_id], K_FOREVER);
 			// Get master dimm id from slot info cache
