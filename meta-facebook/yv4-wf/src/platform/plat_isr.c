@@ -153,11 +153,21 @@ void process_pmbus_vr_event_handler(struct k_work *work_item)
 	uint8_t retry = 5;
 	uint8_t ioe1_reg_data = 0;
 	uint8_t ioe2_reg_data = 0;
+	uint8_t blade_conf = get_blade_configuration();
 
 	get_ioe_value(ADDR_IOE1, TCA9555_INPUT_PORT_REG_0, &ioe1_reg_data);
-	get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &ioe2_reg_data);
+	if (blade_conf != BLADE_CONFIG_without_ASIC) {
+		get_ioe_value(ADDR_IOE2, TCA9555_OUTPUT_PORT_REG_0, &ioe2_reg_data);
+	} else {
+		LOG_INF("Blade config without ASIC: Skip ASIC VR chips");
+	}
 
 	for (int i = 0; i < ARRAY_SIZE(vr_fault_table); ++i) {
+		// Skip ASIC VR chips entirely if blade has no ASIC populated
+		if (blade_conf == BLADE_CONFIG_without_ASIC) {
+			continue;
+		}
+
 		bool is_vr_alert =
 			(GETBIT(ioe1_reg_data, vr_fault_table[i].ioe_pin_num) == GPIO_LOW) ? true :
 											     false;

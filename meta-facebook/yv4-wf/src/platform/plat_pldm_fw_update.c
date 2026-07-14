@@ -35,6 +35,7 @@
 #include "cci.h"
 #include "util_spi.h"
 #include "plat_pldm_device_identifier.h"
+#include "plat_class.h"
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
@@ -267,8 +268,8 @@ uint8_t plat_pldm_query_downstream_devices(const uint8_t *buf, uint16_t len, uin
 
 	resp_p->completion_code = PLDM_SUCCESS;
 	resp_p->downstream_device_update_supported = PLDM_FW_UPDATE_SUPPORT_DOWNSTREAM_DEVICES;
-	resp_p->number_of_downstream_devices = 6;
-	resp_p->max_number_of_downstream_devices = 6;
+	resp_p->number_of_downstream_devices = downstream_devices_count;
+	resp_p->max_number_of_downstream_devices = downstream_devices_count;
 
 	resp_p->capabilities.dynamically_attached = 0;
 	resp_p->capabilities.dynamically_removed = 0;
@@ -432,6 +433,15 @@ uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len,
 	return PLDM_SUCCESS;
 }
 
+void plat_pldm_init_downstream_devices(void)
+{
+	if (get_blade_configuration() == BLADE_CONFIG_without_ASIC) {
+		downstream_devices_count = 0;
+	} else {
+		downstream_devices_count = DOWNSTREAM_DEVICES_MAX;
+	}
+}
+
 void load_pldmupdate_comp_config(void)
 {
 	if (comp_config) {
@@ -447,6 +457,26 @@ void load_pldmupdate_comp_config(void)
 	}
 
 	memcpy(comp_config, PLDMUPDATE_FW_CONFIG_TABLE, sizeof(PLDMUPDATE_FW_CONFIG_TABLE));
+
+	// Disable ASIC/CXL/VR-for-ASIC components when board has no ASIC
+	if (get_blade_configuration() == BLADE_CONFIG_without_ASIC) {
+		for (int i = 0; i < comp_config_count; i++) {
+			switch (comp_config[i].comp_identifier) {
+			case WF_COMPNT_VR_PVDDQ_AB_ASIC1:
+			case WF_COMPNT_VR_PVDDQ_CD_ASIC1:
+			case WF_COMPNT_VR_PVDDQ_AB_ASIC2:
+			case WF_COMPNT_VR_PVDDQ_CD_ASIC2:
+			case WF_COMPNT_CXL1:
+			case WF_COMPNT_CXL2:
+				comp_config[i].enable = false;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	plat_pldm_init_downstream_devices();
 }
 
 static bool plat_pldm_vr_i2c_info_get(int comp_identifier, uint8_t *bus, uint8_t *addr)

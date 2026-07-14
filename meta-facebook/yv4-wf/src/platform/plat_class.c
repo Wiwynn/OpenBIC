@@ -26,6 +26,15 @@ struct adc_info adc[NUMBER_OF_ADC_CHANNEL] = {
 	{ 0x118, 0 }, { 0x118, 16 }, { 0x11C, 0 }, { 0x11C, 16 }
 };
 
+struct blade_config_mapping_table blade_config_table[] = {
+	{ 1.5, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_with_ASIC },
+	{ 1.25, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_UNKNOWN },
+	{ 1.0, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_UNKNOWN },
+	{ 0.75, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_without_ASIC },
+	{ 0.5, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_UNKNOWN },
+	{ 0.0, BLADE_CONFIG_VOLTAGE_RANGE, BLADE_CONFIG_UNKNOWN },
+};
+
 struct board_rev_mappting_table board_rev_table[] = {
 	{ 1.25, 0.05, BOARD_POC }, // range: +-5%
 	{ 0.75, 0.05, BOARD_POC2 }, // range: +-5%
@@ -36,6 +45,7 @@ struct board_rev_mappting_table board_rev_table[] = {
 };
 
 static uint8_t board_revision = UNKNOWN;
+static uint8_t blade_configuration = BLADE_CONFIG_UNKNOWN;
 
 bool get_adc_voltage(int channel, float *voltage)
 {
@@ -78,9 +88,45 @@ bool get_adc_voltage(int channel, float *voltage)
 	return true;
 }
 
+bool get_blade_config(uint8_t *blade_config)
+{
+	CHECK_NULL_ARG_WITH_RETURN(blade_config, false);
+
+	float voltage = 0.0f;
+
+	if (get_adc_voltage(CHANNEL_0, &voltage) == false) {
+		LOG_ERR("Failed to get blade config");
+		*blade_config = BLADE_CONFIG_UNKNOWN;
+		return false;
+	}
+
+	*blade_config = BLADE_CONFIG_UNKNOWN;
+
+	for (int i = 0; i < ARRAY_SIZE(blade_config_table); i++) {
+		float typical_voltage = blade_config_table[i].voltage;
+		float range_val = blade_config_table[i].range_val;
+
+		if ((voltage <= typical_voltage + range_val) &&
+		    (voltage >= typical_voltage - range_val)) {
+			*blade_config = blade_config_table[i].blade_config;
+			LOG_INF("Blade config: 0x%02x, voltage: %dmV", *blade_config,
+				(int)(voltage * 1000));
+			return true;
+		}
+	}
+
+	LOG_ERR("Unknown blade config voltage: %dmV", (int)(voltage * 1000));
+	return false;
+}
+
 uint8_t get_board_revision()
 {
 	return board_revision;
+}
+
+uint8_t get_blade_configuration()
+{
+	return blade_configuration;
 }
 
 int init_platform_config()
@@ -90,6 +136,12 @@ int init_platform_config()
 	bool ret = get_adc_voltage(CHANNEL_1, &voltage);
 	if (!ret) {
 		LOG_ERR("Failed to get board revision");
+		return -1;
+	}
+
+	ret = get_blade_config(&blade_configuration);
+	if (!ret) {
+		LOG_ERR("Failed to get blade configuration");
 		return -1;
 	}
 
