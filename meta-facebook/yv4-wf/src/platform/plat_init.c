@@ -30,6 +30,7 @@
 #include "plat_class.h"
 #include <logging/log.h>
 #include "plat_dimm.h"
+#include "plat_fru.h"
 
 #define DEF_PLAT_CONFIG_PRIORITY 77
 #define DEF_PROJ_GPIO_PRIORITY 78
@@ -62,8 +63,7 @@ void pal_set_sys_status()
 	set_DC_on_delayed_status();
 	init_ioe_config();
 
-	uint8_t blade_conf = get_blade_configuration();
-	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		if (get_board_revision() == BOARD_POC) {
 			set_P3V3_E1S_power_status(POC_PWRGD_P3V3_E1S_0_R);
 		} else {
@@ -149,6 +149,8 @@ void pal_pre_init()
 
 	init_vr_event_work();
 	init_plat_worker(CONFIG_MAIN_THREAD_PRIORITY + 1); // work queue for low priority jobs
+
+	dump_fru_raw();
 
 	plat_init_pldm_sensor_table();
 }

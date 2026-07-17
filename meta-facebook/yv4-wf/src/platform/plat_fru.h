@@ -17,7 +17,24 @@
 #ifndef PLAT_FRU_H
 #define PLAT_FRU_H
 
-#define MAX_FRU_ID 0
+#include "eeprom.h"
+#include "fru.h"
+
+enum {
+	WF_FRU_ID,
+	MAX_FRU_ID,
+};
+
 #define FRU_CFG_NUM MAX_FRU_ID
+
+/* EEPROM on I2C bus 0, address 0x51 */
+#define WF_FRU_PORT 0x00
+#define WF_FRU_ADDR 0x51
+
+#define WF_BOARD_PRODUCT_WITHOUT_ASIC "Wailua Falls without ASIC"
+
+void dump_fru_raw(void);
+bool check_board_product_name(const char *expected);
+bool get_without_asic(void);
 
 #endif

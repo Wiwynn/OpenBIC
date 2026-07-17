@@ -30,6 +30,7 @@
 #include "plat_class.h"
 #include "plat_mctp.h"
 #include "sq52205.h"
+#include "plat_fru.h"
 
 LOG_MODULE_REGISTER(plat_pldm_sensor);
 
@@ -6821,9 +6822,7 @@ void plat_pldm_sensor_change_asic_tmp_dev()
 
 void plat_pldm_sensor_change_asic_dev()
 {
-	uint8_t blade_conf = get_blade_configuration();
-
-	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		// Disable ASIC1 ADC sensors (ports ADC_PORT3 ~ ADC_PORT9)
 		for (int index = 0; index < plat_pldm_sensor_get_sensor_count(ADC_SENSOR_THREAD_ID);
 		     index++) {

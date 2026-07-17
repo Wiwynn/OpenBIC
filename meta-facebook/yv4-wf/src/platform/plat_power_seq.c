@@ -28,6 +28,7 @@
 #include "plat_mctp.h"
 #include "plat_pldm_sensor.h"
 #include "util_sys.h"
+#include "plat_fru.h"
 
 LOG_MODULE_REGISTER(plat_power_seq);
 
@@ -168,9 +169,7 @@ uint32_t get_uptime_secs(void)
 
 void execute_power_on_sequence()
 {
-	uint8_t blade_conf = get_blade_configuration();
-
-	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		// TODO: check E1S present
 		if (get_board_revision() == BOARD_POC) {
 			gpio_set(POC_EN_P3V3_E1S_0_R, POWER_ON);
@@ -451,9 +450,7 @@ bool is_power_controlled(int cxl_id, int power_pin, uint8_t check_power_status, 
 
 void execute_power_off_sequence()
 {
-	uint8_t blade_conf = get_blade_configuration();
-
-	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		// TODO: check E1S present
 		if (get_board_revision() == BOARD_POC) {
 			gpio_set(POC_EN_P3V3_E1S_0_R, POWER_OFF);

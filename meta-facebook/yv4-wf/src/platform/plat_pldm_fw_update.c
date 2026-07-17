@@ -36,6 +36,7 @@
 #include "util_spi.h"
 #include "plat_pldm_device_identifier.h"
 #include "plat_class.h"
+#include "plat_fru.h"
 
 LOG_MODULE_REGISTER(plat_fwupdate);
 
@@ -435,7 +436,7 @@ uint8_t plat_pldm_query_downstream_identifiers(const uint8_t *buf, uint16_t len,
 
 void plat_pldm_init_downstream_devices(void)
 {
-	if (get_blade_configuration() == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		downstream_devices_count = 0;
 	} else {
 		downstream_devices_count = DOWNSTREAM_DEVICES_MAX;
@@ -459,7 +460,7 @@ void load_pldmupdate_comp_config(void)
 	memcpy(comp_config, PLDMUPDATE_FW_CONFIG_TABLE, sizeof(PLDMUPDATE_FW_CONFIG_TABLE));
 
 	// Disable ASIC/CXL/VR-for-ASIC components when board has no ASIC
-	if (get_blade_configuration() == BLADE_CONFIG_without_ASIC) {
+	if (get_without_asic()) {
 		for (int i = 0; i < comp_config_count; i++) {
 			switch (comp_config[i].comp_identifier) {
 			case WF_COMPNT_VR_PVDDQ_AB_ASIC1:

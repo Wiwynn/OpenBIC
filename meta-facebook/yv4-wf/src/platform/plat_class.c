@@ -17,6 +17,7 @@
 #include <logging/log.h>
 #include "libutil.h"
 #include "plat_class.h"
+#include "plat_fru.h"
 
 LOG_MODULE_REGISTER(plat_class);
 
