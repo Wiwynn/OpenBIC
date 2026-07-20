@@ -47,6 +47,19 @@ struct board_rev_mappting_table board_rev_table[] = {
 static uint8_t board_revision = UNKNOWN;
 static uint8_t blade_configuration = BLADE_CONFIG_UNKNOWN;
 
+static uint32_t adc_get_sample_period_us(void)
+{
+	uint32_t clk_ctrl = sys_read32(AST1030_ADC_BASE_ADDR + 0x00C); // ADC00C
+	uint32_t divisor = clk_ctrl & 0xFFFF; // [15:0]
+
+	// Period(ADC clock) = PCLK_period * 2 * (divisor+1)
+	// Sample period = Period(ADC clock) * 12
+	uint64_t adc_clk_period_ns = (uint64_t)ADC_PCLK_NS * 2 * (divisor + 1);
+	uint64_t sample_period_ns = adc_clk_period_ns * 12;
+
+	return (uint32_t)(sample_period_ns / 1000) + 1; // convert to us, round up
+}
+
 bool get_adc_voltage(int channel, float *voltage)
 {
 	CHECK_NULL_ARG_WITH_RETURN(voltage, false);
@@ -56,7 +69,8 @@ bool get_adc_voltage(int channel, float *voltage)
 		return false;
 	}
 
-	uint32_t raw_value, reg_value;
+	//uint32_t raw_value, reg_value;
+	uint32_t reg_value;
 	long unsigned int engine_control = 0x0;
 	float reference_voltage = 0.0f;
 
@@ -78,18 +92,42 @@ bool get_adc_voltage(int channel, float *voltage)
 		return false;
 	}
 
-	// Read ADC raw value
-	reg_value = sys_read32(AST1030_ADC_BASE_ADDR + adc[channel].offset);
-	raw_value = (reg_value >> adc[channel].shift) & 0x3FF; // 10-bit(0x3FF) resolution
+	uint32_t sample_period_us = adc_get_sample_period_us();
 
-	// Real voltage = raw data * reference voltage / 2 ^ resolution(10)
-	*voltage = (raw_value * reference_voltage) / 1024;
+	// Settle: wait at least 2 full sample periods before first read
+	k_usleep(sample_period_us * 2);
+
+	uint32_t sum_raw = 0;
+
+	for (int i = 0; i < ADC_SAMPLE_COUNT; i++) {
+		reg_value = sys_read32(AST1030_ADC_BASE_ADDR + adc[channel].offset);
+		uint32_t raw_value = (reg_value >> adc[channel].shift) & 0x3FF;
+		sum_raw += raw_value;
+
+		// Wait for a genuinely new conversion before next read
+		k_usleep(sample_period_us);
+	}
+
+	float avg_raw = (float)sum_raw / ADC_SAMPLE_COUNT;
+	*voltage = (avg_raw * reference_voltage) / 1024.0f;
+
+	//// Read ADC raw value
+	//reg_value = sys_read32(AST1030_ADC_BASE_ADDR + adc[channel].offset);
+	//raw_value = (reg_value >> adc[channel].shift) & 0x3FF; // 10-bit(0x3FF) resolution
+
+	//// Real voltage = raw data * reference voltage / 2 ^ resolution(10)
+	//*voltage = (raw_value * reference_voltage) / 1024;
 
 	return true;
 }
 
 bool get_blade_config(uint8_t *blade_config)
 {
+	/* Determine blade configuration using ADC0 voltage
+	 * Since the BMC also have FRU acessibility,
+	 * avoid reading FRU to prevent unexpected behavior.
+	 */
+
 	CHECK_NULL_ARG_WITH_RETURN(blade_config, false);
 
 	float voltage = 0.0f;

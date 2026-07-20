@@ -453,26 +453,34 @@ K_WORK_DEFINE(set_e1s_pe_reset_work, set_e1s_pe_reset);
 
 void ISR_MB_PCIE_RST()
 {
-	gpio_set(PERST_ASIC1_N_R, gpio_get(RST_PCIE_MB_EXP_N));
-	gpio_set(PERST_ASIC2_N_R, gpio_get(RST_PCIE_MB_EXP_N));
+	uint8_t blade_conf = get_blade_configuration();
 
-	k_work_submit(&set_e1s_pe_reset_work);
-
-	// Monitor CXL ready and set CXL EID again
-	if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
-		LOG_INF("PERST+");
-		// If CXL didn't ready, check again
-		if ((!get_cxl_ready_status(CXL_ID_1)) || (!get_cxl_ready_status(CXL_ID_2))) {
-			create_check_cxl_ready_thread();
-			create_set_dev_endpoint_thread();
-		}
+	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+		k_work_submit(&set_e1s_pe_reset_work);
 	} else {
-		LOG_INF("PERST-");
-		// host reset, cxl also reset
-		set_cxl_ready_status(CXL_ID_1, false);
-		set_cxl_ready_status(CXL_ID_2, false);
-		set_cxl_vr_access(CXL_ID_1, false);
-		set_cxl_vr_access(CXL_ID_2, false);
+		gpio_set(PERST_ASIC1_N_R, gpio_get(RST_PCIE_MB_EXP_N));
+		gpio_set(PERST_ASIC2_N_R, gpio_get(RST_PCIE_MB_EXP_N));
+
+		k_work_submit(&set_e1s_pe_reset_work);
+
+		// Monitor CXL ready and set CXL EID again
+		if (gpio_get(RST_PCIE_MB_EXP_N) == GPIO_HIGH) {
+			LOG_INF("PERST+");
+
+			// If CXL didn't ready, check again
+			if ((!get_cxl_ready_status(CXL_ID_1)) ||
+			    (!get_cxl_ready_status(CXL_ID_2))) {
+				create_check_cxl_ready_thread();
+				create_set_dev_endpoint_thread();
+			}
+		} else {
+			LOG_INF("PERST-");
+			// host reset, cxl also reset
+			set_cxl_ready_status(CXL_ID_1, false);
+			set_cxl_ready_status(CXL_ID_2, false);
+			set_cxl_vr_access(CXL_ID_1, false);
+			set_cxl_vr_access(CXL_ID_2, false);
+		}
 	}
 }
 

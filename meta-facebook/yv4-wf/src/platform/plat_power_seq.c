@@ -171,6 +171,12 @@ void execute_power_on_sequence()
 	uint8_t blade_conf = get_blade_configuration();
 
 	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+		// If DC is on, doesn't need to power on again
+		if (gpio_get(PG_CARD_OK) == POWER_ON) {
+			LOG_INF("DC status is ON");
+			return;
+		}
+
 		// TODO: check E1S present
 		if (get_board_revision() == BOARD_POC) {
 			gpio_set(POC_EN_P3V3_E1S_0_R, POWER_ON);
@@ -181,6 +187,10 @@ void execute_power_on_sequence()
 		}
 		gpio_set(EN_P12V_E1S_0_R, POWER_ON);
 		set_P12V_E1S_power_status(PWRGD_P12V_E1S_0_R);
+
+		gpio_set(PG_CARD_OK, POWER_ON);
+		set_DC_status(PG_CARD_OK);
+		k_work_schedule(&set_dc_on_5s_work, K_SECONDS(DC_ON_DELAY5_SEC));
 
 		uint32_t uptime = get_uptime_secs();
 		uint32_t delay_ms = VR_EVENT_DELAY_MS;
@@ -454,6 +464,12 @@ void execute_power_off_sequence()
 	uint8_t blade_conf = get_blade_configuration();
 
 	if (blade_conf == BLADE_CONFIG_without_ASIC) {
+		// If DC is off, doesn't need to power off again
+		if (gpio_get(PG_CARD_OK) == POWER_OFF) {
+			LOG_INF("DC status is OFF");
+			return;
+		}
+
 		// TODO: check E1S present
 		if (get_board_revision() == BOARD_POC) {
 			gpio_set(POC_EN_P3V3_E1S_0_R, POWER_OFF);
@@ -464,6 +480,9 @@ void execute_power_off_sequence()
 		}
 		gpio_set(EN_P12V_E1S_0_R, POWER_OFF);
 		set_P12V_E1S_power_status(PWRGD_P12V_E1S_0_R);
+
+		gpio_set(PG_CARD_OK, POWER_OFF);
+		set_DC_status(PG_CARD_OK);
 
 	} else { // default: BLADE_CONFIG_with_ASIC
 

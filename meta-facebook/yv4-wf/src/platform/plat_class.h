@@ -19,6 +19,8 @@
 
 #define NUMBER_OF_ADC_CHANNEL 16
 #define AST1030_ADC_BASE_ADDR 0x7e6e9000
+#define ADC_PCLK_NS 42 // ~24MHz APB clock, adjust if your board differs
+#define ADC_SAMPLE_COUNT 8
 #define BLADE_CONFIG_VOLTAGE_RANGE 0.1 // range: +-0.1V, half of 0.25V spacing
 
 enum ADC_REF_VOL_SELECTION {
