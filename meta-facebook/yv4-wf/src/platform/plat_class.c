@@ -122,31 +122,10 @@ bool get_blade_config(uint8_t *blade_config)
 
 	CHECK_NULL_ARG_WITH_RETURN(blade_config, false);
 
-	float voltage = 0.0f;
-
-	if (get_adc_voltage(CHANNEL_0, &voltage) == false) {
-		LOG_ERR("Failed to get blade config");
-		*blade_config = BLADE_CONFIG_UNKNOWN;
-		return false;
-	}
-
-	*blade_config = BLADE_CONFIG_UNKNOWN;
-
-	for (int i = 0; i < ARRAY_SIZE(blade_config_table); i++) {
-		float typical_voltage = blade_config_table[i].voltage;
-		float range_val = blade_config_table[i].range_val;
-
-		if ((voltage <= typical_voltage + range_val) &&
-		    (voltage >= typical_voltage - range_val)) {
-			*blade_config = blade_config_table[i].blade_config;
-			LOG_INF("Blade config: 0x%02x, voltage: %dmV", *blade_config,
-				(int)(voltage * 1000));
-			return true;
-		}
-	}
-
-	LOG_ERR("Unknown blade config voltage: %dmV", (int)(voltage * 1000));
-	return false;
+	/* TEST ONLY: force WF without-ASIC */
+	*blade_config = BLADE_CONFIG_without_ASIC;
+	LOG_INF("Blade config: 0x%02x (FORCED without-ASIC for test build)", *blade_config);
+	return true;
 }
 
 uint8_t get_board_revision()
