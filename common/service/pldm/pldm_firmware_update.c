@@ -256,8 +256,13 @@ uint8_t pldm_vr_update(void *fw_update_param)
 
 	if (!strncmp(p->comp_version_str, KEYWORD_VR_ISL69259,
 		     ARRAY_SIZE(KEYWORD_VR_ISL69259) - 1)) {
+#ifndef DISABLE_ISL69259
 		if (isl69259_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
+#else
+		LOG_ERR("ISL69259 is not enabled!");
+		goto exit;
+#endif
 	} else if (!strncmp(p->comp_version_str, KEYWORD_VR_XDPE12284C,
 			    ARRAY_SIZE(KEYWORD_VR_XDPE12284C) - 1)) {
 		if (xdpe12284c_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) ==
@@ -287,6 +292,7 @@ uint8_t pldm_vr_update(void *fw_update_param)
 			goto exit;
 	}
 #endif
+#ifndef DISABLE_RAA229621
 	else if ((!strncmp(p->comp_version_str, KEYWORD_VR_RAA229620,
 			   ARRAY_SIZE(KEYWORD_VR_RAA229620) - 1)) ||
 		 (!strncmp(p->comp_version_str, KEYWORD_VR_RAA229621,
@@ -296,31 +302,47 @@ uint8_t pldm_vr_update(void *fw_update_param)
 		if (raa229621_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) ==
 		    false)
 			goto exit;
-	} else if (!strncmp(p->comp_version_str, KEYWORD_VR_MPQ8746,
-			    ARRAY_SIZE(KEYWORD_VR_MPQ8746) - 1)) {
+	}
+#endif
+#ifndef DISABLE_MPQ8746
+	else if (!strncmp(p->comp_version_str, KEYWORD_VR_MPQ8746,
+			  ARRAY_SIZE(KEYWORD_VR_MPQ8746) - 1)) {
 		if (mpq8746_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
-	} else if ((!strncmp(p->comp_version_str, KEYWORD_VR_MP2898,
-			     ARRAY_SIZE(KEYWORD_VR_MP2898) - 1)) ||
-		   (!strncmp(p->comp_version_str, KEYWORD_VR_MP2894,
-			     ARRAY_SIZE(KEYWORD_VR_MP2894) - 1))) {
+	}
+#endif
+#ifndef DISABLE_MP289X
+	else if ((!strncmp(p->comp_version_str, KEYWORD_VR_MP2898,
+			   ARRAY_SIZE(KEYWORD_VR_MP2898) - 1)) ||
+		 (!strncmp(p->comp_version_str, KEYWORD_VR_MP2894,
+			   ARRAY_SIZE(KEYWORD_VR_MP2894) - 1))) {
 		if (mp289x_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
-	} else if ((!strncmp(p->comp_version_str, KEYWORD_VR_TPS53685,
-			     ARRAY_SIZE(KEYWORD_VR_TPS53685) - 1)) ||
-		   (!strncmp(p->comp_version_str, KEYWORD_VR_TPS536C5,
-			     ARRAY_SIZE(KEYWORD_VR_TPS536C5) - 1))) {
+	}
+#endif
+#ifndef DISABLE_TPS53689
+	else if ((!strncmp(p->comp_version_str, KEYWORD_VR_TPS53685,
+			   ARRAY_SIZE(KEYWORD_VR_TPS53685) - 1)) ||
+		 (!strncmp(p->comp_version_str, KEYWORD_VR_TPS536C5,
+			   ARRAY_SIZE(KEYWORD_VR_TPS536C5) - 1))) {
 		if (tps536xx_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
-	} else if (!strncmp(p->comp_version_str, KEYWORD_VR_TDA38741,
-			    ARRAY_SIZE(KEYWORD_VR_TDA38741) - 1)) {
+	}
+#endif
+#ifndef DISABLE_TDA38741
+	else if (!strncmp(p->comp_version_str, KEYWORD_VR_TDA38741,
+			  ARRAY_SIZE(KEYWORD_VR_TDA38741) - 1)) {
 		if (tda38741_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
-	} else if (!strncmp(p->comp_version_str, KEYWORD_VR_MP2988,
-			    ARRAY_SIZE(KEYWORD_VR_MP2988) - 1)) {
+	}
+#endif
+#ifndef DISABLE_MP2988
+	else if (!strncmp(p->comp_version_str, KEYWORD_VR_MP2988,
+			  ARRAY_SIZE(KEYWORD_VR_MP2988) - 1)) {
 		if (mp2988_fwupdate(p->bus, p->addr, hex_buff, fw_update_cfg.image_size) == false)
 			goto exit;
 	}
+#endif
 #ifdef ENABLE_MP29816A
 	else if (!strncmp(p->comp_version_str, KEYWORD_VR_MP29816A,
 			  ARRAY_SIZE(KEYWORD_VR_MP29816A) - 1)) {
