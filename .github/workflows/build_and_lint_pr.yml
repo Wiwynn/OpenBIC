@@ -202,6 +202,7 @@ jobs:
         options=( "-j2"
           "--force"
           "--inconclusive"
+          "--check-level=exhaustive"
           "--enable=performance,style,portability,information"
           "--library=scripts/linters/cppcheck/cppcheck.cfg"
           "--suppressions-list=scripts/linters/cppcheck/cppcheck-suppressions.txt"
